@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useCart } from "@/lib/cart-context";
 
 export default function Navbar() {
@@ -22,9 +23,14 @@ export default function Navbar() {
           </svg>
         </a>
 
-        <span className="font-display font-700 text-xl sm:text-2xl tracking-tight text-ink">
-          Butter&apos;s Love
-        </span>
+        <Image
+          src="/logo-navbar.png"
+          alt="Butter's Love"
+          width={1808}
+          height={500}
+          priority
+          className="h-9 sm:h-12 w-auto"
+        />
 
         <button
           onClick={openCart}
