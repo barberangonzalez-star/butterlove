@@ -1,6 +1,5 @@
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
-import PromoBanner from "@/components/PromoBanner";
 import ProductsGrid from "@/components/ProductsGrid";
 import Story from "@/components/Story";
 import HowToOrder from "@/components/HowToOrder";
@@ -14,7 +13,6 @@ export default function Home() {
       <Navbar />
       <main className="flex-1">
         <Hero />
-        <PromoBanner />
         <ProductsGrid />
         <Story />
         <HowToOrder />
