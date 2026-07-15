@@ -11,6 +11,7 @@ export interface Product {
   tagline: string;
   description: string;
   image: string;
+  heroImage: string;
   bgClass: string;
   accentHex: string;
   badges: string[];
@@ -25,6 +26,7 @@ export const products: Product[] = [
     description:
       "Maní tostado y molido despacio hasta lograr una textura cremosa. La receta original de Butter Love: solo maní, nada más.",
     image: "/products/mani.png",
+    heroImage: "/hero/mani.png",
     bgClass: "bg-mani-bg",
     accentHex: "#F3B94D",
     badges: ["100% natural", "Hecho a mano", "Sin azúcar agregada"],
@@ -40,6 +42,7 @@ export const products: Product[] = [
     description:
       "Pistachos seleccionados, molidos hasta lograr un verde intenso y un sabor delicado. Ideal para untar o para tus postres favoritos.",
     image: "/products/pistacho.png",
+    heroImage: "/hero/pistacho.png",
     bgClass: "bg-pistacho-bg",
     accentHex: "#B7D96B",
     badges: ["100% natural", "Hecho a mano", "Sin azúcar agregada"],
@@ -55,6 +58,7 @@ export const products: Product[] = [
     description:
       "Almendras molidas lentamente para conservar sus nutrientes. Aliada de tu piel y tu energía diaria.",
     image: "/products/almendras.png",
+    heroImage: "/hero/almendras.png",
     bgClass: "bg-almendras-bg",
     accentHex: "#F5A8C4",
     badges: ["100% natural", "Hecho a mano", "Sin azúcar agregada"],
@@ -70,6 +74,7 @@ export const products: Product[] = [
     description:
       "Merey (cashew) 100% venezolano, molido hasta una crema suave y ligeramente dulce de forma natural.",
     image: "/products/merey.png",
+    heroImage: "/hero/merey.png",
     bgClass: "bg-merey-bg",
     accentHex: "#A9DCE8",
     badges: ["100% natural", "Hecho a mano", "Sin azúcar agregada"],
