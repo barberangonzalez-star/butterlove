@@ -16,13 +16,13 @@ export default function Footer() {
           </p>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-start">
           <Image
             src="/logo-wordmark.png"
             alt="Butter Love"
             width={920}
             height={500}
-            className="h-24 sm:h-32 w-auto opacity-90"
+            className="h-36 sm:h-48 w-auto opacity-90"
           />
         </div>
 
