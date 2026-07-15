@@ -1,45 +1,28 @@
 export default function Footer() {
   return (
-    <footer className="bg-ink text-cream/80 mt-auto">
-      <div className="mx-auto max-w-6xl px-5 sm:px-8 py-12 grid sm:grid-cols-3 gap-8">
-        <div>
-          <p className="font-display font-700 text-2xl text-cream mb-2">
-            Butter<span className="text-mani-bg">Love</span>
+    <footer className="px-3 sm:px-5 pb-28 sm:pb-24 pt-2">
+      <div className="torn-card bg-dark-panel text-cream px-6 sm:px-10 py-10 sm:py-14">
+        <div className="grid sm:grid-cols-2 gap-8 mb-10">
+          <p className="max-w-xs text-cream/85">
+            Disfruta el sabor real de Butter Love — sin azúcar agregada, sin
+            nada raro, solo frutos secos untados como deben ser.
           </p>
-          <p className="text-sm max-w-xs">
-            Mantequillas artesanales de maní y frutos secos, hechas a mano en
-            Venezuela. 100% naturales, sin azúcar agregada.
+          <p className="font-display font-700 text-2xl sm:text-3xl italic text-right">
+            ¡Untemos
+            <br />
+            sin límites!
           </p>
         </div>
-        <div>
-          <p className="text-cream font-semibold mb-3 text-sm">Navegación</p>
-          <ul className="space-y-2 text-sm">
-            <li>
-              <a href="#productos" className="hover:text-cream">
-                Productos
-              </a>
-            </li>
-            <li>
-              <a href="#historia" className="hover:text-cream">
-                Nuestra historia
-              </a>
-            </li>
-            <li>
-              <a href="#pedido" className="hover:text-cream">
-                Cómo pedir
-              </a>
-            </li>
-          </ul>
+
+        <p className="font-display font-700 text-[15vw] sm:text-[7vw] leading-none whitespace-nowrap overflow-hidden opacity-90">
+          BUTTER LOVE
+        </p>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-6 mt-6 border-t border-cream/15 text-xs text-cream/60">
+          <span>© {new Date().getFullYear()} Butter Love</span>
+          <span>Pago Móvil · USD · Binance</span>
+          <span>Hecho con amor en Venezuela</span>
         </div>
-        <div>
-          <p className="text-cream font-semibold mb-3 text-sm">
-            Métodos de pago
-          </p>
-          <p className="text-sm">Pago Móvil · USD · Binance</p>
-        </div>
-      </div>
-      <div className="border-t border-cream/10 px-5 sm:px-8 py-5 text-xs text-cream/50">
-        © {new Date().getFullYear()} Butter Love. Hecho con amor en Venezuela.
       </div>
     </footer>
   );

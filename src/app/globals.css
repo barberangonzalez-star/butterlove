@@ -1,18 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --cream: #fbf5ec;
-  --ink: #3a2416;
-  --ink-soft: #6b5142;
+  --cream: #f4efda;
+  --ink: #1e4356;
+  --ink-soft: #3f6577;
 
-  --mani-bg: #f6d8c8;
-  --mani-accent: #c2542c;
-  --pistacho-bg: #dceaca;
-  --pistacho-accent: #6b8e3d;
-  --almendras-bg: #e6dbf3;
-  --almendras-accent: #7e5aa8;
-  --merey-bg: #cdeaef;
-  --merey-accent: #1f8fa3;
+  --card-mani: #f3b94d;
+  --card-pistacho: #b7d96b;
+  --card-almendras: #f5a8c4;
+  --card-merey: #a9dce8;
+
+  --dark-panel: #1f4e5f;
 }
 
 @theme inline {
@@ -20,14 +18,11 @@
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
 
-  --color-mani-bg: var(--mani-bg);
-  --color-mani-accent: var(--mani-accent);
-  --color-pistacho-bg: var(--pistacho-bg);
-  --color-pistacho-accent: var(--pistacho-accent);
-  --color-almendras-bg: var(--almendras-bg);
-  --color-almendras-accent: var(--almendras-accent);
-  --color-merey-bg: var(--merey-bg);
-  --color-merey-accent: var(--merey-accent);
+  --color-mani-bg: var(--card-mani);
+  --color-pistacho-bg: var(--card-pistacho);
+  --color-almendras-bg: var(--card-almendras);
+  --color-merey-bg: var(--card-merey);
+  --color-dark-panel: var(--dark-panel);
 
   --font-display: var(--font-fredoka);
   --font-body: var(--font-dmsans);
@@ -41,6 +36,10 @@ body {
 
 * {
   scrollbar-width: thin;
+}
+
+.torn-card {
+  border-radius: 34px 40px 30px 44px;
 }
 
 @media (prefers-reduced-motion: reduce) {

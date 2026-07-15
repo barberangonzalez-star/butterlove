@@ -112,7 +112,7 @@ export default function CartDrawer() {
                       </p>
                       <button
                         onClick={() => removeItem(item.key, item.grams)}
-                        className="text-xs text-ink-soft hover:text-mani-accent mt-2"
+                        className="text-xs text-ink-soft hover:text-ink mt-2"
                       >
                         Quitar
                       </button>

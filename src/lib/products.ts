@@ -12,7 +12,6 @@ export interface Product {
   description: string;
   image: string;
   bgClass: string;
-  accentClass: string;
   accentHex: string;
   badges: string[];
   sizes: SizeOption[];
@@ -27,8 +26,7 @@ export const products: Product[] = [
       "Maní tostado y molido despacio hasta lograr una textura cremosa. La receta original de Butter Love: solo maní, nada más.",
     image: "/products/mani.png",
     bgClass: "bg-mani-bg",
-    accentClass: "text-mani-accent",
-    accentHex: "#C2542C",
+    accentHex: "#F3B94D",
     badges: ["100% natural", "Hecho a mano", "Sin azúcar agregada"],
     sizes: [
       { grams: 230, price: 6 },
@@ -38,13 +36,12 @@ export const products: Product[] = [
   {
     key: "pistacho",
     name: "Pistacho",
-    tagline: "Para reposteria con carácter",
+    tagline: "Para repostería con carácter",
     description:
       "Pistachos seleccionados, molidos hasta lograr un verde intenso y un sabor delicado. Ideal para untar o para tus postres favoritos.",
     image: "/products/pistacho.png",
     bgClass: "bg-pistacho-bg",
-    accentClass: "text-pistacho-accent",
-    accentHex: "#6B8E3D",
+    accentHex: "#B7D96B",
     badges: ["100% natural", "Hecho a mano", "Sin azúcar agregada"],
     sizes: [
       { grams: 230, price: 20 },
@@ -59,8 +56,7 @@ export const products: Product[] = [
       "Almendras molidas lentamente para conservar sus nutrientes. Aliada de tu piel y tu energía diaria.",
     image: "/products/almendras.png",
     bgClass: "bg-almendras-bg",
-    accentClass: "text-almendras-accent",
-    accentHex: "#7E5AA8",
+    accentHex: "#F5A8C4",
     badges: ["100% natural", "Hecho a mano", "Sin azúcar agregada"],
     sizes: [
       { grams: 230, price: 10 },
@@ -75,8 +71,7 @@ export const products: Product[] = [
       "Merey (cashew) 100% venezolano, molido hasta una crema suave y ligeramente dulce de forma natural.",
     image: "/products/merey.png",
     bgClass: "bg-merey-bg",
-    accentClass: "text-merey-accent",
-    accentHex: "#1F8FA3",
+    accentHex: "#A9DCE8",
     badges: ["100% natural", "Hecho a mano", "Sin azúcar agregada"],
     sizes: [
       { grams: 230, price: 10 },

@@ -5,6 +5,7 @@ import Story from "@/components/Story";
 import HowToOrder from "@/components/HowToOrder";
 import CartDrawer from "@/components/CartDrawer";
 import Footer from "@/components/Footer";
+import FloatingNav from "@/components/FloatingNav";
 
 export default function Home() {
   return (
@@ -18,6 +19,7 @@ export default function Home() {
       </main>
       <Footer />
       <CartDrawer />
+      <FloatingNav />
     </>
   );
 }
