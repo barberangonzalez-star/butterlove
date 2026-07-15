@@ -27,22 +27,23 @@ export default function Hero() {
 
         <div className="relative flex-1 flex flex-col justify-end px-6 sm:px-10 pb-8 pt-10">
           <p className="text-xs font-bold uppercase tracking-widest text-white/80 mb-2">
-            Untado real, 100% natural
+            {active === "mani" ? "Tiempo limitado" : "Untado real, 100% natural"}
           </p>
 
-          {active === "mani" && (
-            <a
-              href="#productos"
-              className="inline-flex items-center gap-2 bg-mani-bg text-ink text-xs sm:text-sm font-bold uppercase tracking-wide px-4 py-2 rounded-full mb-4 w-fit shadow-lg hover:brightness-95 transition-[filter]"
-            >
-              🔥 2 × 230g de Maní por $10
-            </a>
-          )}
-
           <h1 className="font-display font-700 text-3xl sm:text-5xl text-white mb-6 max-w-lg drop-shadow">
-            {product.name}
-            <br />
-            {product.tagline}
+            {active === "mani" ? (
+              <>
+                Promo 2 × 10
+                <br />
+                Mantequilla de maní
+              </>
+            ) : (
+              <>
+                {product.name}
+                <br />
+                {product.tagline}
+              </>
+            )}
           </h1>
 
           <div className="flex items-end justify-between flex-wrap gap-4">
