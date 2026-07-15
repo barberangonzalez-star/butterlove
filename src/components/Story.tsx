@@ -1,3 +1,13 @@
+import Image from "next/image";
+import { getProduct } from "@/lib/products";
+
+const floatingJars = [
+  { key: "mani" as const, offsetClass: "" },
+  { key: "pistacho" as const, offsetClass: "mt-6" },
+  { key: "merey" as const, offsetClass: "-mt-6" },
+  { key: "almendras" as const, offsetClass: "" },
+];
+
 export default function Story() {
   return (
     <section id="historia" className="px-3 sm:px-5 py-6 space-y-4">
@@ -21,10 +31,24 @@ export default function Story() {
           </p>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-2xl bg-mani-bg aspect-square" />
-          <div className="rounded-2xl bg-pistacho-bg aspect-square mt-6" />
-          <div className="rounded-2xl bg-merey-bg aspect-square -mt-6" />
-          <div className="rounded-2xl bg-almendras-bg aspect-square" />
+          {floatingJars.map(({ key, offsetClass }, i) => {
+            const product = getProduct(key);
+            return (
+              <div
+                key={key}
+                className={`relative rounded-2xl ${product.bgClass} aspect-square overflow-hidden ${offsetClass}`}
+              >
+                <Image
+                  src={product.image}
+                  alt={`Mantequilla de ${product.name} Butter Love`}
+                  fill
+                  sizes="(max-width: 768px) 45vw, 220px"
+                  className="object-contain object-bottom p-4 drop-shadow-xl animate-float-jar"
+                  style={{ animationDelay: `${i * 0.35}s` }}
+                />
+              </div>
+            );
+          })}
         </div>
       </div>
 

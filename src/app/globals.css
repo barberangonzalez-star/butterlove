@@ -42,6 +42,20 @@ body {
   border-radius: 34px 40px 30px 44px;
 }
 
+@keyframes float-jar {
+  0%,
+  100% {
+    transform: translateY(0) rotate(-2deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(2deg);
+  }
+}
+
+.animate-float-jar {
+  animation: float-jar 3.6s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {
     animation-duration: 0.001ms !important;
