@@ -37,7 +37,7 @@ export default function Hero() {
                 <br />
                 Mantequilla de maní
               </>
-            ) : active === "pistacho" ? (
+            ) : active === "pistacho" || active === "merey" ? (
               <>Mantequilla de {product.name}</>
             ) : (
               <>
