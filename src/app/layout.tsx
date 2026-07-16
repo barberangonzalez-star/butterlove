@@ -8,6 +8,7 @@ import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import FloatingNav from "@/components/FloatingNav";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import ChatWidget from "@/components/ChatWidget";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -46,6 +47,7 @@ export default function RootLayout({
           <Footer />
           <CartDrawer />
           <FloatingNav />
+          <ChatWidget />
         </CartProvider>
       </body>
     </html>
