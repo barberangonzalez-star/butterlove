@@ -2,7 +2,9 @@
 
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import Image from "next/image";
 import { useState } from "react";
+import favicon from "@/app/icon.png";
 
 function renderFormattedText(text: string) {
   return text
@@ -131,23 +133,18 @@ export default function ChatWidget() {
       <button
         onClick={() => setOpen((v) => !v)}
         aria-label={open ? "Cerrar chat" : "Abrir chat"}
-        className="w-14 h-14 rounded-full bg-ink text-cream shadow-lg flex items-center justify-center hover:scale-105 transition-transform"
+        className="relative w-14 h-14 rounded-full bg-ink text-cream shadow-lg flex items-center justify-center hover:scale-105 transition-transform overflow-hidden"
       >
         {open ? (
           <span className="text-2xl leading-none">×</span>
         ) : (
-          <svg
-            width="24"
-            height="24"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />
-          </svg>
+          <Image
+            src={favicon}
+            alt=""
+            fill
+            sizes="56px"
+            className="object-cover"
+          />
         )}
       </button>
     </div>
