@@ -4,6 +4,16 @@ import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import { useState } from "react";
 
+function renderFormattedText(text: string) {
+  return text.split(/(\*\*[^*]+\*\*)/g).map((chunk, i) =>
+    chunk.startsWith("**") && chunk.endsWith("**") ? (
+      <strong key={i}>{chunk.slice(2, -2)}</strong>
+    ) : (
+      chunk
+    ),
+  );
+}
+
 export default function ChatWidget() {
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState("");
@@ -61,7 +71,7 @@ export default function ChatWidget() {
                   {message.parts.map((part, i) =>
                     part.type === "text" ? (
                       <span key={i} className="whitespace-pre-wrap">
-                        {part.text}
+                        {renderFormattedText(part.text)}
                       </span>
                     ) : null,
                   )}

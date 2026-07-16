@@ -7,34 +7,92 @@ import {
   type UIMessage,
 } from "ai";
 import { products } from "@/lib/products";
+import { posts } from "@/lib/posts";
 import { PAYMENT_METHODS, PAGO_MOVIL, WHATSAPP_NUMBER } from "@/lib/config";
+import { getBcvRate } from "@/lib/bcv";
 
 export const maxDuration = 30;
 
-const catalog = products
-  .map((p) => {
-    const prices = p.sizes.map((s) => `${s.grams}g: $${s.price}`).join(", ");
-    return `- ${p.name} (${p.tagline}): ${p.description} Precios: ${prices}.`;
-  })
-  .join("\n");
+const vesFormatter = new Intl.NumberFormat("es-VE", {
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
 
-const systemPrompt = `Eres el asistente virtual de Butter Love, una marca venezolana de mantequillas artesanales de maní, pistacho, almendras y merey, 100% naturales y sin azúcar agregada.
+function buildSystemPrompt(bcv: Awaited<ReturnType<typeof getBcvRate>>) {
+  const toVes = (usd: number) =>
+    bcv ? `Bs. ${vesFormatter.format(usd * bcv.rate)}` : null;
 
-Catálogo:
+  const catalog = products
+    .map((p) => {
+      const prices = p.sizes
+        .map((s) => {
+          const ves = toVes(s.price);
+          return `${s.grams}g: $${s.price}${ves ? ` (${ves})` : ""}`;
+        })
+        .join(", ");
+      return `- ${p.name} — "${p.tagline}". ${p.description} Precios: ${prices}.`;
+    })
+    .join("\n");
+
+  const benefits = posts
+    .filter((p) => p.category === "beneficios")
+    .map((p) => `- ${p.title}: ${p.body.join(" ")}`)
+    .join("\n");
+
+  const recipes = posts
+    .filter((p) => p.category === "recetas")
+    .map((p) => {
+      const r = p.recipe;
+      const ingredients = r ? ` Ingredientes: ${r.ingredients.join(", ")}. Pasos: ${r.steps.join(" ")}` : "";
+      return `- ${p.title} (${p.readTime}): ${p.excerpt}${ingredients}`;
+    })
+    .join("\n");
+
+  const rateLine = bcv
+    ? `1 USD = ${toVes(1)} (tasa oficial BCV, actualizada ${new Date(bcv.updatedAt).toLocaleString("es-VE")}).`
+    : "La tasa BCV no está disponible en este momento: menciona los precios solo en USD y aclara que la conversión a bolívares no se pudo calcular ahora mismo.";
+
+  const pagoMovil = `${PAGO_MOVIL.bank} - ${PAGO_MOVIL.id} - ${PAGO_MOVIL.phone.replace(/-/g, "")}`;
+
+  return `Eres el asistente virtual de Butter Love, marca venezolana de mantequillas artesanales de maní, pistacho, almendras y merey.
+
+Identidad de marca (repítelo cuando aplique, es el corazón del negocio): todos los productos son 100% naturales, hechos a mano en tandas pequeñas y sin azúcar agregada. "De la finca al frasco, sin atajos." Son "positivamente adictivas": sin rellenos, sin aceites raros, sin atajos.
+
+Catálogo y precios (USD y equivalente en bolívares a la tasa BCV oficial):
 ${catalog}
 
-Métodos de pago aceptados: ${PAYMENT_METHODS.join(", ")}.
-Datos de Pago Móvil: Banco ${PAGO_MOVIL.bank}, Teléfono ${PAGO_MOVIL.phone}, Cédula/RIF ${PAGO_MOVIL.id}.
-Para coordinar pedidos y entregas, remite al cliente al WhatsApp +${WHATSAPP_NUMBER}.
+Tasa de cambio:
+${rateLine}
 
-Responde siempre en español, de forma breve, cálida y cercana. Si no sabes algo con certeza, sugiere contactar por WhatsApp en lugar de inventar información.`;
+Beneficios nutricionales por sabor:
+${benefits}
+
+Recetas con nuestras mantequillas:
+${recipes}
+
+Cómo pedir:
+1. El cliente elige sabor y tamaño (230g o 350g).
+2. Confirma el pedido por WhatsApp: +${WHATSAPP_NUMBER}.
+3. Paga como prefiera: ${PAYMENT_METHODS.join(", ")}.
+4. Coordinan la entrega o punto de encuentro por WhatsApp.
+
+Datos de Pago Móvil: ${pagoMovil}
+
+Instrucciones de estilo:
+- Responde siempre en español, breve, cálido y cercano, como si fueras parte del equipo de Butter Love.
+- Usa **negrillas** (con doble asterisco) para resaltar lo importante, como precios o el número de WhatsApp.
+- Usa emojis con moderación cuando aporten calidez (🥜🍯😊), sin abusar.
+- Si preguntan el precio en bolívares y no mencionan bolívares tú, aclara que es un estimado según la tasa BCV del momento.
+- Si no sabes algo con certeza, no inventes: sugiere contactar por WhatsApp.`;
+}
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
+  const bcv = await getBcvRate();
 
   const result = streamText({
     model: deepseek("deepseek-chat"),
-    system: systemPrompt,
+    system: buildSystemPrompt(bcv),
     messages: await convertToModelMessages(messages),
   });
 
