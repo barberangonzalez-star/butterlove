@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import { Fredoka, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart-context";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
+import CartDrawer from "@/components/CartDrawer";
+import FloatingNav from "@/components/FloatingNav";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -32,7 +36,13 @@ export default function RootLayout({
       className={`${fredoka.variable} ${dmSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-cream text-ink font-body">
-        <CartProvider>{children}</CartProvider>
+        <CartProvider>
+          <Navbar />
+          <main className="flex-1">{children}</main>
+          <Footer />
+          <CartDrawer />
+          <FloatingNav />
+        </CartProvider>
       </body>
     </html>
   );

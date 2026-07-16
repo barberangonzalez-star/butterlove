@@ -1,8 +1,8 @@
 export default function FloatingNav() {
   const links = [
-    { href: "#productos", label: "Productos" },
-    { href: "#historia", label: "Historia" },
-    { href: "#pedido", label: "Cómo pedir" },
+    { href: "/#productos", label: "Productos" },
+    { href: "/#historia", label: "Historia" },
+    { href: "/#pedido", label: "Cómo pedir" },
   ];
 
   return (

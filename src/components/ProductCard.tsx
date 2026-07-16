@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Product } from "@/lib/products";
 import { useCart } from "@/lib/cart-context";
 
@@ -69,15 +70,25 @@ export default function ProductCard({ product }: { product: Product }) {
                 </li>
               ))}
             </ul>
+            <Link
+              href={`/productos/${product.key}`}
+              onClick={(e) => e.stopPropagation()}
+              className="mt-4 inline-block text-xs font-bold uppercase tracking-wide text-cream underline underline-offset-4 hover:text-white w-fit"
+            >
+              Más información →
+            </Link>
           </div>
         )}
       </div>
 
       {/* White footer strip — product name, like Charlie's label under each can */}
       <div className="bg-white/80 px-4 pt-3 pb-4">
-        <h3 className="font-display font-700 text-xl text-center mb-3">
+        <Link
+          href={`/productos/${product.key}`}
+          className="block font-display font-700 text-xl text-center mb-3 hover:underline"
+        >
           Mantequilla de {product.name}
-        </h3>
+        </Link>
 
         <div className="flex gap-2 mb-3">
           {product.sizes.map((s, i) => (
