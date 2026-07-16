@@ -3,6 +3,7 @@ export default function FloatingNav() {
     { href: "/#productos", label: "Productos" },
     { href: "/#historia", label: "Historia" },
     { href: "/#pedido", label: "Cómo pedir" },
+    { href: "/blog", label: "Blog" },
   ];
 
   return (
