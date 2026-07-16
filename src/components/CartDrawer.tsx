@@ -51,7 +51,7 @@ function buildWhatsAppMessage({
 }) {
   const lines = items.map((i) => {
     const product = getProduct(i.key);
-    return `• Mantequilla de ${product.name} ${i.grams}g x${i.qty} — $${(
+    return `• Mantequilla de ${product.name} ${i.grams}g x${i.qty}: $${(
       i.price * i.qty
     ).toFixed(2)}`;
   });

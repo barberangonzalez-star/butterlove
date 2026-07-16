@@ -9,7 +9,7 @@ const steps = [
   },
   {
     title: "Paga como prefieras",
-    text: "Pago Móvil, USD en efectivo o Binance — coordinamos contigo.",
+    text: "Pago Móvil, USD en efectivo o Binance. Coordinamos contigo.",
   },
   {
     title: "Recibe tu pedido",

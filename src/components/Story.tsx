@@ -21,11 +21,11 @@ export default function Story() {
             adictiva.
           </h2>
           <p className="text-xs font-bold uppercase tracking-[0.3em] mb-4 text-cream/70">
-            — Advertencia —
+            Advertencia
           </p>
           <p className="text-cream/85 leading-relaxed max-w-md">
             Una vez que abres un Butter Love, el pan solo ya no alcanza.
-            Frutos reales, molienda lenta, sin azúcar — suena simple porque lo
+            Frutos reales, molienda lenta, sin azúcar: suena simple porque lo
             es. Por eso cuesta tanto parar. Así sabe untar bien hecho: sin
             atajos, sin rellenos, sin vuelta atrás.
           </p>

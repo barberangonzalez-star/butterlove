@@ -6,7 +6,7 @@ export default function Footer() {
       <div className="torn-card bg-dark-panel text-cream px-6 sm:px-10 py-10 sm:py-14">
         <div className="grid sm:grid-cols-2 gap-8 mb-10">
           <p className="max-w-xs text-cream/85">
-            Disfruta el sabor real de Butter Love — sin azúcar agregada, sin
+            Disfruta el sabor real de Butter Love, sin azúcar agregada, sin
             nada raro, solo frutos secos untados como deben ser.
           </p>
           <p className="font-display font-700 text-2xl sm:text-3xl italic text-right">
