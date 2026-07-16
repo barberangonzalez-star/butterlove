@@ -10,7 +10,7 @@ export default function Navbar() {
     <header className="relative z-40">
       <div className="mx-auto max-w-6xl px-5 sm:px-8 h-16 flex items-center justify-between">
         <a
-          href="https://www.instagram.com"
+          href="https://www.instagram.com/butterlove.ag/"
           target="_blank"
           rel="noopener noreferrer"
           aria-label="Instagram de Butter Love"

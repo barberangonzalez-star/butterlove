@@ -12,17 +12,21 @@ export default function ProductCard({ product }: { product: Product }) {
   const size = product.sizes[sizeIdx];
 
   return (
-    <div className="flex flex-col">
+    <div className="torn-card overflow-hidden flex flex-col">
       {/* Colored "torn card" — mirrors Charlie's product tile */}
       <div
-        className={`relative torn-card ${product.bgClass} pt-4 px-4 pb-0 aspect-[4/5] flex flex-col overflow-hidden`}
+        onClick={() => setInfoOpen((v) => !v)}
+        className={`relative ${product.bgClass} pt-4 px-4 pb-0 aspect-[4/5] flex flex-col cursor-pointer`}
       >
         <div className="flex items-start justify-between relative z-10">
           <span className="bg-white/90 text-ink text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
             100% natural
           </span>
           <button
-            onClick={() => setInfoOpen((v) => !v)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setInfoOpen((v) => !v);
+            }}
             aria-label={`Información de ${product.name}`}
             className="w-7 h-7 rounded-full bg-white/90 text-ink flex items-center justify-center font-display font-700 text-sm hover:bg-white transition-colors"
           >
@@ -48,7 +52,10 @@ export default function ProductCard({ product }: { product: Product }) {
         {infoOpen && (
           <div className="absolute inset-0 z-20 bg-ink/95 text-cream p-5 flex flex-col justify-center">
             <button
-              onClick={() => setInfoOpen(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setInfoOpen(false);
+              }}
               aria-label="Cerrar información"
               className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
             >
@@ -67,7 +74,7 @@ export default function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* White footer strip — product name, like Charlie's label under each can */}
-      <div className="bg-white/80 rounded-b-2xl px-4 pt-3 pb-4 -mt-2">
+      <div className="bg-white/80 px-4 pt-3 pb-4">
         <h3 className="font-display font-700 text-xl text-center mb-3">
           {product.name}
         </h3>
