@@ -5,13 +5,31 @@ import { DefaultChatTransport } from "ai";
 import { useState } from "react";
 
 function renderFormattedText(text: string) {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((chunk, i) =>
-    chunk.startsWith("**") && chunk.endsWith("**") ? (
-      <strong key={i}>{chunk.slice(2, -2)}</strong>
-    ) : (
-      chunk
-    ),
-  );
+  return text
+    .split(/(\*\*[^*]+\*\*|https?:\/\/\S+)/g)
+    .map((chunk, i) => {
+      if (chunk.startsWith("**") && chunk.endsWith("**")) {
+        return <strong key={i}>{chunk.slice(2, -2)}</strong>;
+      }
+      if (/^https?:\/\//.test(chunk)) {
+        const trailing = chunk.match(/[.,!?)]+$/)?.[0] ?? "";
+        const url = trailing ? chunk.slice(0, -trailing.length) : chunk;
+        return (
+          <span key={i}>
+            <a
+              href={url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline"
+            >
+              {url}
+            </a>
+            {trailing}
+          </span>
+        );
+      }
+      return chunk;
+    });
 }
 
 export default function ChatWidget() {

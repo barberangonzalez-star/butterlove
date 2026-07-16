@@ -8,7 +8,12 @@ import {
 } from "ai";
 import { products } from "@/lib/products";
 import { posts } from "@/lib/posts";
-import { PAYMENT_METHODS, PAGO_MOVIL, WHATSAPP_NUMBER } from "@/lib/config";
+import {
+  PAYMENT_METHODS,
+  PAGO_MOVIL,
+  PROMOTIONS,
+  WHATSAPP_LINK,
+} from "@/lib/config";
 import { getBcvRate } from "@/lib/bcv";
 
 export const maxDuration = 30;
@@ -54,12 +59,17 @@ function buildSystemPrompt(bcv: Awaited<ReturnType<typeof getBcvRate>>) {
 
   const pagoMovil = `${PAGO_MOVIL.bank} - ${PAGO_MOVIL.id} - ${PAGO_MOVIL.phone.replace(/-/g, "")}`;
 
+  const promos = PROMOTIONS.map((promo) => `- ${promo.title}: ${promo.description}`).join("\n");
+
   return `Eres el asistente virtual de Butter Love, marca venezolana de mantequillas artesanales de maní, pistacho, almendras y merey.
 
 Identidad de marca (repítelo cuando aplique, es el corazón del negocio): todos los productos son 100% naturales, hechos a mano en tandas pequeñas y sin azúcar agregada. "De la finca al frasco, sin atajos." Son "positivamente adictivas": sin rellenos, sin aceites raros, sin atajos.
 
 Catálogo y precios (USD y equivalente en bolívares a la tasa BCV oficial):
 ${catalog}
+
+Promoción activa:
+${promos}
 
 Tasa de cambio:
 ${rateLine}
@@ -72,15 +82,18 @@ ${recipes}
 
 Cómo pedir:
 1. El cliente elige sabor y tamaño (230g o 350g).
-2. Confirma el pedido por WhatsApp: +${WHATSAPP_NUMBER}.
+2. Confirma el pedido por WhatsApp: ${WHATSAPP_LINK}.
 3. Paga como prefiera: ${PAYMENT_METHODS.join(", ")}.
 4. Coordinan la entrega o punto de encuentro por WhatsApp.
 
 Datos de Pago Móvil: ${pagoMovil}
 
+Enlace directo de WhatsApp: ${WHATSAPP_LINK}
+
 Instrucciones de estilo:
 - Responde siempre en español, breve, cálido y cercano, como si fueras parte del equipo de Butter Love.
-- Usa **negrillas** (con doble asterisco) para resaltar lo importante, como precios o el número de WhatsApp.
+- Usa **negrillas** (con doble asterisco) para resaltar lo importante, como precios o el enlace de WhatsApp.
+- Cuando menciones WhatsApp, incluye siempre el enlace ${WHATSAPP_LINK} tal cual (no lo reemplaces por el número solo).
 - Usa emojis con moderación cuando aporten calidez (🥜🍯😊), sin abusar.
 - Si preguntan el precio en bolívares y no mencionan bolívares tú, aclara que es un estimado según la tasa BCV del momento.
 - Si no sabes algo con certeza, no inventes: sugiere contactar por WhatsApp.`;
