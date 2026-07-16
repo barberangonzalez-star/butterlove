@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useCart } from "@/lib/cart-context";
 
 export default function Navbar() {
@@ -23,14 +24,16 @@ export default function Navbar() {
           </svg>
         </a>
 
-        <Image
-          src="/logo-navbar.png"
-          alt="Butter's Love"
-          width={1808}
-          height={500}
-          priority
-          className="h-9 sm:h-12 w-auto"
-        />
+        <Link href="/" aria-label="Ir al inicio">
+          <Image
+            src="/logo-navbar.png"
+            alt="Butter's Love"
+            width={1808}
+            height={500}
+            priority
+            className="h-9 sm:h-12 w-auto"
+          />
+        </Link>
 
         <button
           onClick={openCart}
