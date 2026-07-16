@@ -39,7 +39,7 @@ export default function Hero() {
               </>
             ) : (
               <>
-                {product.name}
+                Mantequilla de {product.name}
                 <br />
                 {product.tagline}
               </>

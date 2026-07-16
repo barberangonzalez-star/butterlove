@@ -76,7 +76,7 @@ export default function ProductCard({ product }: { product: Product }) {
       {/* White footer strip — product name, like Charlie's label under each can */}
       <div className="bg-white/80 px-4 pt-3 pb-4">
         <h3 className="font-display font-700 text-xl text-center mb-3">
-          {product.name}
+          Mantequilla de {product.name}
         </h3>
 
         <div className="flex gap-2 mb-3">
