@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fredoka, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart-context";
+import { SITE_URL } from "@/lib/config";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
@@ -20,6 +21,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: "Butter Love | Mantequillas de maní y frutos secos 100% naturales",
   description:
     "Mantequillas artesanales de maní, pistacho, almendras y merey. 100% naturales, sin azúcar agregada, hechas a mano en Venezuela.",
