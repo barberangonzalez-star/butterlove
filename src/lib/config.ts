@@ -1,6 +1,8 @@
 // Configuración general de la tienda.
 export const SITE_URL = "https://butterlove.store";
 
+export const GA_MEASUREMENT_ID = "G-LK4PXJHGH9";
+
 // Cambia el número de WhatsApp por el número real del negocio (formato: código país + número, sin '+' ni espacios).
 export const WHATSAPP_NUMBER = "584142856600";
 

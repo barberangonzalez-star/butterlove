@@ -2,11 +2,12 @@ import type { Metadata } from "next";
 import { Fredoka, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { CartProvider } from "@/lib/cart-context";
-import { SITE_URL } from "@/lib/config";
+import { SITE_URL, GA_MEASUREMENT_ID } from "@/lib/config";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import FloatingNav from "@/components/FloatingNav";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -38,6 +39,7 @@ export default function RootLayout({
       className={`${fredoka.variable} ${dmSans.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col bg-cream text-ink font-body">
+        <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />
         <CartProvider>
           <Navbar />
           <main className="flex-1">{children}</main>
