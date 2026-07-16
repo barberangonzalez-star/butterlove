@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { getProduct } from "@/lib/products";
-import { WHATSAPP_NUMBER, PAYMENT_METHODS } from "@/lib/config";
+import { WHATSAPP_NUMBER, PAYMENT_METHODS, PAGO_MOVIL } from "@/lib/config";
 
 type Step = "cart" | "info" | "payment" | "summary";
 
@@ -63,7 +63,8 @@ function buildWhatsAppMessage({
         maximumFractionDigits: 2,
       })} (tasa BCV ${bcvRate.toLocaleString("es-VE", {
         maximumFractionDigits: 2,
-      })})`
+      })})`,
+      `Pago Móvil a: ${PAGO_MOVIL.bank} - ${PAGO_MOVIL.phone} - CI/RIF ${PAGO_MOVIL.id}`
     );
   }
 
@@ -294,17 +295,37 @@ export default function CartDrawer() {
                 ))}
               </div>
 
-              {paymentMethod === "Pago Móvil" && bcvRate && (
-                <p className="text-sm text-ink-soft">
-                  Total aproximado en bolívares:{" "}
-                  <span className="font-display font-700 text-ink">
-                    Bs.{" "}
-                    {(totalPrice * bcvRate).toLocaleString("es-VE", {
-                      maximumFractionDigits: 2,
-                    })}
-                  </span>
-                  . Te enviamos los datos de pago móvil por WhatsApp.
-                </p>
+              {paymentMethod === "Pago Móvil" && (
+                <div className="space-y-3">
+                  {bcvRate && (
+                    <p className="text-sm text-ink-soft">
+                      Total aproximado en bolívares:{" "}
+                      <span className="font-display font-700 text-ink">
+                        Bs.{" "}
+                        {(totalPrice * bcvRate).toLocaleString("es-VE", {
+                          maximumFractionDigits: 2,
+                        })}
+                      </span>
+                    </p>
+                  )}
+                  <div className="rounded-xl bg-white border border-ink/10 px-4 py-3 text-sm space-y-1">
+                    <p className="text-xs font-bold uppercase tracking-wide text-ink-soft mb-1">
+                      Datos para Pago Móvil
+                    </p>
+                    <p>
+                      <span className="text-ink-soft">Banco:</span>{" "}
+                      {PAGO_MOVIL.bank}
+                    </p>
+                    <p>
+                      <span className="text-ink-soft">Teléfono:</span>{" "}
+                      {PAGO_MOVIL.phone}
+                    </p>
+                    <p>
+                      <span className="text-ink-soft">CI/RIF:</span>{" "}
+                      {PAGO_MOVIL.id}
+                    </p>
+                  </div>
+                </div>
               )}
             </div>
           )}
@@ -346,18 +367,26 @@ export default function CartDrawer() {
                   Pago
                 </p>
                 <p>{paymentMethod}</p>
-                {paymentMethod === "Pago Móvil" && bsTotal && (
-                  <p className="text-ink-soft">
-                    Bs.{" "}
-                    {bsTotal.toLocaleString("es-VE", {
-                      maximumFractionDigits: 2,
-                    })}{" "}
-                    (tasa BCV{" "}
-                    {bcvRate?.toLocaleString("es-VE", {
-                      maximumFractionDigits: 2,
-                    })}
-                    )
-                  </p>
+                {paymentMethod === "Pago Móvil" && (
+                  <>
+                    {bsTotal && (
+                      <p className="text-ink-soft">
+                        Bs.{" "}
+                        {bsTotal.toLocaleString("es-VE", {
+                          maximumFractionDigits: 2,
+                        })}{" "}
+                        (tasa BCV{" "}
+                        {bcvRate?.toLocaleString("es-VE", {
+                          maximumFractionDigits: 2,
+                        })}
+                        )
+                      </p>
+                    )}
+                    <p className="text-ink-soft">
+                      {PAGO_MOVIL.bank} · {PAGO_MOVIL.phone} · CI/RIF{" "}
+                      {PAGO_MOVIL.id}
+                    </p>
+                  </>
                 )}
               </div>
             </div>
