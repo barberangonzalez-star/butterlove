@@ -76,7 +76,8 @@ export async function createSale(input: SaleInput) {
 
 export async function deleteSale(id: number) {
   const db = getDb();
-  await db.delete(sales).where(eq(sales.id, id));
+  const [deleted] = await db.delete(sales).where(eq(sales.id, id)).returning();
+  return deleted;
 }
 
 export async function getMonthSummary(monthStart: string, monthEnd: string) {

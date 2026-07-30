@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/admin-session";
 import { createSale, deleteSale } from "@/lib/sales-data";
-import { getAdminProducts } from "@/lib/products-data";
+import { getAdminProducts, incrementProductSizeStock } from "@/lib/products-data";
 import { getPromotions } from "@/lib/promotions-data";
 import { getBcvRates } from "@/lib/bcv";
 
@@ -70,13 +70,22 @@ export async function createSaleAction(formData: FormData) {
     notes,
   });
 
+  if (product) {
+    await incrementProductSizeStock(product.id, grams, -quantity);
+  }
+
   revalidatePath("/admin/ventas");
   revalidatePath("/admin");
+  revalidatePath("/admin/inventario");
 }
 
 export async function deleteSaleAction(id: number) {
   await verifySession();
-  await deleteSale(id);
+  const deleted = await deleteSale(id);
+  if (deleted?.productId) {
+    await incrementProductSizeStock(deleted.productId, deleted.grams, deleted.quantity);
+  }
   revalidatePath("/admin/ventas");
   revalidatePath("/admin");
+  revalidatePath("/admin/inventario");
 }

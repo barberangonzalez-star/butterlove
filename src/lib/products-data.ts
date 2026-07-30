@@ -1,5 +1,5 @@
 import "server-only";
-import { asc, eq, inArray } from "drizzle-orm";
+import { asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { products, productSizes } from "./db/schema";
 import type { Product } from "./products";
@@ -20,6 +20,7 @@ function toProduct(row: ProductRow, sizes: SizeRow[]): Product {
     badges: row.badges,
     sizes: sizes
       .filter((s) => s.productId === row.id)
+      .sort((a, b) => a.grams - b.grams)
       .map((s) => ({ grams: s.grams, price: Number(s.price) })),
   };
 }
@@ -41,28 +42,65 @@ export async function getProducts(): Promise<Product[]> {
   return attachSizes(rows);
 }
 
-export interface AdminProduct extends Product {
+export interface AdminSizeOption {
+  id: number;
+  grams: number;
+  price: number;
+  stockQuantity: number;
+}
+
+export interface AdminProduct extends Omit<Product, "sizes"> {
   id: number;
   sortOrder: number;
+  sizes: AdminSizeOption[];
+}
+
+function toAdminProduct(row: ProductRow, sizeRows: SizeRow[]): AdminProduct {
+  return {
+    id: row.id,
+    sortOrder: row.sortOrder,
+    key: row.key,
+    name: row.name,
+    tagline: row.tagline,
+    description: row.description,
+    image: row.image,
+    heroImage: row.heroImage,
+    bgClass: row.bgClass,
+    accentHex: row.accentHex,
+    badges: row.badges,
+    sizes: sizeRows
+      .filter((s) => s.productId === row.id)
+      .sort((a, b) => a.grams - b.grams)
+      .map((s) => ({
+        id: s.id,
+        grams: s.grams,
+        price: Number(s.price),
+        stockQuantity: s.stockQuantity,
+      })),
+  };
 }
 
 export async function getAdminProducts(): Promise<AdminProduct[]> {
   const db = getDb();
   const rows = await db.select().from(products).orderBy(asc(products.sortOrder));
-  const withSizes = await attachSizes(rows);
-  return rows.map((row, i) => ({
-    id: row.id,
-    sortOrder: row.sortOrder,
-    ...withSizes[i],
-  }));
+  if (rows.length === 0) return [];
+  const ids = rows.map((r) => r.id);
+  const sizeRows = await db
+    .select()
+    .from(productSizes)
+    .where(inArray(productSizes.productId, ids));
+  return rows.map((row) => toAdminProduct(row, sizeRows));
 }
 
 export async function getAdminProduct(id: number): Promise<AdminProduct | undefined> {
   const db = getDb();
   const [row] = await db.select().from(products).where(eq(products.id, id));
   if (!row) return undefined;
-  const [product] = await attachSizes([row]);
-  return { id: row.id, sortOrder: row.sortOrder, ...product };
+  const sizeRows = await db
+    .select()
+    .from(productSizes)
+    .where(eq(productSizes.productId, id));
+  return toAdminProduct(row, sizeRows);
 }
 
 export async function getProduct(key: string): Promise<Product | undefined> {
@@ -87,17 +125,37 @@ export interface ProductInput {
   sizes: { grams: number; price: number }[];
 }
 
+// Diffs against existing sizes (matched by grams) instead of delete-then-reinsert,
+// so editing a product's name/tagline/etc. doesn't reset stockQuantity to 0.
 async function replaceSizes(productId: number, sizes: ProductInput["sizes"]) {
   const db = getDb();
-  await db.delete(productSizes).where(eq(productSizes.productId, productId));
-  if (sizes.length > 0) {
-    await db.insert(productSizes).values(
-      sizes.map((s) => ({
-        productId,
-        grams: s.grams,
-        price: s.price.toFixed(2),
-      }))
+  const existing = await db
+    .select()
+    .from(productSizes)
+    .where(eq(productSizes.productId, productId));
+
+  const incomingGrams = new Set(sizes.map((s) => s.grams));
+  const toRemove = existing.filter((row) => !incomingGrams.has(row.grams));
+  if (toRemove.length > 0) {
+    await db.delete(productSizes).where(
+      inArray(productSizes.id, toRemove.map((r) => r.id))
     );
+  }
+
+  for (const size of sizes) {
+    const match = existing.find((row) => row.grams === size.grams);
+    if (match) {
+      await db
+        .update(productSizes)
+        .set({ price: size.price.toFixed(2) })
+        .where(eq(productSizes.id, match.id));
+    } else {
+      await db.insert(productSizes).values({
+        productId,
+        grams: size.grams,
+        price: size.price.toFixed(2),
+      });
+    }
   }
 }
 
@@ -146,4 +204,28 @@ export async function updateProduct(id: number, input: ProductInput) {
 export async function deleteProduct(id: number) {
   const db = getDb();
   await db.delete(products).where(eq(products.id, id));
+}
+
+export async function setProductSizeStock(sizeId: number, quantity: number) {
+  const db = getDb();
+  await db
+    .update(productSizes)
+    .set({ stockQuantity: quantity })
+    .where(eq(productSizes.id, sizeId));
+}
+
+// Atomic increment/decrement (delta can be negative) so concurrent sales
+// can't race each other into an inconsistent stock count.
+export async function incrementProductSizeStock(
+  productId: number,
+  grams: number,
+  delta: number
+) {
+  const db = getDb();
+  await db
+    .update(productSizes)
+    .set({ stockQuantity: sql`${productSizes.stockQuantity} + ${delta}` })
+    .where(
+      sql`${productSizes.productId} = ${productId} and ${productSizes.grams} = ${grams}`
+    );
 }

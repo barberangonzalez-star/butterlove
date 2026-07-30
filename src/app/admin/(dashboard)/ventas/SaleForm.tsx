@@ -106,6 +106,16 @@ export default function SaleForm({
                 </option>
               ))}
             </select>
+            {selectedSize && (
+              <p
+                className={`text-xs mt-1 ${
+                  selectedSize.stockQuantity <= 5 ? "text-red-600" : "text-[#787774]"
+                }`}
+              >
+                Stock disponible: {selectedSize.stockQuantity} frasco
+                {selectedSize.stockQuantity === 1 ? "" : "s"}
+              </p>
+            )}
           </label>
 
           <input type="hidden" name="unitPriceUsd" value={unitPrice} />

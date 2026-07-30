@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { LayoutDashboard, Package, Receipt, Tag, LogOut } from "lucide-react";
+import { LayoutDashboard, Package, Boxes, Receipt, Tag, LogOut } from "lucide-react";
 import { verifySession } from "@/lib/admin-session";
 import { logout } from "./actions";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/productos", label: "Productos", icon: Package },
+  { href: "/admin/inventario", label: "Inventario", icon: Boxes },
   { href: "/admin/ventas", label: "Ventas", icon: Receipt },
   { href: "/admin/promociones", label: "Promociones", icon: Tag },
 ];

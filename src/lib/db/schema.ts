@@ -33,6 +33,18 @@ export const productSizes = pgTable("product_sizes", {
     .references(() => products.id, { onDelete: "cascade" }),
   grams: integer("grams").notNull(),
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
+  stockQuantity: integer("stock_quantity").notNull().default(0),
+});
+
+export const supplyItems = pgTable("supply_items", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  quantity: integer("quantity").notNull().default(0),
+  unit: text("unit").notNull().default("unidades"),
+  lowStockThreshold: integer("low_stock_threshold"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
 export const promotions = pgTable("promotions", {
