@@ -67,6 +67,22 @@ function PromotionForm({
           />
         </label>
 
+        <label className="block mb-4">
+          <span className={labelClass}>Cantidad del combo</span>
+          <input
+            type="number"
+            name="bundleQuantity"
+            min={1}
+            defaultValue={promotion?.bundleQuantity ?? 1}
+            required
+            className={`${inputClass} mt-1`}
+          />
+          <p className="text-xs text-[#787774] mt-1">
+            Envases que incluye este combo (ej. 2 para &quot;Combo 2 maní&quot;). Al elegir
+            esta promo en Ventas, la cantidad se autocompleta con este número.
+          </p>
+        </label>
+
         <label className="flex items-center gap-2 mb-4 text-sm">
           <input
             type="checkbox"
@@ -119,8 +135,13 @@ export default function PromocionesAdminClient({
               />
             </label>
             <div className="flex-1">
-              <p className={`font-medium text-sm ${!p.active ? "text-[#a8a29e] line-through" : ""}`}>
+              <p className={`font-medium text-sm flex items-center gap-2 ${!p.active ? "text-[#a8a29e] line-through" : ""}`}>
                 {p.title}
+                {p.bundleQuantity > 1 && (
+                  <span className="text-[11px] font-normal bg-black/5 text-[#5f5e5b] px-1.5 py-0.5 rounded-full">
+                    ×{p.bundleQuantity}
+                  </span>
+                )}
               </p>
               <p className="text-sm text-[#787774]">{p.description}</p>
             </div>

@@ -24,6 +24,7 @@ export async function savePromotionAction(formData: FormData) {
     title: String(formData.get("title") ?? "").trim(),
     description: String(formData.get("description") ?? "").trim(),
     active: formData.get("active") === "on",
+    bundleQuantity: Number(formData.get("bundleQuantity") ?? 1) || 1,
   };
 
   if (id) {
@@ -43,6 +44,7 @@ export async function togglePromotionAction(id: number, active: boolean) {
     title: promo.title,
     description: promo.description,
     active,
+    bundleQuantity: promo.bundleQuantity,
   });
   revalidate();
 }

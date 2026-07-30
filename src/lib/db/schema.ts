@@ -40,6 +40,7 @@ export const promotions = pgTable("promotions", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   active: boolean("active").notNull().default(true),
+  bundleQuantity: integer("bundle_quantity").notNull().default(1),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
 

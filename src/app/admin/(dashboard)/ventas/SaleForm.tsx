@@ -28,6 +28,7 @@ export default function SaleForm({
   const [productId, setProductId] = useState(products[0]?.id ?? 0);
   const [grams, setGrams] = useState(products[0]?.sizes[0]?.grams ?? 0);
   const [quantity, setQuantity] = useState(1);
+  const [promotionId, setPromotionId] = useState("");
   const [amountOverride, setAmountOverride] = useState<string | null>(null);
   const [deliveryMethod, setDeliveryMethod] = useState("Pickup");
   const [deliveryProvider, setDeliveryProvider] = useState("Ridery");
@@ -126,7 +127,19 @@ export default function SaleForm({
 
           <label className="block">
             <span className={labelClass}>Promoción (opcional)</span>
-            <select name="promotionId" defaultValue="" className={`${inputClass} mt-1`}>
+            <select
+              name="promotionId"
+              value={promotionId}
+              onChange={(e) => {
+                setPromotionId(e.target.value);
+                const promo = promotions.find((p) => String(p.id) === e.target.value);
+                if (promo && promo.bundleQuantity > 1) {
+                  setQuantity(promo.bundleQuantity);
+                  setAmountOverride(null);
+                }
+              }}
+              className={`${inputClass} mt-1`}
+            >
               <option value="">Ninguna</option>
               {promotions
                 .filter((p) => p.active)

@@ -14,6 +14,7 @@ export interface PromotionInput {
   title: string;
   description: string;
   active: boolean;
+  bundleQuantity: number;
 }
 
 export async function createPromotion(input: PromotionInput) {
