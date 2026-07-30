@@ -1,7 +1,9 @@
-import { products } from "@/lib/products";
+import { getProducts } from "@/lib/products-data";
 import ProductCard from "./ProductCard";
 
-export default function ProductsGrid() {
+export default async function ProductsGrid() {
+  const products = await getProducts();
+
   return (
     <section id="productos" className="mx-auto max-w-7xl px-5 sm:px-8 py-16 sm:py-20">
       <div className="flex items-end justify-between mb-10 flex-wrap gap-4">

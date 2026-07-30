@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { products, FlavorKey, getProduct } from "@/lib/products";
+import { useProducts } from "@/lib/products-context";
 
 export default function Hero() {
-  const [active, setActive] = useState<FlavorKey>("mani");
-  const product = getProduct(active);
+  const products = useProducts();
+  const [active, setActive] = useState<string>(products[0]?.key ?? "");
+  const product = products.find((p) => p.key === active);
+
+  if (!product) return null;
 
   return (
     <section id="top" className="px-3 sm:px-5 pt-4">

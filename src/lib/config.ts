@@ -11,14 +11,7 @@ export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
 export const PAYMENT_METHODS = ["Pago Móvil", "USD en efectivo", "Binance"];
 
 export const PAGO_MOVIL = {
-  bank: "Banesco",
-  phone: "0414-3002945",
-  id: "22496231",
+  bank: "Mercantil",
+  phone: "0414-2856600",
+  id: "23656193",
 };
-
-export const PROMOTIONS = [
-  {
-    title: "Combo 2 maní 230g",
-    description: "2 mantequillas de maní de 230g por $10.",
-  },
-];

@@ -9,6 +9,8 @@
   --card-pistacho: #b7d96b;
   --card-almendras: #f5a8c4;
   --card-merey: #a9dce8;
+  --card-neutro-a: #d8c9a8;
+  --card-neutro-b: #c9b8d8;
 
   --dark-panel: #1f4e5f;
 }
@@ -22,6 +24,8 @@
   --color-pistacho-bg: var(--card-pistacho);
   --color-almendras-bg: var(--card-almendras);
   --color-merey-bg: var(--card-merey);
+  --color-neutro-a-bg: var(--card-neutro-a);
+  --color-neutro-b-bg: var(--card-neutro-b);
   --color-dark-panel: var(--dark-panel);
 
   --font-display: var(--font-fredoka);

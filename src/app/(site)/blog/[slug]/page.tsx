@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { posts, getPost } from "@/lib/posts";
-import { getProduct } from "@/lib/products";
+import { getProduct } from "@/lib/products-data";
 
 export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }));
@@ -33,7 +33,8 @@ export default async function BlogPostPage({
   const post = getPost(slug);
   if (!post) notFound();
 
-  const product = getProduct(post.productKey);
+  const product = await getProduct(post.productKey);
+  if (!product) notFound();
 
   return (
     <article className="mx-auto max-w-2xl px-5 sm:px-8 py-12 sm:py-16">

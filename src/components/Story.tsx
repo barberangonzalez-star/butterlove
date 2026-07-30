@@ -1,14 +1,17 @@
 import Image from "next/image";
-import { getProduct } from "@/lib/products";
+import { getProducts } from "@/lib/products-data";
 
 const floatingJars = [
-  { key: "mani" as const, offsetClass: "" },
-  { key: "pistacho" as const, offsetClass: "mt-6" },
-  { key: "merey" as const, offsetClass: "-mt-6" },
-  { key: "almendras" as const, offsetClass: "" },
+  { key: "mani", offsetClass: "" },
+  { key: "pistacho", offsetClass: "mt-6" },
+  { key: "merey", offsetClass: "-mt-6" },
+  { key: "almendras", offsetClass: "" },
 ];
 
-export default function Story() {
+export default async function Story() {
+  const products = await getProducts();
+  const findProduct = (key: string) => products.find((p) => p.key === key);
+
   return (
     <section id="historia" className="px-3 sm:px-5 py-6 space-y-4">
       {/* dark "warning" panel — mirrors Charlie's Positively Addictive block */}
@@ -32,7 +35,8 @@ export default function Story() {
         </div>
         <div className="grid grid-cols-2 gap-3">
           {floatingJars.map(({ key, offsetClass }, i) => {
-            const product = getProduct(key);
+            const product = findProduct(key);
+            if (!product) return null;
             return (
               <div
                 key={key}

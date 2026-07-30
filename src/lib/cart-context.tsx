@@ -8,11 +8,11 @@ import {
   useState,
   ReactNode,
 } from "react";
-import { FlavorKey, getProduct } from "./products";
+import { FlavorKey } from "./products";
 
 export interface CartItem {
   key: FlavorKey;
-  grams: 230 | 350;
+  grams: number;
   price: number;
   qty: number;
 }
@@ -22,9 +22,9 @@ interface CartContextValue {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (key: FlavorKey, grams: 230 | 350, price: number) => void;
-  removeItem: (key: FlavorKey, grams: 230 | 350) => void;
-  updateQty: (key: FlavorKey, grams: 230 | 350, qty: number) => void;
+  addItem: (key: FlavorKey, grams: number, price: number) => void;
+  removeItem: (key: FlavorKey, grams: number) => void;
+  updateQty: (key: FlavorKey, grams: number, qty: number) => void;
   clearCart: () => void;
   totalItems: number;
   totalPrice: number;
@@ -114,8 +114,4 @@ export function useCart() {
   const ctx = useContext(CartContext);
   if (!ctx) throw new Error("useCart must be used within CartProvider");
   return ctx;
-}
-
-export function itemLabel(key: FlavorKey) {
-  return getProduct(key).name;
 }

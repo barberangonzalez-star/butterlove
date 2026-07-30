@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { posts } from "@/lib/posts";
-import { getProduct } from "@/lib/products";
+import { getProducts } from "@/lib/products-data";
+import type { Product } from "@/lib/products";
 
 export const metadata: Metadata = {
   title: "Blog | Butter Love",
@@ -9,8 +10,14 @@ export const metadata: Metadata = {
     "Beneficios y recetas fáciles con mantequillas de maní, pistacho, almendras y merey.",
 };
 
-function PostCard({ post }: { post: (typeof posts)[number] }) {
-  const product = getProduct(post.productKey);
+function PostCard({
+  post,
+  product,
+}: {
+  post: (typeof posts)[number];
+  product: Product | undefined;
+}) {
+  if (!product) return null;
   return (
     <Link
       href={`/blog/${post.slug}`}
@@ -31,7 +38,9 @@ function PostCard({ post }: { post: (typeof posts)[number] }) {
   );
 }
 
-export default function BlogPage() {
+export default async function BlogPage() {
+  const products = await getProducts();
+  const findProduct = (key: string) => products.find((p) => p.key === key);
   const beneficios = posts.filter((p) => p.category === "beneficios");
   const recetas = posts.filter((p) => p.category === "recetas");
 
@@ -50,7 +59,7 @@ export default function BlogPage() {
       </h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-14">
         {beneficios.map((post) => (
-          <PostCard key={post.slug} post={post} />
+          <PostCard key={post.slug} post={post} product={findProduct(post.productKey)} />
         ))}
       </div>
 
@@ -59,7 +68,7 @@ export default function BlogPage() {
       </h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {recetas.map((post) => (
-          <PostCard key={post.slug} post={post} />
+          <PostCard key={post.slug} post={post} product={findProduct(post.productKey)} />
         ))}
       </div>
     </div>

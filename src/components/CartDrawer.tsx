@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useCart, CartItem } from "@/lib/cart-context";
-import { getProduct } from "@/lib/products";
+import { useProducts } from "@/lib/products-context";
+import { Product } from "@/lib/products";
 import { WHATSAPP_NUMBER, PAYMENT_METHODS, PAGO_MOVIL } from "@/lib/config";
 
 type Step = "cart" | "info" | "payment" | "summary";
@@ -16,7 +17,7 @@ function useBcvRate() {
     fetch("/api/bcv-rate")
       .then((res) => res.json())
       .then((json) => {
-        if (!cancelled) setRate(json.rate ?? null);
+        if (!cancelled) setRate(json.usd?.rate ?? null);
       })
       .catch(() => {})
       .finally(() => {
@@ -32,6 +33,7 @@ function useBcvRate() {
 
 function buildWhatsAppMessage({
   items,
+  products,
   total,
   name,
   phone,
@@ -41,6 +43,7 @@ function buildWhatsAppMessage({
   bcvRate,
 }: {
   items: CartItem[];
+  products: Product[];
   total: number;
   name: string;
   phone: string;
@@ -50,8 +53,9 @@ function buildWhatsAppMessage({
   bcvRate: number | null;
 }) {
   const lines = items.map((i) => {
-    const product = getProduct(i.key);
-    return `• Mantequilla de ${product.name} ${i.grams}g x${i.qty}: $${(
+    const product = products.find((p) => p.key === i.key);
+    const label = product ? product.name : i.key;
+    return `• Mantequilla de ${label} ${i.grams}g x${i.qty}: $${(
       i.price * i.qty
     ).toFixed(2)}`;
   });
@@ -93,6 +97,7 @@ export default function CartDrawer() {
     totalPrice,
     totalItems,
   } = useCart();
+  const products = useProducts();
 
   const [step, setStep] = useState<Step>("cart");
   const [name, setName] = useState("");
@@ -112,6 +117,7 @@ export default function CartDrawer() {
 
   const message = buildWhatsAppMessage({
     items,
+    products,
     total: totalPrice,
     name,
     phone,
@@ -167,15 +173,15 @@ export default function CartDrawer() {
             ) : (
               <ul className="space-y-4">
                 {items.map((item) => {
-                  const product = getProduct(item.key);
+                  const product = products.find((p) => p.key === item.key);
                   return (
                     <li
                       key={`${item.key}-${item.grams}`}
-                      className={`rounded-2xl ${product.bgClass} p-4 flex gap-3 items-center`}
+                      className={`rounded-2xl ${product?.bgClass ?? "bg-white/60"} p-4 flex gap-3 items-center`}
                     >
                       <div className="flex-1">
                         <p className="font-semibold">
-                          Mantequilla de {product.name}
+                          Mantequilla de {product?.name ?? item.key}
                         </p>
                         <p className="text-xs text-ink-soft">{item.grams}g</p>
                         <div className="flex items-center gap-2 mt-2">
@@ -338,14 +344,14 @@ export default function CartDrawer() {
                 </p>
                 <ul className="space-y-1">
                   {items.map((item) => {
-                    const product = getProduct(item.key);
+                    const product = products.find((p) => p.key === item.key);
                     return (
                       <li
                         key={`${item.key}-${item.grams}`}
                         className="flex justify-between gap-3"
                       >
                         <span>
-                          Mantequilla de {product.name} {item.grams}g x
+                          Mantequilla de {product?.name ?? item.key} {item.grams}g x
                           {item.qty}
                         </span>
                         <span>${(item.price * item.qty).toFixed(2)}</span>

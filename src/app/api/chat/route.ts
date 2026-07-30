@@ -6,15 +6,17 @@ import {
   toUIMessageStream,
   type UIMessage,
 } from "ai";
-import { products } from "@/lib/products";
+import { getProducts } from "@/lib/products-data";
+import { getPromotions } from "@/lib/promotions-data";
 import { posts } from "@/lib/posts";
 import {
   PAYMENT_METHODS,
   PAGO_MOVIL,
-  PROMOTIONS,
   WHATSAPP_LINK,
 } from "@/lib/config";
 import { getBcvRate } from "@/lib/bcv";
+import type { Product } from "@/lib/products";
+import type { Promotion } from "@/lib/promotions-data";
 
 export const maxDuration = 30;
 
@@ -23,7 +25,11 @@ const vesFormatter = new Intl.NumberFormat("es-VE", {
   maximumFractionDigits: 2,
 });
 
-function buildSystemPrompt(bcv: Awaited<ReturnType<typeof getBcvRate>>) {
+function buildSystemPrompt(
+  bcv: Awaited<ReturnType<typeof getBcvRate>>,
+  products: Product[],
+  promotions: Promotion[]
+) {
   const toVes = (usd: number) =>
     bcv ? `Bs. ${vesFormatter.format(usd * bcv.rate)}` : null;
 
@@ -59,7 +65,10 @@ function buildSystemPrompt(bcv: Awaited<ReturnType<typeof getBcvRate>>) {
 
   const pagoMovil = `${PAGO_MOVIL.bank} - ${PAGO_MOVIL.id} - ${PAGO_MOVIL.phone.replace(/-/g, "")}`;
 
-  const promos = PROMOTIONS.map((promo) => `- ${promo.title}: ${promo.description}`).join("\n");
+  const promos = promotions
+    .filter((promo) => promo.active)
+    .map((promo) => `- ${promo.title}: ${promo.description}`)
+    .join("\n");
 
   return `Eres el asistente virtual de Butter Love, marca venezolana de mantequillas artesanales de maní, pistacho, almendras y merey.
 
@@ -101,11 +110,15 @@ Instrucciones de estilo:
 
 export async function POST(req: Request) {
   const { messages }: { messages: UIMessage[] } = await req.json();
-  const bcv = await getBcvRate();
+  const [bcv, products, promotions] = await Promise.all([
+    getBcvRate(),
+    getProducts(),
+    getPromotions(),
+  ]);
 
   const result = streamText({
     model: deepseek("deepseek-chat"),
-    system: buildSystemPrompt(bcv),
+    system: buildSystemPrompt(bcv, products, promotions),
     messages: await convertToModelMessages(messages),
   });
 
