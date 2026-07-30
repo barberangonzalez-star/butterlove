@@ -29,11 +29,19 @@ export default function SaleForm({
   const [grams, setGrams] = useState(products[0]?.sizes[0]?.grams ?? 0);
   const [quantity, setQuantity] = useState(1);
   const [amountOverride, setAmountOverride] = useState<string | null>(null);
+  const [deliveryMethod, setDeliveryMethod] = useState("Pickup");
+  const [deliveryProvider, setDeliveryProvider] = useState("Ridery");
+  const [deliveryFee, setDeliveryFee] = useState("0");
 
   const selectedProduct = products.find((p) => p.id === productId);
   const selectedSize = selectedProduct?.sizes.find((s) => s.grams === grams);
   const unitPrice = selectedSize?.price ?? 0;
-  const computedAmount = useMemo(() => unitPrice * quantity, [unitPrice, quantity]);
+  const isSelfDelivery = deliveryMethod === "Delivery" && deliveryProvider === "Nosotros";
+  const computedAmount = useMemo(() => {
+    const base = unitPrice * quantity;
+    const fee = isSelfDelivery ? Number(deliveryFee) || 0 : 0;
+    return base + fee;
+  }, [unitPrice, quantity, isSelfDelivery, deliveryFee]);
   const amount = amountOverride !== null ? Number(amountOverride) : computedAmount;
 
   return (
@@ -152,6 +160,61 @@ export default function SaleForm({
             </select>
           </label>
 
+          <label className="block">
+            <span className={labelClass}>Entrega</span>
+            <select
+              name="deliveryMethod"
+              value={deliveryMethod}
+              onChange={(e) => {
+                setDeliveryMethod(e.target.value);
+                setAmountOverride(null);
+              }}
+              className={`${inputClass} mt-1`}
+            >
+              <option value="Pickup">Pickup</option>
+              <option value="Delivery">Delivery</option>
+            </select>
+          </label>
+
+          {deliveryMethod === "Delivery" && (
+            <label className="block">
+              <span className={labelClass}>Proveedor</span>
+              <select
+                name="deliveryProvider"
+                value={deliveryProvider}
+                onChange={(e) => {
+                  setDeliveryProvider(e.target.value);
+                  setAmountOverride(null);
+                }}
+                className={`${inputClass} mt-1`}
+              >
+                <option value="Ridery">Ridery</option>
+                <option value="Yummy">Yummy</option>
+                <option value="Nosotros">Nosotros</option>
+              </select>
+            </label>
+          )}
+
+          {isSelfDelivery && (
+            <label className="block">
+              <span className={labelClass}>Monto delivery ($)</span>
+              <input
+                type="number"
+                step="0.01"
+                name="deliveryFeeUsd"
+                value={deliveryFee}
+                onChange={(e) => {
+                  setDeliveryFee(e.target.value);
+                  setAmountOverride(null);
+                }}
+                className={`${inputClass} mt-1`}
+              />
+              <p className="text-xs text-[#787774] mt-1">
+                Se suma automáticamente al monto total de la venta.
+              </p>
+            </label>
+          )}
+
           <div className="pt-2 border-t border-black/5">
             <span className={labelClass}>Datos del cliente (opcional)</span>
           </div>
@@ -182,7 +245,9 @@ export default function SaleForm({
               className={`${inputClass} mt-1`}
             />
             <p className="text-xs text-[#787774] mt-1">
-              Sugerido: ${computedAmount.toFixed(2)} (ajústalo si aplicaste un descuento de promo)
+              Sugerido: ${computedAmount.toFixed(2)}
+              {isSelfDelivery ? " (incluye delivery)" : ""} — ajústalo si aplicaste un
+              descuento de promo
             </p>
           </label>
 

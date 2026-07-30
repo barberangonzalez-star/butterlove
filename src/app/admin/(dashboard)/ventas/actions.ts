@@ -23,6 +23,15 @@ export async function createSaleAction(formData: FormData) {
   const customerName = String(formData.get("customerName") ?? "").trim() || null;
   const customerEmail = String(formData.get("customerEmail") ?? "").trim() || null;
   const customerPhone = String(formData.get("customerPhone") ?? "").trim() || null;
+  const deliveryMethod = String(formData.get("deliveryMethod") ?? "") || null;
+  const deliveryProvider =
+    deliveryMethod === "Delivery"
+      ? String(formData.get("deliveryProvider") ?? "") || null
+      : null;
+  const deliveryFeeUsd =
+    deliveryProvider === "Nosotros"
+      ? Number(formData.get("deliveryFeeUsd") ?? 0)
+      : null;
 
   const [products, promotions, bcv] = await Promise.all([
     getAdminProducts(),
@@ -52,6 +61,9 @@ export async function createSaleAction(formData: FormData) {
     customerName,
     customerEmail,
     customerPhone,
+    deliveryMethod,
+    deliveryProvider,
+    deliveryFeeUsd,
     bcvUsdRate,
     bcvEurRate: bcv.eur?.rate ?? null,
     amountBs,

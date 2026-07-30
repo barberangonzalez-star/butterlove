@@ -51,6 +51,7 @@ export default function VentasAdminClient({
               <th className="px-4 py-2.5 font-medium">Cant.</th>
               <th className="px-4 py-2.5 font-medium">Promo</th>
               <th className="px-4 py-2.5 font-medium">Pago</th>
+              <th className="px-4 py-2.5 font-medium">Entrega</th>
               <th className="px-4 py-2.5 font-medium text-right">Monto $</th>
               <th className="px-4 py-2.5 font-medium text-right">Monto Bs.</th>
               <th className="px-4 py-2.5 font-medium w-10"></th>
@@ -78,6 +79,11 @@ export default function VentasAdminClient({
                 <td className="px-4 py-3">{s.quantity}</td>
                 <td className="px-4 py-3 text-[#787774]">{s.promotionLabel ?? "—"}</td>
                 <td className="px-4 py-3 text-[#787774]">{s.paymentMethod ?? "—"}</td>
+                <td className="px-4 py-3 text-[#787774]">
+                  {s.deliveryMethod === "Delivery"
+                    ? `Delivery · ${s.deliveryProvider ?? "—"}`
+                    : "Pickup"}
+                </td>
                 <td className="px-4 py-3 text-right font-medium">
                   {fmtUsd(Number(s.amountUsd))}
                 </td>
@@ -96,7 +102,7 @@ export default function VentasAdminClient({
             ))}
             {sales.length === 0 && (
               <tr>
-                <td colSpan={9} className="px-4 py-10 text-center text-[#787774]">
+                <td colSpan={10} className="px-4 py-10 text-center text-[#787774]">
                   No hay ventas registradas en este rango.
                 </td>
               </tr>
@@ -105,7 +111,7 @@ export default function VentasAdminClient({
           {sales.length > 0 && (
             <tfoot>
               <tr className="border-t border-black/10 font-semibold bg-black/[0.02]">
-                <td colSpan={6} className="px-4 py-3 text-right">
+                <td colSpan={7} className="px-4 py-3 text-right">
                   Total
                 </td>
                 <td className="px-4 py-3 text-right">{fmtUsd(totalUsd)}</td>
