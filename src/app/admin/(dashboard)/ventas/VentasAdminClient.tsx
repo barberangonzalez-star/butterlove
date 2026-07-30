@@ -46,6 +46,7 @@ export default function VentasAdminClient({
           <thead>
             <tr className="border-b border-black/10 text-left text-xs text-[#787774] uppercase tracking-wide">
               <th className="px-4 py-2.5 font-medium">Fecha</th>
+              <th className="px-4 py-2.5 font-medium">Cliente</th>
               <th className="px-4 py-2.5 font-medium">Producto</th>
               <th className="px-4 py-2.5 font-medium">Cant.</th>
               <th className="px-4 py-2.5 font-medium">Promo</th>
@@ -59,6 +60,18 @@ export default function VentasAdminClient({
             {sales.map((s) => (
               <tr key={s.id} className="border-b border-black/5 last:border-0 hover:bg-black/[0.02]">
                 <td className="px-4 py-3 whitespace-nowrap">{s.saleDate}</td>
+                <td className="px-4 py-3" title={s.customerEmail ?? undefined}>
+                  {s.customerName ? (
+                    <>
+                      <p>{s.customerName}</p>
+                      {s.customerPhone && (
+                        <p className="text-xs text-[#787774]">{s.customerPhone}</p>
+                      )}
+                    </>
+                  ) : (
+                    <span className="text-[#787774]">—</span>
+                  )}
+                </td>
                 <td className="px-4 py-3">
                   {s.productName} <span className="text-[#787774]">{s.grams}g</span>
                 </td>
@@ -83,7 +96,7 @@ export default function VentasAdminClient({
             ))}
             {sales.length === 0 && (
               <tr>
-                <td colSpan={8} className="px-4 py-10 text-center text-[#787774]">
+                <td colSpan={9} className="px-4 py-10 text-center text-[#787774]">
                   No hay ventas registradas en este rango.
                 </td>
               </tr>
@@ -92,7 +105,7 @@ export default function VentasAdminClient({
           {sales.length > 0 && (
             <tfoot>
               <tr className="border-t border-black/10 font-semibold bg-black/[0.02]">
-                <td colSpan={5} className="px-4 py-3 text-right">
+                <td colSpan={6} className="px-4 py-3 text-right">
                   Total
                 </td>
                 <td className="px-4 py-3 text-right">{fmtUsd(totalUsd)}</td>

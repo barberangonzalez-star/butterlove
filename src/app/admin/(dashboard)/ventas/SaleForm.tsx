@@ -152,6 +152,25 @@ export default function SaleForm({
             </select>
           </label>
 
+          <div className="pt-2 border-t border-black/5">
+            <span className={labelClass}>Datos del cliente (opcional)</span>
+          </div>
+
+          <label className="block">
+            <span className={labelClass}>Nombre</span>
+            <input name="customerName" className={`${inputClass} mt-1`} />
+          </label>
+
+          <label className="block">
+            <span className={labelClass}>Correo</span>
+            <input type="email" name="customerEmail" className={`${inputClass} mt-1`} />
+          </label>
+
+          <label className="block">
+            <span className={labelClass}>Teléfono</span>
+            <input type="tel" name="customerPhone" className={`${inputClass} mt-1`} />
+          </label>
+
           <label className="block">
             <span className={labelClass}>Monto ($)</span>
             <input

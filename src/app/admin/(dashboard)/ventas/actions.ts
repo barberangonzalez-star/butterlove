@@ -20,6 +20,9 @@ export async function createSaleAction(formData: FormData) {
   const promotionIdRaw = formData.get("promotionId");
   const promotionId = promotionIdRaw ? Number(promotionIdRaw) : null;
   const notes = String(formData.get("notes") ?? "") || null;
+  const customerName = String(formData.get("customerName") ?? "").trim() || null;
+  const customerEmail = String(formData.get("customerEmail") ?? "").trim() || null;
+  const customerPhone = String(formData.get("customerPhone") ?? "").trim() || null;
 
   const [products, promotions, bcv] = await Promise.all([
     getAdminProducts(),
@@ -46,6 +49,9 @@ export async function createSaleAction(formData: FormData) {
     promotionId: promotion?.id ?? null,
     promotionLabel: promotion?.title ?? null,
     paymentMethod,
+    customerName,
+    customerEmail,
+    customerPhone,
     bcvUsdRate,
     bcvEurRate: bcv.eur?.rate ?? null,
     amountBs,

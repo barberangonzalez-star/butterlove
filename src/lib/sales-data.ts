@@ -36,6 +36,9 @@ export interface SaleInput {
   promotionId: number | null;
   promotionLabel: string | null;
   paymentMethod: string | null;
+  customerName: string | null;
+  customerEmail: string | null;
+  customerPhone: string | null;
   bcvUsdRate: number | null;
   bcvEurRate: number | null;
   amountBs: number | null;
@@ -55,6 +58,9 @@ export async function createSale(input: SaleInput) {
     promotionId: input.promotionId,
     promotionLabel: input.promotionLabel,
     paymentMethod: input.paymentMethod,
+    customerName: input.customerName,
+    customerEmail: input.customerEmail,
+    customerPhone: input.customerPhone,
     bcvUsdRate: input.bcvUsdRate?.toFixed(4) ?? null,
     bcvEurRate: input.bcvEurRate?.toFixed(4) ?? null,
     amountBs: input.amountBs?.toFixed(2) ?? null,
