@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import SaleForm from "./SaleForm";
 import { deleteSaleAction } from "./actions";
 import type { AdminProduct } from "@/lib/products-data";
@@ -21,7 +21,7 @@ export default function VentasAdminClient({
   products: AdminProduct[];
   promotions: Promotion[];
 }) {
-  const [formOpen, setFormOpen] = useState(false);
+  const [editing, setEditing] = useState<Sale | "new" | null>(null);
 
   const totalUsd = sales.reduce((sum, s) => sum + Number(s.amountUsd), 0);
   const totalBs = sales.reduce((sum, s) => sum + Number(s.amountBs ?? 0), 0);
@@ -34,7 +34,7 @@ export default function VentasAdminClient({
   return (
     <div>
       <button
-        onClick={() => setFormOpen(true)}
+        onClick={() => setEditing("new")}
         disabled={products.length === 0}
         className="mb-4 flex items-center gap-1.5 rounded-md bg-[#37352f] text-white text-sm font-medium px-3.5 py-2 hover:opacity-90 transition-opacity disabled:opacity-40"
       >
@@ -54,7 +54,7 @@ export default function VentasAdminClient({
               <th className="px-4 py-2.5 font-medium">Entrega</th>
               <th className="px-4 py-2.5 font-medium text-right">Monto $</th>
               <th className="px-4 py-2.5 font-medium text-right">Monto Bs.</th>
-              <th className="px-4 py-2.5 font-medium w-10"></th>
+              <th className="px-4 py-2.5 font-medium w-20"></th>
             </tr>
           </thead>
           <tbody>
@@ -91,12 +91,22 @@ export default function VentasAdminClient({
                   {s.amountBs ? fmtBs(Number(s.amountBs)) : "—"}
                 </td>
                 <td className="px-4 py-3">
-                  <button
-                    onClick={() => handleDelete(s.id)}
-                    className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => setEditing(s)}
+                      title="Editar venta"
+                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(s.id)}
+                      title="Eliminar venta"
+                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -123,8 +133,13 @@ export default function VentasAdminClient({
         </table>
       </div>
 
-      {formOpen && (
-        <SaleForm products={products} promotions={promotions} onClose={() => setFormOpen(false)} />
+      {editing && (
+        <SaleForm
+          sale={editing === "new" ? null : editing}
+          products={products}
+          promotions={promotions}
+          onClose={() => setEditing(null)}
+        />
       )}
     </div>
   );

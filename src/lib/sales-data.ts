@@ -48,9 +48,8 @@ export interface SaleInput {
   notes: string | null;
 }
 
-export async function createSale(input: SaleInput) {
-  const db = getDb();
-  await db.insert(sales).values({
+function toRow(input: SaleInput) {
+  return {
     saleDate: input.saleDate,
     productId: input.productId,
     productName: input.productName,
@@ -71,7 +70,28 @@ export async function createSale(input: SaleInput) {
     bcvEurRate: input.bcvEurRate?.toFixed(4) ?? null,
     amountBs: input.amountBs?.toFixed(2) ?? null,
     notes: input.notes,
-  });
+  };
+}
+
+export async function getSaleById(id: number): Promise<Sale | undefined> {
+  const db = getDb();
+  const [row] = await db.select().from(sales).where(eq(sales.id, id)).limit(1);
+  return row;
+}
+
+export async function createSale(input: SaleInput) {
+  const db = getDb();
+  await db.insert(sales).values(toRow(input));
+}
+
+export async function updateSale(id: number, input: SaleInput) {
+  const db = getDb();
+  const [updated] = await db
+    .update(sales)
+    .set(toRow(input))
+    .where(eq(sales.id, id))
+    .returning();
+  return updated;
 }
 
 export async function deleteSale(id: number) {

@@ -1,11 +1,12 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { X } from "lucide-react";
-import { createSaleAction } from "./actions";
+import { saveSaleAction } from "./actions";
 import { PAYMENT_METHODS } from "@/lib/config";
 import type { AdminProduct } from "@/lib/products-data";
 import type { Promotion } from "@/lib/promotions-data";
+import type { Sale } from "@/lib/sales-data";
 
 const inputClass =
   "w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-[#37352f]";
@@ -17,32 +18,65 @@ function todayIso() {
 }
 
 export default function SaleForm({
+  sale,
   products,
   promotions,
   onClose,
 }: {
+  sale: Sale | null;
   products: AdminProduct[];
   promotions: Promotion[];
   onClose: () => void;
 }) {
-  const [productId, setProductId] = useState(products[0]?.id ?? 0);
-  const [grams, setGrams] = useState(products[0]?.sizes[0]?.grams ?? 0);
-  const [quantity, setQuantity] = useState(1);
-  const [promotionId, setPromotionId] = useState("");
-  const [amountOverride, setAmountOverride] = useState<string | null>(null);
-  const [deliveryMethod, setDeliveryMethod] = useState("Pickup");
-  const [deliveryProvider, setDeliveryProvider] = useState("Ridery");
-  const [deliveryFee, setDeliveryFee] = useState("0");
+  const [productId, setProductId] = useState(
+    sale ? (sale.productId ?? 0) : products[0]?.id ?? 0
+  );
+  const [grams, setGrams] = useState(
+    sale?.grams ?? products[0]?.sizes[0]?.grams ?? 0
+  );
+  const [quantity, setQuantity] = useState(sale?.quantity ?? 1);
+  const [promotionId, setPromotionId] = useState(
+    sale?.promotionId ? String(sale.promotionId) : ""
+  );
+  // An existing sale starts on its stored amount, so edits never silently
+  // recalculate a total that was adjusted by hand.
+  const [amountOverride, setAmountOverride] = useState<string | null>(
+    sale ? String(Number(sale.amountUsd)) : null
+  );
+  const [deliveryMethod, setDeliveryMethod] = useState(
+    sale?.deliveryMethod ?? "Pickup"
+  );
+  const [deliveryProvider, setDeliveryProvider] = useState(
+    sale?.deliveryProvider ?? "Ridery"
+  );
+  const [deliveryFee, setDeliveryFee] = useState(
+    sale?.deliveryFeeUsd ? String(Number(sale.deliveryFeeUsd)) : "0"
+  );
 
   const selectedProduct = products.find((p) => p.id === productId);
   const selectedSize = selectedProduct?.sizes.find((s) => s.grams === grams);
-  const unitPrice = selectedSize?.price ?? 0;
+  // The size may have been removed from the catalog since the sale was made.
+  const unitPrice =
+    selectedSize?.price ??
+    (sale && sale.productId === productId && sale.grams === grams
+      ? Number(sale.unitPriceUsd)
+      : 0);
+  // While editing, the units this sale already holds are returned to stock before
+  // the new quantity is taken, so count them as available.
+  const availableStock =
+    selectedSize === undefined
+      ? null
+      : selectedSize.stockQuantity +
+        (sale && sale.productId === productId && sale.grams === grams
+          ? sale.quantity
+          : 0);
+  // Keep the promo attached to this sale selectable even if it is no longer active.
+  const promotionOptions = promotions.filter(
+    (p) => p.active || p.id === sale?.promotionId
+  );
   const isSelfDelivery = deliveryMethod === "Delivery" && deliveryProvider === "Nosotros";
-  const computedAmount = useMemo(() => {
-    const base = unitPrice * quantity;
-    const fee = isSelfDelivery ? Number(deliveryFee) || 0 : 0;
-    return base + fee;
-  }, [unitPrice, quantity, isSelfDelivery, deliveryFee]);
+  const computedAmount =
+    unitPrice * quantity + (isSelfDelivery ? Number(deliveryFee) || 0 : 0);
   const amount = amountOverride !== null ? Number(amountOverride) : computedAmount;
 
   return (
@@ -50,13 +84,15 @@ export default function SaleForm({
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
       <form
         action={async (formData) => {
-          await createSaleAction(formData);
+          await saveSaleAction(formData);
           onClose();
         }}
         className="relative w-full max-w-md h-full bg-white border-l border-black/10 overflow-y-auto"
       >
         <div className="flex items-center justify-between px-6 h-16 border-b border-black/10 sticky top-0 bg-white">
-          <h2 className="font-semibold text-sm">Registrar venta</h2>
+          <h2 className="font-semibold text-sm">
+            {sale ? "Editar venta" : "Registrar venta"}
+          </h2>
           <button
             type="button"
             onClick={onClose}
@@ -67,6 +103,8 @@ export default function SaleForm({
         </div>
 
         <div className="p-6 space-y-4">
+          {sale && <input type="hidden" name="id" value={sale.id} />}
+
           <label className="block">
             <span className={labelClass}>Producto</span>
             <select
@@ -81,6 +119,9 @@ export default function SaleForm({
               }}
               className={`${inputClass} mt-1`}
             >
+              {sale && !sale.productId && (
+                <option value={0}>{sale.productName}</option>
+              )}
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
                   {p.name}
@@ -100,20 +141,23 @@ export default function SaleForm({
               }}
               className={`${inputClass} mt-1`}
             >
+              {sale && !selectedSize && sale.grams === grams && (
+                <option value={grams}>{grams}g — ya no disponible</option>
+              )}
               {selectedProduct?.sizes.map((s) => (
                 <option key={s.grams} value={s.grams}>
                   {s.grams}g — ${s.price}
                 </option>
               ))}
             </select>
-            {selectedSize && (
+            {availableStock !== null && (
               <p
                 className={`text-xs mt-1 ${
-                  selectedSize.stockQuantity <= 5 ? "text-red-600" : "text-[#787774]"
+                  availableStock <= 5 ? "text-red-600" : "text-[#787774]"
                 }`}
               >
-                Stock disponible: {selectedSize.stockQuantity} frasco
-                {selectedSize.stockQuantity === 1 ? "" : "s"}
+                Stock disponible: {availableStock} frasco
+                {availableStock === 1 ? "" : "s"}
               </p>
             )}
           </label>
@@ -151,13 +195,12 @@ export default function SaleForm({
               className={`${inputClass} mt-1`}
             >
               <option value="">Ninguna</option>
-              {promotions
-                .filter((p) => p.active)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.title}
-                  </option>
-                ))}
+              {promotionOptions.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.title}
+                  {p.active ? "" : " (inactiva)"}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -166,7 +209,7 @@ export default function SaleForm({
             <input
               type="date"
               name="saleDate"
-              defaultValue={todayIso()}
+              defaultValue={sale?.saleDate ?? todayIso()}
               required
               className={`${inputClass} mt-1`}
             />
@@ -174,7 +217,11 @@ export default function SaleForm({
 
           <label className="block">
             <span className={labelClass}>Método de pago</span>
-            <select name="paymentMethod" defaultValue={PAYMENT_METHODS[0]} className={`${inputClass} mt-1`}>
+            <select
+              name="paymentMethod"
+              defaultValue={sale?.paymentMethod ?? PAYMENT_METHODS[0]}
+              className={`${inputClass} mt-1`}
+            >
               {PAYMENT_METHODS.map((m) => (
                 <option key={m} value={m}>
                   {m}
@@ -244,17 +291,31 @@ export default function SaleForm({
 
           <label className="block">
             <span className={labelClass}>Nombre</span>
-            <input name="customerName" className={`${inputClass} mt-1`} />
+            <input
+              name="customerName"
+              defaultValue={sale?.customerName ?? ""}
+              className={`${inputClass} mt-1`}
+            />
           </label>
 
           <label className="block">
             <span className={labelClass}>Correo</span>
-            <input type="email" name="customerEmail" className={`${inputClass} mt-1`} />
+            <input
+              type="email"
+              name="customerEmail"
+              defaultValue={sale?.customerEmail ?? ""}
+              className={`${inputClass} mt-1`}
+            />
           </label>
 
           <label className="block">
             <span className={labelClass}>Teléfono</span>
-            <input type="tel" name="customerPhone" className={`${inputClass} mt-1`} />
+            <input
+              type="tel"
+              name="customerPhone"
+              defaultValue={sale?.customerPhone ?? ""}
+              className={`${inputClass} mt-1`}
+            />
           </label>
 
           <label className="block">
@@ -276,7 +337,12 @@ export default function SaleForm({
 
           <label className="block">
             <span className={labelClass}>Notas (opcional)</span>
-            <textarea name="notes" rows={2} className={`${inputClass} resize-none mt-1`} />
+            <textarea
+              name="notes"
+              rows={2}
+              defaultValue={sale?.notes ?? ""}
+              className={`${inputClass} resize-none mt-1`}
+            />
           </label>
         </div>
 
@@ -285,7 +351,7 @@ export default function SaleForm({
             type="submit"
             className="w-full rounded-md bg-[#37352f] text-white text-sm font-medium py-2.5 hover:opacity-90 transition-opacity"
           >
-            Registrar
+            {sale ? "Guardar cambios" : "Registrar"}
           </button>
         </div>
       </form>

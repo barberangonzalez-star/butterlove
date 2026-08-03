@@ -2,14 +2,22 @@
 
 import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/admin-session";
-import { createSale, deleteSale } from "@/lib/sales-data";
+import {
+  createSale,
+  deleteSale,
+  getSaleById,
+  updateSale,
+  type SaleInput,
+} from "@/lib/sales-data";
 import { getAdminProducts, incrementProductSizeStock } from "@/lib/products-data";
 import { getPromotions } from "@/lib/promotions-data";
 import { getBcvRates } from "@/lib/bcv";
 
-export async function createSaleAction(formData: FormData) {
+export async function saveSaleAction(formData: FormData) {
   await verifySession();
 
+  const idRaw = formData.get("id");
+  const id = idRaw ? Number(idRaw) : null;
   const productId = Number(formData.get("productId"));
   const grams = Number(formData.get("grams"));
   const quantity = Number(formData.get("quantity"));
@@ -33,24 +41,38 @@ export async function createSaleAction(formData: FormData) {
       ? Number(formData.get("deliveryFeeUsd") ?? 0)
       : null;
 
-  const [products, promotions, bcv] = await Promise.all([
+  const [products, promotions, existing] = await Promise.all([
     getAdminProducts(),
     getPromotions(),
-    getBcvRates(),
+    id ? getSaleById(id) : Promise.resolve(undefined),
   ]);
+
+  if (id && !existing) throw new Error("La venta ya no existe.");
 
   const product = products.find((p) => p.id === productId);
   const promotion = promotionId
     ? promotions.find((p) => p.id === promotionId)
     : null;
 
-  const bcvUsdRate = bcv.usd?.rate ?? null;
+  // Editing keeps the rate the sale was recorded at — it is historical data,
+  // not today's rate. Only fall back to a fresh lookup when there isn't one.
+  let bcvUsdRate: number | null;
+  let bcvEurRate: number | null;
+  if (existing?.bcvUsdRate) {
+    bcvUsdRate = Number(existing.bcvUsdRate);
+    bcvEurRate = existing.bcvEurRate ? Number(existing.bcvEurRate) : null;
+  } else {
+    const bcv = await getBcvRates();
+    bcvUsdRate = bcv.usd?.rate ?? null;
+    bcvEurRate = bcv.eur?.rate ?? null;
+  }
   const amountBs = bcvUsdRate ? amountUsd * bcvUsdRate : null;
 
-  await createSale({
+  const input: SaleInput = {
     saleDate,
     productId: product?.id ?? null,
-    productName: product?.name ?? "Producto eliminado",
+    // A sale whose product was deleted keeps the name it was recorded under.
+    productName: product?.name ?? existing?.productName ?? "Producto eliminado",
     grams,
     quantity,
     unitPriceUsd,
@@ -65,10 +87,25 @@ export async function createSaleAction(formData: FormData) {
     deliveryProvider,
     deliveryFeeUsd,
     bcvUsdRate,
-    bcvEurRate: bcv.eur?.rate ?? null,
+    bcvEurRate,
     amountBs,
     notes,
-  });
+  };
+
+  if (existing) {
+    await updateSale(existing.id, input);
+    // Give back what the old version of the sale had taken, then take the new
+    // amount — this covers changes of product, size and quantity alike.
+    if (existing.productId) {
+      await incrementProductSizeStock(
+        existing.productId,
+        existing.grams,
+        existing.quantity
+      );
+    }
+  } else {
+    await createSale(input);
+  }
 
   if (product) {
     await incrementProductSizeStock(product.id, grams, -quantity);
