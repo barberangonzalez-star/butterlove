@@ -32,12 +32,18 @@ export async function saveSaleAction(formData: FormData) {
   const customerEmail = String(formData.get("customerEmail") ?? "").trim() || null;
   const customerPhone = String(formData.get("customerPhone") ?? "").trim() || null;
   const deliveryMethod = String(formData.get("deliveryMethod") ?? "") || null;
+  // Delivery y envío nacional comparten el campo de proveedor: en un caso es
+  // quien lleva el pedido en la ciudad, en el otro la empresa de encomienda.
   const deliveryProvider =
-    deliveryMethod === "Delivery"
+    deliveryMethod === "Delivery" || deliveryMethod === "Envío nacional"
       ? String(formData.get("deliveryProvider") ?? "") || null
       : null;
+  const deliveryState =
+    deliveryMethod === "Envío nacional"
+      ? String(formData.get("deliveryState") ?? "") || null
+      : null;
   const deliveryFeeUsd =
-    deliveryProvider === "Nosotros"
+    deliveryMethod === "Delivery" && deliveryProvider === "Nosotros"
       ? Number(formData.get("deliveryFeeUsd") ?? 0)
       : null;
 
@@ -85,6 +91,7 @@ export async function saveSaleAction(formData: FormData) {
     customerPhone,
     deliveryMethod,
     deliveryProvider,
+    deliveryState,
     deliveryFeeUsd,
     bcvUsdRate,
     bcvEurRate,

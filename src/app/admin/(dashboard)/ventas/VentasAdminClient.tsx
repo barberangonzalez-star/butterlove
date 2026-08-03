@@ -80,9 +80,18 @@ export default function VentasAdminClient({
                 <td className="px-4 py-3 text-[#787774]">{s.promotionLabel ?? "—"}</td>
                 <td className="px-4 py-3 text-[#787774]">{s.paymentMethod ?? "—"}</td>
                 <td className="px-4 py-3 text-[#787774]">
-                  {s.deliveryMethod === "Delivery"
-                    ? `Delivery · ${s.deliveryProvider ?? "—"}`
-                    : "Pickup"}
+                  {s.deliveryMethod === "Envío nacional" ? (
+                    <>
+                      <p>Nacional · {s.deliveryProvider ?? "—"}</p>
+                      {s.deliveryState && (
+                        <p className="text-xs">{s.deliveryState}</p>
+                      )}
+                    </>
+                  ) : s.deliveryMethod === "Delivery" ? (
+                    `Delivery · ${s.deliveryProvider ?? "—"}`
+                  ) : (
+                    "Pickup"
+                  )}
                 </td>
                 <td className="px-4 py-3 text-right font-medium">
                   {fmtUsd(Number(s.amountUsd))}

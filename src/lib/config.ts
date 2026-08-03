@@ -10,6 +10,41 @@ export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 export const PAYMENT_METHODS = ["Pago Móvil", "USD en efectivo", "Binance"];
 
+export const DELIVERY_METHODS = ["Pickup", "Delivery", "Envío nacional"];
+
+// Delivery dentro de la ciudad.
+export const DELIVERY_PROVIDERS = ["Ridery", "Yummy", "Nosotros"];
+
+// Encomiendas al interior del país.
+export const NATIONAL_COURIERS = ["MRW", "Zoom", "Tealca"];
+
+export const VENEZUELA_STATES = [
+  "Amazonas",
+  "Anzoátegui",
+  "Apure",
+  "Aragua",
+  "Barinas",
+  "Bolívar",
+  "Carabobo",
+  "Cojedes",
+  "Delta Amacuro",
+  "Distrito Capital",
+  "Falcón",
+  "Guárico",
+  "La Guaira",
+  "Lara",
+  "Mérida",
+  "Miranda",
+  "Monagas",
+  "Nueva Esparta",
+  "Portuguesa",
+  "Sucre",
+  "Táchira",
+  "Trujillo",
+  "Yaracuy",
+  "Zulia",
+];
+
 export const PAGO_MOVIL = {
   bank: "Mercantil",
   phone: "0414-2856600",

@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { X } from "lucide-react";
 import { saveSaleAction } from "./actions";
-import { PAYMENT_METHODS } from "@/lib/config";
+import {
+  PAYMENT_METHODS,
+  DELIVERY_METHODS,
+  DELIVERY_PROVIDERS,
+  NATIONAL_COURIERS,
+  VENEZUELA_STATES,
+} from "@/lib/config";
 import type { AdminProduct } from "@/lib/products-data";
 import type { Promotion } from "@/lib/promotions-data";
 import type { Sale } from "@/lib/sales-data";
@@ -46,9 +52,19 @@ export default function SaleForm({
   const [deliveryMethod, setDeliveryMethod] = useState(
     sale?.deliveryMethod ?? "Pickup"
   );
+  // El proveedor se guarda en una sola columna, pero cada modo tiene su propia
+  // lista, así que alternar entre ellos no pisa lo ya elegido en el otro.
   const [deliveryProvider, setDeliveryProvider] = useState(
-    sale?.deliveryProvider ?? "Ridery"
+    sale?.deliveryMethod === "Delivery"
+      ? sale.deliveryProvider ?? DELIVERY_PROVIDERS[0]
+      : DELIVERY_PROVIDERS[0]
   );
+  const [nationalCourier, setNationalCourier] = useState(
+    sale?.deliveryMethod === "Envío nacional"
+      ? sale.deliveryProvider ?? NATIONAL_COURIERS[0]
+      : NATIONAL_COURIERS[0]
+  );
+  const [deliveryState, setDeliveryState] = useState(sale?.deliveryState ?? "");
   const [deliveryFee, setDeliveryFee] = useState(
     sale?.deliveryFeeUsd ? String(Number(sale.deliveryFeeUsd)) : "0"
   );
@@ -75,6 +91,7 @@ export default function SaleForm({
     (p) => p.active || p.id === sale?.promotionId
   );
   const isSelfDelivery = deliveryMethod === "Delivery" && deliveryProvider === "Nosotros";
+  const isNationalShipping = deliveryMethod === "Envío nacional";
   const computedAmount =
     unitPrice * quantity + (isSelfDelivery ? Number(deliveryFee) || 0 : 0);
   const amount = amountOverride !== null ? Number(amountOverride) : computedAmount;
@@ -241,8 +258,11 @@ export default function SaleForm({
               }}
               className={`${inputClass} mt-1`}
             >
-              <option value="Pickup">Pickup</option>
-              <option value="Delivery">Delivery</option>
+              {DELIVERY_METHODS.map((m) => (
+                <option key={m} value={m}>
+                  {m}
+                </option>
+              ))}
             </select>
           </label>
 
@@ -258,11 +278,51 @@ export default function SaleForm({
                 }}
                 className={`${inputClass} mt-1`}
               >
-                <option value="Ridery">Ridery</option>
-                <option value="Yummy">Yummy</option>
-                <option value="Nosotros">Nosotros</option>
+                {DELIVERY_PROVIDERS.map((p) => (
+                  <option key={p} value={p}>
+                    {p}
+                  </option>
+                ))}
               </select>
             </label>
+          )}
+
+          {isNationalShipping && (
+            <>
+              <label className="block">
+                <span className={labelClass}>Empresa de envío</span>
+                <select
+                  name="deliveryProvider"
+                  value={nationalCourier}
+                  onChange={(e) => setNationalCourier(e.target.value)}
+                  className={`${inputClass} mt-1`}
+                >
+                  {NATIONAL_COURIERS.map((c) => (
+                    <option key={c} value={c}>
+                      {c}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <label className="block">
+                <span className={labelClass}>Estado destino</span>
+                <select
+                  name="deliveryState"
+                  value={deliveryState}
+                  onChange={(e) => setDeliveryState(e.target.value)}
+                  required
+                  className={`${inputClass} mt-1`}
+                >
+                  <option value="">Selecciona un estado</option>
+                  {VENEZUELA_STATES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </>
           )}
 
           {isSelfDelivery && (

@@ -77,6 +77,7 @@ export const sales = pgTable("sales", {
   customerPhone: text("customer_phone"),
   deliveryMethod: text("delivery_method"),
   deliveryProvider: text("delivery_provider"),
+  deliveryState: text("delivery_state"),
   deliveryFeeUsd: numeric("delivery_fee_usd", { precision: 10, scale: 2 }),
   bcvUsdRate: numeric("bcv_usd_rate", { precision: 12, scale: 4 }),
   bcvEurRate: numeric("bcv_eur_rate", { precision: 12, scale: 4 }),

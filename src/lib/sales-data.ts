@@ -41,6 +41,7 @@ export interface SaleInput {
   customerPhone: string | null;
   deliveryMethod: string | null;
   deliveryProvider: string | null;
+  deliveryState: string | null;
   deliveryFeeUsd: number | null;
   bcvUsdRate: number | null;
   bcvEurRate: number | null;
@@ -65,6 +66,7 @@ function toRow(input: SaleInput) {
     customerPhone: input.customerPhone,
     deliveryMethod: input.deliveryMethod,
     deliveryProvider: input.deliveryProvider,
+    deliveryState: input.deliveryState,
     deliveryFeeUsd: input.deliveryFeeUsd?.toFixed(2) ?? null,
     bcvUsdRate: input.bcvUsdRate?.toFixed(4) ?? null,
     bcvEurRate: input.bcvEurRate?.toFixed(4) ?? null,
