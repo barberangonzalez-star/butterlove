@@ -25,6 +25,17 @@ export async function getSales(filters: SaleFilters = {}): Promise<Sale[]> {
     .orderBy(desc(sales.saleDate), desc(sales.id));
 }
 
+/** Meses (YYYY-MM) que tienen al menos una venta, del más reciente al más viejo. */
+export async function getSaleMonths(): Promise<string[]> {
+  const db = getDb();
+  const rows = await db
+    .selectDistinct({ month: sql<string>`to_char(${sales.saleDate}, 'YYYY-MM')` })
+    .from(sales)
+    .orderBy(desc(sql`to_char(${sales.saleDate}, 'YYYY-MM')`));
+
+  return rows.map((r) => r.month);
+}
+
 export interface SaleInput {
   saleDate: string;
   productId: number | null;
