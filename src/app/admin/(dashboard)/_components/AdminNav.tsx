@@ -14,6 +14,7 @@ import {
   X,
 } from "lucide-react";
 import { logout } from "../actions";
+import InstallPrompt from "../../_pwa/InstallPrompt";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -51,17 +52,20 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   );
 }
 
-function LogoutButton() {
+function NavFooter() {
   return (
-    <form action={logout} className="px-3 pb-4">
-      <button
-        type="submit"
-        className="w-full flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-[#5f5e5b] hover:bg-black/5 hover:text-[#37352f] transition-colors"
-      >
-        <LogOut size={16} strokeWidth={2} />
-        Cerrar sesión
-      </button>
-    </form>
+    <div className="px-3 pb-4">
+      <InstallPrompt />
+      <form action={logout}>
+        <button
+          type="submit"
+          className="w-full flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-[#5f5e5b] hover:bg-black/5 hover:text-[#37352f] transition-colors"
+        >
+          <LogOut size={16} strokeWidth={2} />
+          Cerrar sesión
+        </button>
+      </form>
+    </div>
   );
 }
 
@@ -108,7 +112,7 @@ export default function AdminNav() {
               </button>
             </div>
             <NavLinks onNavigate={() => setOpen(false)} />
-            <LogoutButton />
+            <NavFooter />
           </div>
         </div>
       )}
@@ -118,7 +122,7 @@ export default function AdminNav() {
           <span className="font-semibold text-sm">🧈 Butter Love Admin</span>
         </div>
         <NavLinks />
-        <LogoutButton />
+        <NavFooter />
       </aside>
     </>
   );
