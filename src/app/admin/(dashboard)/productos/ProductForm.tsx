@@ -30,7 +30,7 @@ export default function ProductForm({
           await saveProductAction(formData);
           onClose();
         }}
-        className="relative w-full max-w-md h-full bg-white border-l border-black/10 overflow-y-auto"
+        className="relative w-full max-w-md h-dvh bg-white border-l border-black/10 overflow-y-auto"
       >
         <div className="flex items-center justify-between px-6 h-16 border-b border-black/10 sticky top-0 bg-white">
           <h2 className="font-semibold text-sm">

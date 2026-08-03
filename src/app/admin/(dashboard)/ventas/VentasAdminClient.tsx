@@ -12,6 +12,24 @@ const fmtUsd = (n: number) => `$${n.toFixed(2)}`;
 const fmtBs = (n: number) =>
   `Bs. ${n.toLocaleString("es-VE", { maximumFractionDigits: 2 })}`;
 
+function Chip({ children }: { children: React.ReactNode }) {
+  return (
+    <span className="text-[11px] bg-black/5 text-[#5f5e5b] px-2 py-0.5 rounded-full">
+      {children}
+    </span>
+  );
+}
+
+function deliveryLabel(s: Sale) {
+  if (s.deliveryMethod === "Envío nacional") {
+    return `Nacional · ${s.deliveryProvider ?? "—"}`;
+  }
+  if (s.deliveryMethod === "Delivery") {
+    return `Delivery · ${s.deliveryProvider ?? "—"}`;
+  }
+  return "Pickup";
+}
+
 export default function VentasAdminClient({
   sales,
   products,
@@ -41,8 +59,85 @@ export default function VentasAdminClient({
         <Plus size={15} /> Registrar venta
       </button>
 
-      <div className="border border-black/10 rounded-lg overflow-hidden bg-white">
-        <table className="w-full text-sm">
+      {/* Debajo de lg la tabla de 10 columnas no entra: cada venta va como ficha. */}
+      <div className="lg:hidden space-y-2">
+        {sales.length > 0 && (
+          <div className="border border-black/10 rounded-lg bg-white px-4 py-3 flex items-center justify-between gap-3">
+            <span className="text-xs font-medium text-[#787774] uppercase tracking-wide">
+              Total · {sales.length} venta{sales.length === 1 ? "" : "s"}
+            </span>
+            <span className="text-right">
+              <span className="block font-semibold">{fmtUsd(totalUsd)}</span>
+              <span className="block text-xs text-[#5f5e5b]">{fmtBs(totalBs)}</span>
+            </span>
+          </div>
+        )}
+
+        {sales.map((s) => (
+          <div key={s.id} className="border border-black/10 rounded-lg bg-white p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="font-medium text-sm">
+                  {s.productName}{" "}
+                  <span className="font-normal text-[#787774]">
+                    {s.grams}g × {s.quantity}
+                  </span>
+                </p>
+                <p className="text-xs text-[#787774] mt-0.5">{s.saleDate}</p>
+              </div>
+              <div className="shrink-0 text-right">
+                <p className="font-semibold text-sm">{fmtUsd(Number(s.amountUsd))}</p>
+                {s.amountBs && (
+                  <p className="text-xs text-[#5f5e5b]">{fmtBs(Number(s.amountBs))}</p>
+                )}
+              </div>
+            </div>
+
+            {s.customerName && (
+              <p className="text-sm mt-2 break-words">
+                {s.customerName}
+                {s.customerPhone && (
+                  <span className="text-[#787774]"> · {s.customerPhone}</span>
+                )}
+              </p>
+            )}
+
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              <Chip>{s.paymentMethod ?? "Pago —"}</Chip>
+              <Chip>
+                {deliveryLabel(s)}
+                {s.deliveryState ? ` · ${s.deliveryState}` : ""}
+              </Chip>
+              {s.promotionLabel && <Chip>{s.promotionLabel}</Chip>}
+            </div>
+
+            <div className="flex gap-2 mt-3 pt-3 border-t border-black/5">
+              <button
+                onClick={() => setEditing(s)}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-black/15 py-2 text-sm font-medium hover:bg-black/5"
+              >
+                <Pencil size={14} /> Editar
+              </button>
+              <button
+                onClick={() => handleDelete(s.id)}
+                className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-black/15 py-2 text-sm font-medium text-red-700 hover:bg-red-50"
+              >
+                <Trash2 size={14} /> Eliminar
+              </button>
+            </div>
+          </div>
+        ))}
+
+        {sales.length === 0 && (
+          <p className="border border-black/10 rounded-lg bg-white px-4 py-10 text-center text-sm text-[#787774]">
+            No hay ventas registradas en este rango.
+          </p>
+        )}
+      </div>
+
+      <div className="hidden lg:block border border-black/10 rounded-lg overflow-hidden bg-white">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[820px] text-sm">
           <thead>
             <tr className="border-b border-black/10 text-left text-xs text-[#787774] uppercase tracking-wide">
               <th className="px-4 py-2.5 font-medium">Fecha</th>
@@ -80,17 +175,9 @@ export default function VentasAdminClient({
                 <td className="px-4 py-3 text-[#787774]">{s.promotionLabel ?? "—"}</td>
                 <td className="px-4 py-3 text-[#787774]">{s.paymentMethod ?? "—"}</td>
                 <td className="px-4 py-3 text-[#787774]">
-                  {s.deliveryMethod === "Envío nacional" ? (
-                    <>
-                      <p>Nacional · {s.deliveryProvider ?? "—"}</p>
-                      {s.deliveryState && (
-                        <p className="text-xs">{s.deliveryState}</p>
-                      )}
-                    </>
-                  ) : s.deliveryMethod === "Delivery" ? (
-                    `Delivery · ${s.deliveryProvider ?? "—"}`
-                  ) : (
-                    "Pickup"
+                  <p>{deliveryLabel(s)}</p>
+                  {s.deliveryState && (
+                    <p className="text-xs">{s.deliveryState}</p>
                   )}
                 </td>
                 <td className="px-4 py-3 text-right font-medium">
@@ -140,6 +227,7 @@ export default function VentasAdminClient({
             </tfoot>
           )}
         </table>
+        </div>
       </div>
 
       {editing && (

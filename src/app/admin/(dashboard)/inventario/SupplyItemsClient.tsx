@@ -32,7 +32,7 @@ function QuantityCell({ item }: { item: SupplyItem }) {
           setSupplyQuantityAction(item.id, parsed);
         }
       }}
-      className={`w-24 rounded-md border px-2 py-1.5 text-sm text-right outline-none focus:border-[#37352f] ${
+      className={`w-16 md:w-24 rounded-md border px-2 py-2 md:py-1.5 text-sm text-right outline-none focus:border-[#37352f] ${
         isLow(item) ? "border-red-300 text-red-700 bg-red-50" : "border-black/15"
       }`}
     />
@@ -47,14 +47,14 @@ function SupplyItemForm({
   onClose: () => void;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
       <form
         action={async (formData) => {
           await saveSupplyItemAction(formData);
           onClose();
         }}
-        className="relative w-full max-w-sm bg-white border border-black/10 rounded-lg p-6"
+        className="relative w-full max-w-sm max-h-[90dvh] overflow-y-auto bg-white border border-black/10 rounded-lg p-6"
       >
         <div className="flex items-center justify-between mb-4">
           <h2 className="font-semibold text-sm">
@@ -154,37 +154,40 @@ export default function SupplyItemsClient({ items }: { items: SupplyItem[] }) {
       </button>
 
       <div className="border border-black/10 rounded-lg overflow-hidden bg-white">
+        <div className="overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-black/10 text-left text-xs text-[#787774] uppercase tracking-wide">
-              <th className="px-4 py-2.5 font-medium">Insumo</th>
-              <th className="px-4 py-2.5 font-medium text-right">Cantidad</th>
-              <th className="px-4 py-2.5 font-medium">Unidad</th>
-              <th className="px-4 py-2.5 font-medium w-20"></th>
+              <th className="px-3 md:px-4 py-2.5 font-medium">Insumo</th>
+              <th className="px-3 md:px-4 py-2.5 font-medium text-right">Cantidad</th>
+              <th className="px-4 py-2.5 font-medium hidden md:table-cell">Unidad</th>
+              <th className="px-3 md:px-4 py-2.5 font-medium w-20"></th>
             </tr>
           </thead>
           <tbody>
             {items.map((item) => (
               <tr key={item.id} className="border-b border-black/5 last:border-0 hover:bg-black/[0.02]">
-                <td className="px-4 py-3">
+                <td className="px-3 md:px-4 py-3">
                   <p className="font-medium">{item.name}</p>
+                  {/* En móvil la columna Unidad se oculta y baja aquí. */}
+                  <p className="text-xs text-[#787774] md:hidden">{item.unit}</p>
                   {item.notes && <p className="text-xs text-[#787774]">{item.notes}</p>}
                 </td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-3 md:px-4 py-3 text-right">
                   <QuantityCell item={item} />
                 </td>
-                <td className="px-4 py-3 text-[#787774]">{item.unit}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 text-[#787774] hidden md:table-cell">{item.unit}</td>
+                <td className="px-3 md:px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">
                     <button
                       onClick={() => setEditing(item)}
-                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
+                      className="w-9 h-9 md:w-7 md:h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
                     >
                       <Pencil size={14} />
                     </button>
                     <button
                       onClick={() => handleDelete(item)}
-                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
+                      className="w-9 h-9 md:w-7 md:h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
                     >
                       <Trash2 size={14} />
                     </button>
@@ -201,6 +204,7 @@ export default function SupplyItemsClient({ items }: { items: SupplyItem[] }) {
             )}
           </tbody>
         </table>
+        </div>
       </div>
 
       {editing && (
