@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProducts, getProduct } from "@/lib/products-data";
+import { posts, CATEGORY_LABEL, formatPostDateShort } from "@/lib/posts";
 import ProductPurchase from "@/components/ProductPurchase";
 import JsonLd from "@/components/JsonLd";
 import { productSchema, breadcrumbSchema, OG_DEFAULTS } from "@/lib/seo";
@@ -60,6 +61,8 @@ export default async function ProductPage({
   const { slug } = await params;
   const product = await getProduct(slug);
   if (!product) notFound();
+
+  const productPosts = posts.filter((p) => p.productKey === product.key);
 
   return (
     <>
@@ -144,6 +147,39 @@ export default async function ProductPage({
           </div>
         </div>
       </section>
+
+      {/* El blog ya enlaza al producto; esto cierra el camino de vuelta, para
+          que Google recorra ambas secciones en lugar de tratarlas por separado. */}
+      {productPosts.length > 0 && (
+        <section className="mx-auto max-w-6xl px-5 sm:px-8 pb-12 sm:pb-16">
+          <h2 className="font-display font-700 text-2xl text-ink mb-5">
+            Del blog: mantequilla de {product.name}
+          </h2>
+          <div className="grid sm:grid-cols-2 gap-5">
+            {productPosts.map((post) => (
+              <Link
+                key={post.slug}
+                href={`/blog/${post.slug}`}
+                className="torn-card bg-white/70 hover:bg-white transition-colors p-5 flex flex-col gap-2 group"
+              >
+                <span className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">
+                  {CATEGORY_LABEL[post.category]} · {post.readTime} de lectura
+                </span>
+                <h3 className="font-display font-700 text-lg text-ink group-hover:underline">
+                  {post.title}
+                </h3>
+                <p className="text-sm text-ink-soft flex-1">{post.excerpt}</p>
+                <time
+                  dateTime={post.date}
+                  className="text-[11px] font-bold uppercase tracking-wide text-ink-soft"
+                >
+                  {formatPostDateShort(post.date)}
+                </time>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
     </>
   );
 }

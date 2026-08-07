@@ -8,7 +8,7 @@ import {
 } from "ai";
 import { getProducts } from "@/lib/products-data";
 import { getPromotions } from "@/lib/promotions-data";
-import { posts } from "@/lib/posts";
+import { posts, postPlainText } from "@/lib/posts";
 import {
   PAYMENT_METHODS,
   PAGO_MOVIL,
@@ -47,7 +47,7 @@ function buildSystemPrompt(
 
   const benefits = posts
     .filter((p) => p.category === "beneficios")
-    .map((p) => `- ${p.title}: ${p.body.join(" ")}`)
+    .map((p) => `- ${p.title}: ${postPlainText(p).replace(/\n+/g, " ")}`)
     .join("\n");
 
   const recipes = posts

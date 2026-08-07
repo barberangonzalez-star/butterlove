@@ -12,7 +12,7 @@ import {
   PAYMENT_METHODS,
 } from "./config";
 import type { Product } from "./products";
-import type { Post } from "./posts";
+import { CATEGORY_LABEL, postPlainText, type Post } from "./posts";
 
 export const SITE_NAME = "Butter Love";
 
@@ -42,6 +42,15 @@ export const OG_DEFAULTS = {
 /** IDs estables para poder referenciar nodos entre distintos schemas. */
 const ORGANIZATION_ID = `${SITE_URL}/#organization`;
 const WEBSITE_ID = `${SITE_URL}/#website`;
+const BLOG_ID = `${SITE_URL}/blog#blog`;
+
+export const BLOG_TITLE = "Blog de mantequillas de frutos secos";
+
+export const BLOG_DESCRIPTION =
+  "Beneficios y recetas fáciles con mantequillas de maní, pistacho, almendras y merey.";
+
+/** Ruta del feed RSS. Se declara en <link rel="alternate"> y en el schema. */
+export const RSS_PATH = "/blog/rss.xml";
 
 /**
  * La marca como entidad. Va en el layout raíz, así aparece en todas las
@@ -208,15 +217,18 @@ export function recipeSchema(post: Post, product: Product) {
     "@id": `${url}#recipe`,
     name: post.title,
     description: post.excerpt,
-    image: [absoluteUrl(product.image)],
+    image: postImages(product),
     url,
     inLanguage: "es",
     datePublished: post.date,
+    dateModified: post.updated ?? post.date,
     author: { "@id": ORGANIZATION_ID },
     publisher: { "@id": ORGANIZATION_ID },
+    isPartOf: { "@id": BLOG_ID },
+    mainEntityOfPage: { "@type": "WebPage", "@id": url },
     recipeCategory: "Desayuno",
     recipeCuisine: "Saludable",
-    keywords: `mantequilla de ${product.name}, receta saludable, sin azúcar`,
+    keywords: post.keywords.join(", "),
     ...(totalTime ? { totalTime } : {}),
     recipeYield: toYield(post.recipe.servings),
     recipeIngredient: post.recipe.ingredients,
@@ -226,34 +238,87 @@ export function recipeSchema(post: Post, product: Product) {
       text: step,
     })),
     // El cuerpo del post da contexto adicional a la receta.
-    articleBody: post.body.join("\n\n"),
+    articleBody: postPlainText(post),
   };
 }
 
 /** Artículo informativo (los posts de beneficios, que no son recetas). */
 export function articleSchema(post: Post, product: Product) {
   const url = absoluteUrl(`/blog/${post.slug}`);
+  const text = postPlainText(post);
 
   return {
     "@context": "https://schema.org",
-    "@type": "Article",
+    // BlogPosting es más específico que Article y es igualmente válido para el
+    // resultado enriquecido de artículo; le dice a Google que esto es una
+    // entrada de blog y no, por ejemplo, una nota de prensa.
+    "@type": "BlogPosting",
     "@id": `${url}#article`,
     headline: post.title,
     description: post.excerpt,
-    image: [absoluteUrl(product.image)],
+    image: postImages(product),
     url,
     inLanguage: "es",
     datePublished: post.date,
-    dateModified: post.date,
+    dateModified: post.updated ?? post.date,
     author: { "@id": ORGANIZATION_ID },
     publisher: { "@id": ORGANIZATION_ID },
+    isPartOf: { "@id": BLOG_ID },
     mainEntityOfPage: { "@type": "WebPage", "@id": url },
-    articleBody: post.body.join("\n\n"),
+    articleSection: CATEGORY_LABEL[post.category],
+    keywords: post.keywords.join(", "),
+    wordCount: text.split(/\s+/).filter(Boolean).length,
+    articleBody: text,
     about: {
       "@type": "Product",
       name: `Mantequilla de ${product.name}`,
       url: absoluteUrl(`/productos/${product.key}`),
     },
+  };
+}
+
+/**
+ * Las dos fotos del producto asociado. Google pide varias relaciones de aspecto
+ * de la misma imagen y se queda con la que le sirva para cada formato de
+ * resultado, así que enviamos las dos que existen en vez de solo una.
+ */
+function postImages(product: Product): string[] {
+  return [absoluteUrl(product.image), absoluteUrl(product.heroImage)];
+}
+
+/**
+ * El listado del blog como una entidad `Blog` con sus entradas dentro. Sin
+ * esto Google ve /blog como una página cualquiera con enlaces; con esto
+ * entiende que es un blog, cuántas entradas tiene y de cuándo son.
+ */
+export function blogSchema(entries: { post: Post; product?: Product }[]) {
+  const url = absoluteUrl("/blog");
+
+  return {
+    "@context": "https://schema.org",
+    "@type": "Blog",
+    "@id": BLOG_ID,
+    name: `${BLOG_TITLE} | ${SITE_NAME}`,
+    description: BLOG_DESCRIPTION,
+    url,
+    inLanguage: "es",
+    publisher: { "@id": ORGANIZATION_ID },
+    isPartOf: { "@id": WEBSITE_ID },
+    blogPost: entries.map(({ post, product }) => {
+      const postUrl = absoluteUrl(`/blog/${post.slug}`);
+      return {
+        "@type": "BlogPosting",
+        "@id": `${postUrl}#article`,
+        headline: post.title,
+        description: post.excerpt,
+        url: postUrl,
+        datePublished: post.date,
+        dateModified: post.updated ?? post.date,
+        articleSection: CATEGORY_LABEL[post.category],
+        author: { "@id": ORGANIZATION_ID },
+        ...(product ? { image: postImages(product) } : {}),
+      };
+    }),
   };
 }
 

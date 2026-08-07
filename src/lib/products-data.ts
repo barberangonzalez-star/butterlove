@@ -49,15 +49,21 @@ export const getProducts = cache(async function getProducts(): Promise<
 
 /**
  * Solo lo que el sitemap necesita. Consulta ligera aparte para no arrastrar
- * imágenes ni tamaños, y para poder exponer `updatedAt` sin meterlo en el
- * tipo `Product` que viaja al cliente.
+ * los tamaños, y para poder exponer `updatedAt` sin meterlo en el tipo
+ * `Product` que viaja al cliente. La imagen va porque el sitemap declara las
+ * fotos de cada URL: es lo que las hace elegibles para Google Imágenes.
  */
 export async function getProductSitemapEntries(): Promise<
-  { key: string; updatedAt: Date }[]
+  { key: string; image: string; heroImage: string; updatedAt: Date }[]
 > {
   const db = getDb();
   return db
-    .select({ key: products.key, updatedAt: products.updatedAt })
+    .select({
+      key: products.key,
+      image: products.image,
+      heroImage: products.heroImage,
+      updatedAt: products.updatedAt,
+    })
     .from(products)
     .orderBy(asc(products.sortOrder));
 }
