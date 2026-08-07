@@ -77,12 +77,16 @@ export default function VentasAdminClient({
           <div key={s.id} className="border border-black/10 rounded-lg bg-white p-4">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="font-medium text-sm">
-                  {s.productName}{" "}
-                  <span className="font-normal text-[#787774]">
-                    {s.grams}g × {s.quantity}
-                  </span>
-                </p>
+                <ul className="space-y-0.5">
+                  {s.items.map((item) => (
+                    <li key={item.id} className="font-medium text-sm">
+                      {item.productName}{" "}
+                      <span className="font-normal text-[#787774]">
+                        {item.grams}g × {item.quantity}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
                 <p className="text-xs text-[#787774] mt-0.5">{s.saleDate}</p>
               </div>
               <div className="shrink-0 text-right">
@@ -108,7 +112,15 @@ export default function VentasAdminClient({
                 {deliveryLabel(s)}
                 {s.deliveryState ? ` · ${s.deliveryState}` : ""}
               </Chip>
-              {s.promotionLabel && <Chip>{s.promotionLabel}</Chip>}
+              {[
+                ...new Set(
+                  s.items
+                    .map((i) => i.promotionLabel)
+                    .filter((label): label is string => Boolean(label)),
+                ),
+              ].map((label) => (
+                <Chip key={label}>{label}</Chip>
+              ))}
             </div>
 
             <div className="flex gap-2 mt-3 pt-3 border-t border-black/5">
@@ -142,8 +154,8 @@ export default function VentasAdminClient({
             <tr className="border-b border-black/10 text-left text-xs text-[#787774] uppercase tracking-wide">
               <th className="px-4 py-2.5 font-medium">Fecha</th>
               <th className="px-4 py-2.5 font-medium">Cliente</th>
-              <th className="px-4 py-2.5 font-medium">Producto</th>
-              <th className="px-4 py-2.5 font-medium">Cant.</th>
+              <th className="px-4 py-2.5 font-medium">Productos</th>
+              <th className="px-4 py-2.5 font-medium">Cantidad</th>
               <th className="px-4 py-2.5 font-medium">Promo</th>
               <th className="px-4 py-2.5 font-medium">Pago</th>
               <th className="px-4 py-2.5 font-medium">Entrega</th>
@@ -168,11 +180,50 @@ export default function VentasAdminClient({
                     <span className="text-[#787774]">—</span>
                   )}
                 </td>
+                {/* Productos y cantidades van en columnas separadas pero con
+                    la misma lista: cada renglón de una casa con el de la otra. */}
                 <td className="px-4 py-3">
-                  {s.productName} <span className="text-[#787774]">{s.grams}g</span>
+                  <ul className="space-y-0.5">
+                    {s.items.map((item) => (
+                      <li key={item.id} className="whitespace-nowrap">
+                        {item.productName}{" "}
+                        <span className="text-[#787774]">{item.grams}g</span>
+                        {item.promotionLabel && (
+                          <span className="ml-1.5 text-[11px] bg-green-50 text-green-800 px-1.5 py-0.5 rounded-full">
+                            promo
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
                 </td>
-                <td className="px-4 py-3">{s.quantity}</td>
-                <td className="px-4 py-3 text-[#787774]">{s.promotionLabel ?? "—"}</td>
+                <td className="px-4 py-3">
+                  <ul className="space-y-0.5">
+                    {s.items.map((item) => (
+                      <li key={item.id} className="whitespace-nowrap tabular-nums">
+                        {item.quantity}
+                      </li>
+                    ))}
+                  </ul>
+                  {s.items.length > 1 && (
+                    <p className="mt-1 pt-1 border-t border-black/5 text-xs text-[#787774] tabular-nums">
+                      {s.items.reduce((sum, i) => sum + i.quantity, 0)} total
+                    </p>
+                  )}
+                </td>
+                <td className="px-4 py-3 text-[#787774]">
+                  {s.items.some((i) => i.promotionLabel) ? (
+                    <ul className="space-y-0.5">
+                      {s.items.map((item) => (
+                        <li key={item.id} className="whitespace-nowrap">
+                          {item.promotionLabel ?? "—"}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : (
+                    "—"
+                  )}
+                </td>
                 <td className="px-4 py-3 text-[#787774]">{s.paymentMethod ?? "—"}</td>
                 <td className="px-4 py-3 text-[#787774]">
                   <p>{deliveryLabel(s)}</p>

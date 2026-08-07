@@ -8,6 +8,7 @@ import {
   jsonb,
   date,
   timestamp,
+  index,
 } from "drizzle-orm/pg-core";
 
 export const products = pgTable("products", {
@@ -53,24 +54,27 @@ export const promotions = pgTable("promotions", {
   description: text("description").notNull(),
   active: boolean("active").notNull().default(true),
   bundleQuantity: integer("bundle_quantity").notNull().default(1),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
-
-export const sales = pgTable("sales", {
-  id: serial("id").primaryKey(),
-  saleDate: date("sale_date").notNull(),
+  // Qué combo es, en datos y no sólo en el texto de la descripción: sin esto
+  // el formulario de ventas no puede ofrecer la promo con su precio hecho.
+  // Van nullable para no romper promos viejas que nunca los tuvieron.
   productId: integer("product_id").references(() => products.id, {
     onDelete: "set null",
   }),
-  productName: text("product_name").notNull(),
-  grams: integer("grams").notNull(),
-  quantity: integer("quantity").notNull(),
-  unitPriceUsd: numeric("unit_price_usd", { precision: 10, scale: 2 }).notNull(),
+  grams: integer("grams"),
+  /** Precio total del combo, no por envase. */
+  bundlePrice: numeric("bundle_price", { precision: 10, scale: 2 }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * La cabecera de la venta: cliente, pago, entrega y monto total. Lo que se
+ * llevó va en `saleItems`, una fila por producto y tamaño, porque un mismo
+ * pedido puede traer maní, pistacho y merey a la vez.
+ */
+export const sales = pgTable("sales", {
+  id: serial("id").primaryKey(),
+  saleDate: date("sale_date").notNull(),
   amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
-  promotionId: integer("promotion_id").references(() => promotions.id, {
-    onDelete: "set null",
-  }),
-  promotionLabel: text("promotion_label"),
   paymentMethod: text("payment_method"),
   customerName: text("customer_name"),
   customerEmail: text("customer_email"),
@@ -85,3 +89,38 @@ export const sales = pgTable("sales", {
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+/**
+ * Cada producto y tamaño que entró en una venta. El nombre se copia aquí (no
+ * sólo se referencia) para que una venta vieja siga diciendo qué se vendió
+ * aunque después se borre el producto del catálogo.
+ */
+export const saleItems = pgTable(
+  "sale_items",
+  {
+    id: serial("id").primaryKey(),
+    saleId: integer("sale_id")
+      .notNull()
+      .references(() => sales.id, { onDelete: "cascade" }),
+    productId: integer("product_id").references(() => products.id, {
+      onDelete: "set null",
+    }),
+    productName: text("product_name").notNull(),
+    grams: integer("grams").notNull(),
+    quantity: integer("quantity").notNull(),
+    unitPriceUsd: numeric("unit_price_usd", {
+      precision: 10,
+      scale: 2,
+    }).notNull(),
+    // La promo vive en la línea y no en la venta: un mismo pedido puede llevar
+    // el combo de maní y el de merey a la vez.
+    promotionId: integer("promotion_id").references(() => promotions.id, {
+      onDelete: "set null",
+    }),
+    promotionLabel: text("promotion_label"),
+    // El orden en que se cargaron las líneas, para que la venta se relea igual
+    // que se escribió en vez de quedar al criterio del planificador.
+    position: integer("position").notNull().default(0),
+  },
+  (table) => [index("sale_items_sale_id_idx").on(table.saleId)],
+);

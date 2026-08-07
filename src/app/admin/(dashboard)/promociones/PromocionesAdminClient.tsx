@@ -8,19 +8,43 @@ import {
   togglePromotionAction,
 } from "./actions";
 import type { Promotion } from "@/lib/promotions-data";
+import type { AdminProduct } from "@/lib/products-data";
 
 const inputClass =
   "w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-[#37352f]";
 const labelClass =
   "text-xs font-medium text-[#787774] uppercase tracking-wide";
 
+const fmtUsd = (n: number) => `$${n.toFixed(2)}`;
+
 function PromotionForm({
   promotion,
+  products,
   onClose,
 }: {
   promotion: Promotion | null;
+  products: AdminProduct[];
   onClose: () => void;
 }) {
+  const [productId, setProductId] = useState(promotion?.productId ?? 0);
+  const [grams, setGrams] = useState(promotion?.grams ?? 0);
+  const [bundleQuantity, setBundleQuantity] = useState(
+    promotion?.bundleQuantity ?? 1,
+  );
+  const [bundlePrice, setBundlePrice] = useState(
+    promotion?.bundlePrice ? String(Number(promotion.bundlePrice)) : "",
+  );
+
+  const product = products.find((p) => p.id === productId);
+  const size = product?.sizes.find((s) => s.grams === grams);
+  // Con qué comparar el precio del combo, para ver el descuento de un vistazo.
+  const regularPrice = size ? size.price * bundleQuantity : null;
+  const promoPrice = Number(bundlePrice);
+  const savings =
+    regularPrice !== null && bundlePrice !== "" && promoPrice > 0
+      ? regularPrice - promoPrice
+      : null;
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
@@ -67,21 +91,107 @@ function PromotionForm({
           />
         </label>
 
-        <label className="block mb-4">
-          <span className={labelClass}>Cantidad del combo</span>
-          <input
-            type="number"
-            name="bundleQuantity"
-            min={1}
-            defaultValue={promotion?.bundleQuantity ?? 1}
-            required
-            className={`${inputClass} mt-1`}
-          />
-          <p className="text-xs text-[#787774] mt-1">
-            Envases que incluye este combo (ej. 2 para &quot;Combo 2 maní&quot;). Al elegir
-            esta promo en Ventas, la cantidad se autocompleta con este número.
+        <div className="rounded-lg border border-black/10 p-3 mb-4 space-y-3">
+          <p className="text-xs text-[#787774]">
+            Define qué vende el combo para que aparezca como opción en Ventas,
+            con su precio ya hecho. Sin producto queda como promo suelta, sólo
+            de etiqueta.
           </p>
-        </label>
+
+          <label className="block">
+            <span className={labelClass}>Producto</span>
+            <select
+              name="productId"
+              value={productId}
+              onChange={(e) => {
+                const id = Number(e.target.value);
+                setProductId(id);
+                const next = products.find((p) => p.id === id);
+                setGrams(next?.sizes[0]?.grams ?? 0);
+              }}
+              className={`${inputClass} mt-1`}
+            >
+              <option value={0}>Ninguno (promo suelta)</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.name}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          {productId > 0 && (
+            <>
+              <label className="block">
+                <span className={labelClass}>Tamaño</span>
+                <select
+                  name="grams"
+                  value={grams}
+                  onChange={(e) => setGrams(Number(e.target.value))}
+                  className={`${inputClass} mt-1`}
+                >
+                  {product?.sizes.map((s) => (
+                    <option key={s.grams} value={s.grams}>
+                      {s.grams}g — {fmtUsd(s.price)} c/u
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              <div className="grid grid-cols-2 gap-3">
+                <label className="block">
+                  <span className={labelClass}>Envases</span>
+                  <input
+                    type="number"
+                    name="bundleQuantity"
+                    min={1}
+                    value={bundleQuantity}
+                    onChange={(e) =>
+                      setBundleQuantity(Number(e.target.value) || 1)
+                    }
+                    required
+                    className={`${inputClass} mt-1`}
+                  />
+                </label>
+                <label className="block">
+                  <span className={labelClass}>Precio combo ($)</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min={0}
+                    name="bundlePrice"
+                    value={bundlePrice}
+                    onChange={(e) => setBundlePrice(e.target.value)}
+                    className={`${inputClass} mt-1`}
+                  />
+                </label>
+              </div>
+
+              {regularPrice !== null && (
+                <p className="text-xs text-[#787774]">
+                  {bundleQuantity} × {grams}g sueltos costarían{" "}
+                  {fmtUsd(regularPrice)}
+                  {savings !== null && savings > 0 && (
+                    <span className="text-green-700 font-medium">
+                      {" "}
+                      · ahorro de {fmtUsd(savings)}
+                    </span>
+                  )}
+                  {savings !== null && savings < 0 && (
+                    <span className="text-red-600 font-medium">
+                      {" "}
+                      · el combo sale {fmtUsd(-savings)} más caro
+                    </span>
+                  )}
+                </p>
+              )}
+            </>
+          )}
+
+          {productId === 0 && (
+            <input type="hidden" name="bundleQuantity" value={bundleQuantity} />
+          )}
+        </div>
 
         <label className="flex items-center gap-2 mb-4 text-sm">
           <input
@@ -105,8 +215,10 @@ function PromotionForm({
 
 export default function PromocionesAdminClient({
   promotions,
+  products,
 }: {
   promotions: Promotion[];
+  products: AdminProduct[];
 }) {
   const [editing, setEditing] = useState<Promotion | "new" | null>(null);
 
@@ -144,6 +256,17 @@ export default function PromocionesAdminClient({
                 )}
               </p>
               <p className="text-sm text-[#787774]">{p.description}</p>
+              {p.bundlePrice !== null && (
+                <p className="text-xs text-[#787774] mt-0.5">
+                  {p.bundleQuantity} × {p.grams}g por{" "}
+                  {fmtUsd(Number(p.bundlePrice))}
+                </p>
+              )}
+              {p.bundlePrice === null && p.active && (
+                <p className="text-xs text-amber-700 mt-0.5">
+                  Sin producto ni precio: no aparece en el selector de Ventas
+                </p>
+              )}
             </div>
             <div className="flex items-center gap-1">
               <button
@@ -171,6 +294,7 @@ export default function PromocionesAdminClient({
       {editing && (
         <PromotionForm
           promotion={editing === "new" ? null : editing}
+          products={products}
           onClose={() => setEditing(null)}
         />
       )}
