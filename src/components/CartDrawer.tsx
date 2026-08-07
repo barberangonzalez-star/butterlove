@@ -381,9 +381,9 @@ export default function CartDrawer() {
                     <Image
                       src="/pago-movil-qr.jpeg"
                       alt="Código QR para pagar por Pago Móvil"
-                      width={220}
-                      height={288}
-                      className="rounded-xl border border-ink/10"
+                      width={320}
+                      height={419}
+                      className="w-full max-w-[320px] h-auto rounded-xl border border-ink/10"
                     />
                     <p className="text-xs text-ink-soft">
                       Escanea el QR desde tu app bancaria para pagar
