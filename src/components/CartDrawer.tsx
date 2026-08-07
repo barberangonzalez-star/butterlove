@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Image from "next/image";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { useProducts } from "@/lib/products-context";
 import { Product } from "@/lib/products";
@@ -374,6 +375,18 @@ export default function CartDrawer() {
                     <p>
                       <span className="text-ink-soft">CI/RIF:</span>{" "}
                       {PAGO_MOVIL.id}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-center gap-2">
+                    <Image
+                      src="/pago-movil-qr.jpeg"
+                      alt="Código QR para pagar por Pago Móvil"
+                      width={220}
+                      height={288}
+                      className="rounded-xl border border-ink/10"
+                    />
+                    <p className="text-xs text-ink-soft">
+                      Escanea el QR desde tu app bancaria para pagar
                     </p>
                   </div>
                 </div>
