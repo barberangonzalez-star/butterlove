@@ -59,3 +59,7 @@ export const PAGO_MOVIL = {
   phone: "0414-2856600",
   id: "23656193",
 };
+
+export const BINANCE = {
+  email: "albert6215@gmail.com",
+};

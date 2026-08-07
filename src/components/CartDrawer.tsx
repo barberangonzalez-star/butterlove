@@ -4,9 +4,34 @@ import { useEffect, useState } from "react";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { useProducts } from "@/lib/products-context";
 import { Product } from "@/lib/products";
-import { WHATSAPP_NUMBER, PAYMENT_METHODS, PAGO_MOVIL } from "@/lib/config";
+import {
+  WHATSAPP_NUMBER,
+  PAYMENT_METHODS,
+  PAGO_MOVIL,
+  BINANCE,
+} from "@/lib/config";
 
 type Step = "cart" | "info" | "payment" | "summary";
+
+const METHODS_REQUIRING_PROOF = ["Pago Móvil", "Binance"];
+
+function CopyButton({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+
+  return (
+    <button
+      type="button"
+      onClick={async () => {
+        await navigator.clipboard.writeText(text);
+        setCopied(true);
+        setTimeout(() => setCopied(false), 1500);
+      }}
+      className="text-xs font-semibold text-ink-soft hover:text-ink underline underline-offset-2"
+    >
+      {copied ? "¡Copiado!" : "Copiar"}
+    </button>
+  );
+}
 
 function useBcvRate() {
   const [rate, setRate] = useState<number | null>(null);
@@ -39,6 +64,7 @@ function buildWhatsAppMessage({
   phone,
   address,
   paymentMethod,
+  paymentConfirmed,
   bsTotal,
   bcvRate,
 }: {
@@ -49,6 +75,7 @@ function buildWhatsAppMessage({
   phone: string;
   address: string;
   paymentMethod: string;
+  paymentConfirmed: boolean;
   bsTotal: number | null;
   bcvRate: number | null;
 }) {
@@ -71,9 +98,20 @@ function buildWhatsAppMessage({
       `Pago Móvil a: ${PAGO_MOVIL.bank} - ${PAGO_MOVIL.phone} - CI/RIF ${PAGO_MOVIL.id}`
     );
   }
+  if (paymentMethod === "Binance") {
+    paymentLines.push(
+      `Total en USDT: ${total.toFixed(2)} USDT`,
+      `Binance Pay a: ${BINANCE.email}`
+    );
+  }
+
+  const greeting =
+    METHODS_REQUIRING_PROOF.includes(paymentMethod) && paymentConfirmed
+      ? `¡Hola Butter Love! 👋 Ya realicé el pago por ${paymentMethod}. 📎 Aquí adjunto mi comprobante. Este es mi pedido:`
+      : "¡Hola Butter Love! 👋 Quiero hacer este pedido:";
 
   return [
-    "¡Hola Butter Love! 👋 Quiero hacer este pedido:",
+    greeting,
     "",
     ...lines,
     "",
@@ -104,6 +142,7 @@ export default function CartDrawer() {
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
+  const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
   const { rate: bcvRate, loading: bcvLoading } = useBcvRate();
 
@@ -112,8 +151,18 @@ export default function CartDrawer() {
     setStep("cart");
   };
 
+  const selectPaymentMethod = (method: string) => {
+    setPaymentMethod(method);
+    setPaymentConfirmed(false);
+  };
+
   const bsTotal = bcvRate ? totalPrice * bcvRate : null;
   const infoComplete = Boolean(name.trim() && phone.trim() && address.trim());
+  const requiresProof =
+    paymentMethod !== null && METHODS_REQUIRING_PROOF.includes(paymentMethod);
+  const canConfirmPayment = Boolean(
+    paymentMethod && (!requiresProof || paymentConfirmed)
+  );
 
   const message = buildWhatsAppMessage({
     items,
@@ -123,6 +172,7 @@ export default function CartDrawer() {
     phone,
     address,
     paymentMethod: paymentMethod ?? "",
+    paymentConfirmed,
     bsTotal,
     bcvRate,
   });
@@ -289,7 +339,7 @@ export default function CartDrawer() {
                 {PAYMENT_METHODS.map((method) => (
                   <button
                     key={method}
-                    onClick={() => setPaymentMethod(method)}
+                    onClick={() => selectPaymentMethod(method)}
                     className={`w-full text-left rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
                       paymentMethod === method
                         ? "bg-ink text-cream border-ink"
@@ -315,9 +365,14 @@ export default function CartDrawer() {
                     </p>
                   )}
                   <div className="rounded-xl bg-white border border-ink/10 px-4 py-3 text-sm space-y-1">
-                    <p className="text-xs font-bold uppercase tracking-wide text-ink-soft mb-1">
-                      Datos para Pago Móvil
-                    </p>
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                        Datos para Pago Móvil
+                      </p>
+                      <CopyButton
+                        text={`${PAGO_MOVIL.bank} - ${PAGO_MOVIL.phone} - CI/RIF ${PAGO_MOVIL.id}`}
+                      />
+                    </div>
                     <p>
                       <span className="text-ink-soft">Banco:</span>{" "}
                       {PAGO_MOVIL.bank}
@@ -332,6 +387,44 @@ export default function CartDrawer() {
                     </p>
                   </div>
                 </div>
+              )}
+
+              {paymentMethod === "Binance" && (
+                <div className="space-y-3">
+                  <p className="text-sm text-ink-soft">
+                    Total a pagar:{" "}
+                    <span className="font-display font-700 text-ink">
+                      {totalPrice.toFixed(2)} USDT
+                    </span>
+                  </p>
+                  <div className="rounded-xl bg-white border border-ink/10 px-4 py-3 text-sm space-y-1">
+                    <div className="flex items-center justify-between mb-1">
+                      <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                        Datos para Binance Pay
+                      </p>
+                      <CopyButton text={BINANCE.email} />
+                    </div>
+                    <p>
+                      <span className="text-ink-soft">Correo:</span>{" "}
+                      {BINANCE.email}
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              {requiresProof && (
+                <label className="flex items-start gap-2 rounded-xl bg-white border border-ink/15 px-4 py-3 text-sm cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={paymentConfirmed}
+                    onChange={(e) => setPaymentConfirmed(e.target.checked)}
+                    className="mt-0.5"
+                  />
+                  <span>
+                    Ya realicé el pago y tengo mi comprobante listo para
+                    adjuntar en WhatsApp.
+                  </span>
+                </label>
               )}
             </div>
           )}
@@ -394,6 +487,18 @@ export default function CartDrawer() {
                     </p>
                   </>
                 )}
+                {paymentMethod === "Binance" && (
+                  <p className="text-ink-soft">
+                    {totalPrice.toFixed(2)} USDT · {BINANCE.email}
+                  </p>
+                )}
+                {requiresProof && (
+                  <p className="text-ink-soft mt-1">
+                    {paymentConfirmed
+                      ? "✅ Pago confirmado — recuerda adjuntar tu comprobante en WhatsApp."
+                      : "⚠️ Aún no confirmaste el pago."}
+                  </p>
+                )}
               </div>
             </div>
           )}
@@ -445,7 +550,7 @@ export default function CartDrawer() {
                 </button>
                 <button
                   onClick={() => setStep("summary")}
-                  disabled={!paymentMethod}
+                  disabled={!canConfirmPayment}
                   className="flex-1 rounded-full bg-ink text-cream font-semibold py-3 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 >
                   Continuar
