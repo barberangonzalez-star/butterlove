@@ -66,7 +66,6 @@ function buildWhatsAppMessage({
   paymentMethod,
   paymentConfirmed,
   bsTotal,
-  bcvRate,
 }: {
   items: CartItem[];
   products: Product[];
@@ -77,7 +76,6 @@ function buildWhatsAppMessage({
   paymentMethod: string;
   paymentConfirmed: boolean;
   bsTotal: number | null;
-  bcvRate: number | null;
 }) {
   const lines = items.map((i) => {
     const product = products.find((p) => p.key === i.key);
@@ -87,23 +85,16 @@ function buildWhatsAppMessage({
     ).toFixed(2)}`;
   });
 
-  const paymentLines = [`Método de pago: ${paymentMethod}`];
-  if (paymentMethod === "Pago Móvil" && bsTotal && bcvRate) {
-    paymentLines.push(
-      `Total en bolívares: Bs. ${bsTotal.toLocaleString("es-VE", {
-        maximumFractionDigits: 2,
-      })} (tasa BCV ${bcvRate.toLocaleString("es-VE", {
-        maximumFractionDigits: 2,
-      })})`,
-      `Pago Móvil a: ${PAGO_MOVIL.bank} - ${PAGO_MOVIL.phone} - CI/RIF ${PAGO_MOVIL.id}`
-    );
+  let paymentLine = `Método de pago: ${paymentMethod}`;
+  if (paymentMethod === "Pago Móvil" && bsTotal) {
+    paymentLine += ` - Total en Bs: Bs. ${bsTotal.toLocaleString("es-VE", {
+      maximumFractionDigits: 2,
+    })}`;
   }
   if (paymentMethod === "Binance") {
-    paymentLines.push(
-      `Total en USDT: ${total.toFixed(2)} USDT`,
-      `Binance Pay a: ${BINANCE.email}`
-    );
+    paymentLine += ` - Total en USDT: ${total.toFixed(2)} USDT`;
   }
+  const paymentLines = [paymentLine];
 
   const greeting =
     METHODS_REQUIRING_PROOF.includes(paymentMethod) && paymentConfirmed
@@ -174,7 +165,6 @@ export default function CartDrawer() {
     paymentMethod: paymentMethod ?? "",
     paymentConfirmed,
     bsTotal,
-    bcvRate,
   });
   const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
     message
