@@ -16,6 +16,11 @@ export interface Post {
   title: string;
   excerpt: string;
   readTime: string;
+  /**
+   * Fecha de publicación en formato ISO (YYYY-MM-DD). Se envía a Google en el
+   * JSON-LD como `datePublished`, y alimenta el `lastModified` del sitemap.
+   */
+  date: string;
   body: string[];
   recipe?: Recipe;
 }
@@ -23,6 +28,7 @@ export interface Post {
 export const posts: Post[] = [
   {
     slug: "beneficios-mantequilla-de-mani",
+    date: "2026-03-10",
     category: "beneficios",
     productKey: "mani",
     title: "Los beneficios de la mantequilla de maní",
@@ -40,6 +46,7 @@ export const posts: Post[] = [
   },
   {
     slug: "beneficios-mantequilla-de-pistacho",
+    date: "2026-03-24",
     category: "beneficios",
     productKey: "pistacho",
     title: "Los beneficios de la mantequilla de pistacho",
@@ -57,6 +64,7 @@ export const posts: Post[] = [
   },
   {
     slug: "beneficios-mantequilla-de-almendras",
+    date: "2026-04-07",
     category: "beneficios",
     productKey: "almendras",
     title: "Los beneficios de la mantequilla de almendras",
@@ -73,6 +81,7 @@ export const posts: Post[] = [
   },
   {
     slug: "beneficios-mantequilla-de-merey",
+    date: "2026-04-21",
     category: "beneficios",
     productKey: "merey",
     title: "Los beneficios de la mantequilla de merey",
@@ -89,6 +98,7 @@ export const posts: Post[] = [
   },
   {
     slug: "receta-bowl-de-avena-con-mantequilla-de-mani",
+    date: "2026-05-05",
     category: "recetas",
     productKey: "mani",
     title: "Bowl de avena con mantequilla de maní y banana",
@@ -120,6 +130,7 @@ export const posts: Post[] = [
   },
   {
     slug: "receta-toast-de-mantequilla-de-pistacho-y-fresas",
+    date: "2026-05-19",
     category: "recetas",
     productKey: "pistacho",
     title: "Toast integral con mantequilla de pistacho y fresas",
@@ -149,6 +160,7 @@ export const posts: Post[] = [
   },
   {
     slug: "receta-batido-de-mantequilla-de-almendras-y-espinaca",
+    date: "2026-06-09",
     category: "recetas",
     productKey: "almendras",
     title: "Batido verde de almendras y espinaca",
@@ -178,6 +190,7 @@ export const posts: Post[] = [
   },
   {
     slug: "receta-energy-balls-de-mantequilla-de-merey",
+    date: "2026-06-23",
     category: "recetas",
     productKey: "merey",
     title: "Energy balls de merey y avena",

@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { products, productSizes } from "./db/schema";
@@ -36,10 +37,29 @@ async function attachSizes(rows: ProductRow[]): Promise<Product[]> {
   return rows.map((row) => toProduct(row, sizeRows));
 }
 
-export async function getProducts(): Promise<Product[]> {
+// Memoizado por request: el layout, la página y `generateMetadata` piden los
+// mismos productos, y así se consulta la base de datos una sola vez.
+export const getProducts = cache(async function getProducts(): Promise<
+  Product[]
+> {
   const db = getDb();
   const rows = await db.select().from(products).orderBy(asc(products.sortOrder));
   return attachSizes(rows);
+});
+
+/**
+ * Solo lo que el sitemap necesita. Consulta ligera aparte para no arrastrar
+ * imágenes ni tamaños, y para poder exponer `updatedAt` sin meterlo en el
+ * tipo `Product` que viaja al cliente.
+ */
+export async function getProductSitemapEntries(): Promise<
+  { key: string; updatedAt: Date }[]
+> {
+  const db = getDb();
+  return db
+    .select({ key: products.key, updatedAt: products.updatedAt })
+    .from(products)
+    .orderBy(asc(products.sortOrder));
 }
 
 export interface AdminSizeOption {
@@ -103,13 +123,17 @@ export async function getAdminProduct(id: number): Promise<AdminProduct | undefi
   return toAdminProduct(row, sizeRows);
 }
 
-export async function getProduct(key: string): Promise<Product | undefined> {
+// También memoizado: `generateMetadata`, el JSON-LD y la página piden el mismo
+// producto en un mismo request.
+export const getProduct = cache(async function getProduct(
+  key: string,
+): Promise<Product | undefined> {
   const db = getDb();
   const [row] = await db.select().from(products).where(eq(products.key, key));
   if (!row) return undefined;
   const [result] = await attachSizes([row]);
   return result;
-}
+});
 
 export interface ProductInput {
   key: string;

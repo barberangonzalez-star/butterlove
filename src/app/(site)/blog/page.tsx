@@ -3,11 +3,28 @@ import Link from "next/link";
 import { posts } from "@/lib/posts";
 import { getProducts } from "@/lib/products-data";
 import type { Product } from "@/lib/products";
+import JsonLd from "@/components/JsonLd";
+import { breadcrumbSchema, OG_DEFAULTS } from "@/lib/seo";
+
+const BLOG_DESCRIPTION =
+  "Beneficios y recetas fáciles con mantequillas de maní, pistacho, almendras y merey.";
 
 export const metadata: Metadata = {
-  title: "Blog | Butter Love",
-  description:
-    "Beneficios y recetas fáciles con mantequillas de maní, pistacho, almendras y merey.",
+  title: "Blog",
+  description: BLOG_DESCRIPTION,
+  alternates: { canonical: "/blog" },
+  openGraph: {
+    ...OG_DEFAULTS,
+    type: "website",
+    url: "/blog",
+    title: "Blog | Butter Love",
+    description: BLOG_DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blog | Butter Love",
+    description: BLOG_DESCRIPTION,
+  },
 };
 
 function PostCard({
@@ -46,6 +63,12 @@ export default async function BlogPage() {
 
   return (
     <div className="mx-auto max-w-6xl px-5 sm:px-8 py-12 sm:py-16">
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Inicio", path: "/" },
+          { name: "Blog", path: "/blog" },
+        ])}
+      />
       <h1 className="font-display font-700 text-4xl sm:text-5xl text-ink mb-3">
         Blog
       </h1>

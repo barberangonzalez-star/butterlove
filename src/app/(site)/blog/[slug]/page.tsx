@@ -4,6 +4,13 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { posts, getPost } from "@/lib/posts";
 import { getProduct } from "@/lib/products-data";
+import JsonLd from "@/components/JsonLd";
+import {
+  recipeSchema,
+  articleSchema,
+  breadcrumbSchema,
+  OG_DEFAULTS,
+} from "@/lib/seo";
 
 export function generateStaticParams() {
   return posts.map((p) => ({ slug: p.slug }));
@@ -18,9 +25,40 @@ export async function generateMetadata({
   const post = getPost(slug);
   if (!post) return {};
 
+  const product = await getProduct(post.productKey);
+  const url = `/blog/${post.slug}`;
+
   return {
-    title: `${post.title} | Butter Love`,
+    title: post.title,
     description: post.excerpt,
+    alternates: { canonical: url },
+    openGraph: {
+      ...OG_DEFAULTS,
+      type: "article",
+      url,
+      title: `${post.title} | Butter Love`,
+      description: post.excerpt,
+      publishedTime: post.date,
+      authors: ["Butter Love"],
+      ...(product
+        ? {
+            images: [
+              {
+                url: product.image,
+                width: 1080,
+                height: 1080,
+                alt: post.title,
+              },
+            ],
+          }
+        : {}),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${post.title} | Butter Love`,
+      description: post.excerpt,
+      ...(product ? { images: [product.image] } : {}),
+    },
   };
 }
 
@@ -36,8 +74,20 @@ export default async function BlogPostPage({
   const product = await getProduct(post.productKey);
   if (!product) notFound();
 
+  // Las recetas usan schema Recipe (habilita el carrusel de recetas de Google,
+  // con foto, tiempo e ingredientes); los posts de beneficios van como Article.
+  const recipe = recipeSchema(post, product);
+
   return (
     <article className="mx-auto max-w-2xl px-5 sm:px-8 py-12 sm:py-16">
+      <JsonLd data={recipe ?? articleSchema(post, product)} />
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Inicio", path: "/" },
+          { name: "Blog", path: "/blog" },
+          { name: post.title, path: `/blog/${post.slug}` },
+        ])}
+      />
       <Link
         href="/blog"
         className="text-xs font-bold uppercase tracking-widest text-ink-soft hover:text-ink w-fit inline-block mb-6"

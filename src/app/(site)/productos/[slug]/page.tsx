@@ -4,6 +4,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProducts, getProduct } from "@/lib/products-data";
 import ProductPurchase from "@/components/ProductPurchase";
+import JsonLd from "@/components/JsonLd";
+import { productSchema, breadcrumbSchema, OG_DEFAULTS } from "@/lib/seo";
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -19,9 +21,34 @@ export async function generateMetadata({
   const product = await getProduct(slug);
   if (!product) return {};
 
+  const title = `Mantequilla de ${product.name}`;
+  const url = `/productos/${product.key}`;
+
   return {
-    title: `Mantequilla de ${product.name} | Butter Love`,
+    title,
     description: product.description,
+    alternates: { canonical: url },
+    openGraph: {
+      ...OG_DEFAULTS,
+      type: "website",
+      url,
+      title: `${title} | Butter Love`,
+      description: product.description,
+      images: [
+        {
+          url: product.image,
+          width: 1080,
+          height: 1080,
+          alt: `${title} Butter Love`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: `${title} | Butter Love`,
+      description: product.description,
+      images: [product.image],
+    },
   };
 }
 
@@ -36,6 +63,18 @@ export default async function ProductPage({
 
   return (
     <>
+      {/* Producto + precios por tamaño: es lo que habilita que Google muestre
+          precio y disponibilidad directamente en el resultado de búsqueda. */}
+      <JsonLd data={productSchema(product)} />
+      <JsonLd
+        data={breadcrumbSchema([
+          { name: "Inicio", path: "/" },
+          {
+            name: `Mantequilla de ${product.name}`,
+            path: `/productos/${product.key}`,
+          },
+        ])}
+      />
       <section className="px-3 sm:px-5 pt-4">
         <div className="relative overflow-hidden torn-card min-h-[320px] sm:min-h-[420px] flex flex-col">
           <Image

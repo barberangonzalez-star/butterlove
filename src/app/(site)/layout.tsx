@@ -6,6 +6,8 @@ import Footer from "@/components/Footer";
 import CartDrawer from "@/components/CartDrawer";
 import FloatingNav from "@/components/FloatingNav";
 import ChatWidget from "@/components/ChatWidget";
+import JsonLd from "@/components/JsonLd";
+import { organizationSchema, websiteSchema } from "@/lib/seo";
 
 export default async function SiteLayout({
   children,
@@ -17,6 +19,10 @@ export default async function SiteLayout({
   return (
     <ProductsProvider products={products}>
       <CartProvider>
+        {/* Identidad de la marca y del sitio, en todas las páginas públicas.
+            El panel /admin queda fuera a propósito: va con noindex. */}
+        <JsonLd data={organizationSchema()} />
+        <JsonLd data={websiteSchema()} />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />
