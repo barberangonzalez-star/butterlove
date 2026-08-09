@@ -36,20 +36,35 @@ export default function ProductCard({ product }: { product: Product }) {
           </button>
         </div>
 
-        {/* decorative bubbles, echoing Charlie's droplet motifs */}
-        <span className="absolute left-5 top-[42%] w-2 h-2 rounded-full bg-white/50" />
-        <span className="absolute left-8 top-[48%] w-1.5 h-1.5 rounded-full bg-white/40" />
-        <span className="absolute right-6 top-[30%] w-2.5 h-2.5 rounded-full bg-white/40" />
-
-        <div className="relative flex-1 mt-1">
+        {/* Los sabores sueltos son recortes sin fondo, así que flotan sobre el
+            color de la tarjeta con las burbujas detrás. Las fotos de combo
+            traen su propio fondo: ahí la foto es la tarjeta. */}
+        {isCombo(product) ? (
           <Image
             src={product.image}
             alt={`${title} Butter Love ${sizeLabel(product, size)}`}
             fill
             sizes="(max-width: 640px) 90vw, 280px"
-            className="object-contain object-bottom drop-shadow-xl"
+            className="absolute inset-0 object-cover"
           />
-        </div>
+        ) : (
+          <>
+            {/* decorative bubbles, echoing Charlie's droplet motifs */}
+            <span className="absolute left-5 top-[42%] w-2 h-2 rounded-full bg-white/50" />
+            <span className="absolute left-8 top-[48%] w-1.5 h-1.5 rounded-full bg-white/40" />
+            <span className="absolute right-6 top-[30%] w-2.5 h-2.5 rounded-full bg-white/40" />
+
+            <div className="relative flex-1 mt-1">
+              <Image
+                src={product.image}
+                alt={`${title} Butter Love ${sizeLabel(product, size)}`}
+                fill
+                sizes="(max-width: 640px) 90vw, 280px"
+                className="object-contain object-bottom drop-shadow-xl"
+              />
+            </div>
+          </>
+        )}
 
         {infoOpen && (
           <div className="absolute inset-0 z-20 bg-ink/95 text-cream p-5 flex flex-col justify-center">
@@ -116,7 +131,7 @@ export default function ProductCard({ product }: { product: Product }) {
 
         <div className="flex items-center justify-between gap-3">
           <span className="font-display font-700 text-2xl text-ink">
-            ${size.price}
+            ${size.price.toFixed(2)}
           </span>
           <button
             onClick={() => addItem(product.key, size.grams, size.price)}

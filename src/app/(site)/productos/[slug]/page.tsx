@@ -3,7 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProducts, getProduct } from "@/lib/products-data";
-import { productTitle } from "@/lib/products";
+import { isCombo, productTitle } from "@/lib/products";
 import { posts, CATEGORY_LABEL, formatPostDateShort } from "@/lib/posts";
 import ProductPurchase from "@/components/ProductPurchase";
 import JsonLd from "@/components/JsonLd";
@@ -105,19 +105,33 @@ export default async function ProductPage({
       </section>
 
       <section className="mx-auto max-w-6xl px-5 sm:px-8 py-12 sm:py-16 grid md:grid-cols-2 gap-10">
-        <div
-          className={`torn-card ${product.bgClass} p-8 flex items-center justify-center`}
-        >
-          <div className="relative w-full aspect-square max-w-xs">
+        {/* Igual que en la tarjeta: el frasco recortado flota sobre el color y
+            la foto de combo llena la tarjeta de borde a borde. */}
+        {isCombo(product) ? (
+          <div className="torn-card relative aspect-square overflow-hidden">
             <Image
               src={product.image}
               alt={`${productTitle(product)} Butter Love`}
               fill
-              sizes="(max-width: 768px) 90vw, 400px"
-              className="object-contain drop-shadow-xl"
+              sizes="(max-width: 768px) 90vw, 500px"
+              className="object-cover"
             />
           </div>
-        </div>
+        ) : (
+          <div
+            className={`torn-card ${product.bgClass} p-8 flex items-center justify-center`}
+          >
+            <div className="relative w-full aspect-square max-w-xs">
+              <Image
+                src={product.image}
+                alt={`${productTitle(product)} Butter Love`}
+                fill
+                sizes="(max-width: 768px) 90vw, 400px"
+                className="object-contain drop-shadow-xl"
+              />
+            </div>
+          </div>
+        )}
 
         <div>
           <p className="text-ink-soft mb-6">{product.tagline}</p>

@@ -38,7 +38,7 @@ export default function ProductPurchase({ product }: { product: Product }) {
       )}
       <div className="flex items-center justify-between gap-3">
         <span className="font-display font-700 text-3xl text-ink">
-          ${size.price}
+          ${size.price.toFixed(2)}
         </span>
         <button
           onClick={() => addItem(product.key, size.grams, size.price)}
