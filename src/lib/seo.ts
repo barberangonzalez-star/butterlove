@@ -11,7 +11,7 @@ import {
   BUSINESS_LOCALITY,
   PAYMENT_METHODS,
 } from "./config";
-import type { Product } from "./products";
+import { productTitle, sizeLabel, type Product } from "./products";
 import { CATEGORY_LABEL, postPlainText, type Post } from "./posts";
 
 export const SITE_NAME = "Butter Love";
@@ -154,7 +154,7 @@ export function productSchema(product: Product) {
           offers: product.sizes.map((size) => ({
             "@type": "Offer",
             url,
-            name: `Mantequilla de ${product.name} ${size.grams}g`,
+            name: `${productTitle(product)} ${sizeLabel(product, size)}`,
             sku: `${product.key}-${size.grams}`,
             price: size.price.toFixed(2),
             priceCurrency: "USD",
@@ -167,7 +167,7 @@ export function productSchema(product: Product) {
     "@context": "https://schema.org",
     "@type": "Product",
     "@id": `${url}#product`,
-    name: `Mantequilla de ${product.name}`,
+    name: productTitle(product),
     description: product.description,
     image: [absoluteUrl(product.image), absoluteUrl(product.heroImage)],
     url,
@@ -271,7 +271,7 @@ export function articleSchema(post: Post, product: Product) {
     articleBody: text,
     about: {
       "@type": "Product",
-      name: `Mantequilla de ${product.name}`,
+      name: productTitle(product),
       url: absoluteUrl(`/productos/${product.key}`),
     },
   };
@@ -331,7 +331,7 @@ export function productListSchema(products: Product[]) {
     itemListElement: products.map((product, i) => ({
       "@type": "ListItem",
       position: i + 1,
-      name: `Mantequilla de ${product.name}`,
+      name: productTitle(product),
       url: absoluteUrl(`/productos/${product.key}`),
     })),
   };

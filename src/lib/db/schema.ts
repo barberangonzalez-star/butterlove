@@ -15,6 +15,10 @@ export const products = pgTable("products", {
   id: serial("id").primaryKey(),
   key: text("key").notNull().unique(),
   name: text("name").notNull(),
+  // "single" es un sabor suelto y "combo" un dúo de frascos. Cambia cómo se
+  // titula el producto: "Mantequilla de Maní" contra "Dúo Merey + Maní", que
+  // leído con el prefijo quedaría absurdo.
+  kind: text("kind").notNull().default("single"),
   tagline: text("tagline").notNull(),
   description: text("description").notNull(),
   image: text("image").notNull(),

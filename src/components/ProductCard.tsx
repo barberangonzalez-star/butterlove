@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Product } from "@/lib/products";
+import { Product, isCombo, productTitle, sizeLabel } from "@/lib/products";
 import { useCart } from "@/lib/cart-context";
 
 export default function ProductCard({ product }: { product: Product }) {
@@ -11,6 +11,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const [infoOpen, setInfoOpen] = useState(false);
   const { addItem } = useCart();
   const size = product.sizes[sizeIdx];
+  const title = productTitle(product);
 
   return (
     <div className="torn-card overflow-hidden flex flex-col">
@@ -21,7 +22,7 @@ export default function ProductCard({ product }: { product: Product }) {
       >
         <div className="flex items-start justify-between relative z-10">
           <span className="bg-white/90 text-ink text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
-            100% natural
+            {isCombo(product) ? "Combo" : "100% natural"}
           </span>
           <button
             onClick={(e) => {
@@ -43,7 +44,7 @@ export default function ProductCard({ product }: { product: Product }) {
         <div className="relative flex-1 mt-1">
           <Image
             src={product.image}
-            alt={`Mantequilla de ${product.name} Butter Love ${size.grams}g`}
+            alt={`${title} Butter Love ${sizeLabel(product, size)}`}
             fill
             sizes="(max-width: 640px) 90vw, 280px"
             className="object-contain object-bottom drop-shadow-xl"
@@ -87,24 +88,31 @@ export default function ProductCard({ product }: { product: Product }) {
           href={`/productos/${product.key}`}
           className="block font-display font-700 text-xl text-center mb-3 hover:underline"
         >
-          Mantequilla de {product.name}
+          {title}
         </Link>
 
-        <div className="flex gap-2 mb-3">
-          {product.sizes.map((s, i) => (
-            <button
-              key={s.grams}
-              onClick={() => setSizeIdx(i)}
-              className={`flex-1 rounded-full py-1.5 text-xs font-semibold border transition-colors ${
-                i === sizeIdx
-                  ? "bg-ink text-cream border-ink"
-                  : "bg-transparent border-ink/15 text-ink-soft hover:border-ink/40"
-              }`}
-            >
-              {s.grams}g
-            </button>
-          ))}
-        </div>
+        {/* Con un solo tamaño el selector no elige nada: se muestra como dato. */}
+        {product.sizes.length > 1 ? (
+          <div className="flex gap-2 mb-3">
+            {product.sizes.map((s, i) => (
+              <button
+                key={s.grams}
+                onClick={() => setSizeIdx(i)}
+                className={`flex-1 rounded-full py-1.5 text-xs font-semibold border transition-colors ${
+                  i === sizeIdx
+                    ? "bg-ink text-cream border-ink"
+                    : "bg-transparent border-ink/15 text-ink-soft hover:border-ink/40"
+                }`}
+              >
+                {sizeLabel(product, s)}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <p className="text-center text-xs font-semibold text-ink-soft mb-3">
+            {sizeLabel(product, size)}
+          </p>
+        )}
 
         <div className="flex items-center justify-between gap-3">
           <span className="font-display font-700 text-2xl text-ink">

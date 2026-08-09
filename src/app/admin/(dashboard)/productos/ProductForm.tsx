@@ -52,6 +52,21 @@ export default function ProductForm({
             <input name="name" defaultValue={product?.name} required className={inputClass} />
           </Field>
 
+          <Field label="Tipo">
+            <select
+              name="kind"
+              defaultValue={product?.kind ?? "single"}
+              className={inputClass}
+            >
+              <option value="single">Sabor suelto</option>
+              <option value="combo">Combo / dúo</option>
+            </select>
+            <span className="mt-1 block text-xs text-[#787774]">
+              Los sabores sueltos se muestran como &quot;Mantequilla de
+              [nombre]&quot;. Los combos usan el nombre tal cual lo escribas.
+            </span>
+          </Field>
+
           <Field label="Slug (key)">
             <input
               name="key"

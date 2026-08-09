@@ -3,9 +3,12 @@
 import { useState } from "react";
 import Image from "next/image";
 import { useProducts } from "@/lib/products-context";
+import { isCombo } from "@/lib/products";
 
 export default function Hero() {
-  const products = useProducts();
+  // El banner rota entre sabores: los combos no tienen foto hero propia y su
+  // nombre no encaja en el titular, así que se quedan fuera del selector.
+  const products = useProducts().filter((p) => !isCombo(p));
   const [active, setActive] = useState<string>(products[0]?.key ?? "");
   const product = products.find((p) => p.key === active);
 

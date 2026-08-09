@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProducts, getProduct } from "@/lib/products-data";
+import { productTitle } from "@/lib/products";
 import { posts, CATEGORY_LABEL, formatPostDateShort } from "@/lib/posts";
 import ProductPurchase from "@/components/ProductPurchase";
 import JsonLd from "@/components/JsonLd";
@@ -22,7 +23,7 @@ export async function generateMetadata({
   const product = await getProduct(slug);
   if (!product) return {};
 
-  const title = `Mantequilla de ${product.name}`;
+  const title = productTitle(product);
   const url = `/productos/${product.key}`;
 
   return {
@@ -73,7 +74,7 @@ export default async function ProductPage({
         data={breadcrumbSchema([
           { name: "Inicio", path: "/" },
           {
-            name: `Mantequilla de ${product.name}`,
+            name: productTitle(product),
             path: `/productos/${product.key}`,
           },
         ])}
@@ -97,7 +98,7 @@ export default async function ProductPage({
               ← Volver a productos
             </Link>
             <h1 className="font-display font-700 text-3xl sm:text-5xl text-white max-w-lg drop-shadow">
-              Mantequilla de {product.name}
+              {productTitle(product)}
             </h1>
           </div>
         </div>
@@ -110,7 +111,7 @@ export default async function ProductPage({
           <div className="relative w-full aspect-square max-w-xs">
             <Image
               src={product.image}
-              alt={`Mantequilla de ${product.name} Butter Love`}
+              alt={`${productTitle(product)} Butter Love`}
               fill
               sizes="(max-width: 768px) 90vw, 400px"
               className="object-contain drop-shadow-xl"

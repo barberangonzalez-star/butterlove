@@ -3,7 +3,7 @@ import { cache } from "react";
 import { asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { products, productSizes } from "./db/schema";
-import type { Product } from "./products";
+import type { Product, ProductKind } from "./products";
 
 type ProductRow = typeof products.$inferSelect;
 type SizeRow = typeof productSizes.$inferSelect;
@@ -12,6 +12,7 @@ function toProduct(row: ProductRow, sizes: SizeRow[]): Product {
   return {
     key: row.key,
     name: row.name,
+    kind: row.kind as ProductKind,
     tagline: row.tagline,
     description: row.description,
     image: row.image,
@@ -87,6 +88,7 @@ function toAdminProduct(row: ProductRow, sizeRows: SizeRow[]): AdminProduct {
     sortOrder: row.sortOrder,
     key: row.key,
     name: row.name,
+    kind: row.kind as ProductKind,
     tagline: row.tagline,
     description: row.description,
     image: row.image,
@@ -144,6 +146,7 @@ export const getProduct = cache(async function getProduct(
 export interface ProductInput {
   key: string;
   name: string;
+  kind: ProductKind;
   tagline: string;
   description: string;
   image: string;
@@ -196,6 +199,7 @@ export async function createProduct(input: ProductInput) {
     .values({
       key: input.key,
       name: input.name,
+      kind: input.kind,
       tagline: input.tagline,
       description: input.description,
       image: input.image,
@@ -217,6 +221,7 @@ export async function updateProduct(id: number, input: ProductInput) {
     .set({
       key: input.key,
       name: input.name,
+      kind: input.kind,
       tagline: input.tagline,
       description: input.description,
       image: input.image,

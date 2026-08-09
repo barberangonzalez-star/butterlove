@@ -24,6 +24,7 @@ function parseProductForm(formData: FormData): ProductInput {
   return {
     key: String(formData.get("key") ?? "").trim(),
     name: String(formData.get("name") ?? "").trim(),
+    kind: formData.get("kind") === "combo" ? "combo" : "single",
     tagline: String(formData.get("tagline") ?? "").trim(),
     description: String(formData.get("description") ?? "").trim(),
     image: String(formData.get("image") ?? "").trim(),

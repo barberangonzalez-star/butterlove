@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { useProducts } from "@/lib/products-context";
-import { Product } from "@/lib/products";
+import { Product, productTitle, sizeLabel } from "@/lib/products";
 import {
   WHATSAPP_NUMBER,
   PAYMENT_METHODS,
@@ -91,10 +91,9 @@ function buildWhatsAppMessage({
 }) {
   const lines = items.map((i) => {
     const product = products.find((p) => p.key === i.key);
-    const label = product ? product.name : i.key;
-    return `• Mantequilla de ${label} ${i.grams}g x${i.qty}: $${(
-      i.price * i.qty
-    ).toFixed(2)}`;
+    const label = product ? productTitle(product) : i.key;
+    const size = product ? sizeLabel(product, i) : `${i.grams}g`;
+    return `• ${label} ${size} x${i.qty}: $${(i.price * i.qty).toFixed(2)}`;
   });
 
   let paymentLine = `Método de pago: ${paymentMethod}`;
@@ -266,9 +265,11 @@ export default function CartDrawer() {
                     >
                       <div className="flex-1">
                         <p className="font-semibold">
-                          Mantequilla de {product?.name ?? item.key}
+                          {product ? productTitle(product) : item.key}
                         </p>
-                        <p className="text-xs text-ink-soft">{item.grams}g</p>
+                        <p className="text-xs text-ink-soft">
+                          {product ? sizeLabel(product, item) : `${item.grams}g`}
+                        </p>
                         <div className="flex items-center gap-2 mt-2">
                           <button
                             onClick={() =>
@@ -560,8 +561,11 @@ export default function CartDrawer() {
                         className="flex justify-between gap-3"
                       >
                         <span>
-                          Mantequilla de {product?.name ?? item.key} {item.grams}g x
-                          {item.qty}
+                          {product ? productTitle(product) : item.key}{" "}
+                          {product
+                            ? sizeLabel(product, item)
+                            : `${item.grams}g`}{" "}
+                          x{item.qty}
                         </span>
                         <span>${(item.price * item.qty).toFixed(2)}</span>
                       </li>
