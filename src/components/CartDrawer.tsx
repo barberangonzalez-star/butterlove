@@ -10,9 +10,12 @@ import {
   PAYMENT_METHODS,
   PAGO_MOVIL,
   BINANCE,
+  DELIVERY_ZONES,
 } from "@/lib/config";
 
 type Step = "cart" | "info" | "payment" | "summary";
+
+type DeliveryMethod = "pickup" | "delivery";
 
 const METHODS_REQUIRING_PROOF = ["Pago Móvil", "Binance"];
 
@@ -60,7 +63,11 @@ function useBcvRate() {
 function buildWhatsAppMessage({
   items,
   products,
+  subtotal,
+  deliveryCost,
   total,
+  deliveryMethod,
+  zone,
   name,
   phone,
   address,
@@ -70,7 +77,11 @@ function buildWhatsAppMessage({
 }: {
   items: CartItem[];
   products: Product[];
+  subtotal: number;
+  deliveryCost: number;
   total: number;
+  deliveryMethod: DeliveryMethod;
+  zone: string;
   name: string;
   phone: string;
   address: string;
@@ -102,18 +113,37 @@ function buildWhatsAppMessage({
       ? `¡Hola Butter Love! 👋 Ya realicé el pago por ${paymentMethod}. 📎 Aquí adjunto mi comprobante. Este es mi pedido:`
       : "¡Hola Butter Love! 👋 Quiero hacer este pedido:";
 
+  const isDelivery = deliveryMethod === "delivery";
+
+  // Con pickup no hay costo extra, así que el desglose solo estorba.
+  const totalLines = isDelivery
+    ? [
+        `Subtotal: $${subtotal.toFixed(2)}`,
+        `Delivery (${zone}): $${deliveryCost.toFixed(2)}`,
+        `Total: $${total.toFixed(2)}`,
+      ]
+    : [`Total: $${total.toFixed(2)}`];
+
+  const deliveryLines = isDelivery
+    ? [
+        `Entrega: Delivery — ${zone}`,
+        `Dirección: ${address}`,
+        "📍 Te envío mi ubicación GPS por aquí mismo.",
+      ]
+    : ["Entrega: Pickup / punto de encuentro", `Punto de entrega: ${address}`];
+
   return [
     greeting,
     "",
     ...lines,
     "",
-    `Total: $${total.toFixed(2)}`,
+    ...totalLines,
     "",
     ...paymentLines,
     "",
     `Nombre: ${name}`,
     `Teléfono: ${phone}`,
-    `Dirección o punto de entrega: ${address}`,
+    ...deliveryLines,
   ].join("\n");
 }
 
@@ -133,6 +163,9 @@ export default function CartDrawer() {
   const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
+  const [deliveryMethod, setDeliveryMethod] =
+    useState<DeliveryMethod>("delivery");
+  const [zoneName, setZoneName] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
@@ -148,8 +181,15 @@ export default function CartDrawer() {
     setPaymentConfirmed(false);
   };
 
-  const bsTotal = bcvRate ? totalPrice * bcvRate : null;
-  const infoComplete = Boolean(name.trim() && phone.trim() && address.trim());
+  const isDelivery = deliveryMethod === "delivery";
+  const zone = DELIVERY_ZONES.find((z) => z.name === zoneName) ?? null;
+  const deliveryCost = isDelivery && zone ? zone.price : 0;
+  const grandTotal = totalPrice + deliveryCost;
+
+  const bsTotal = bcvRate ? grandTotal * bcvRate : null;
+  const infoComplete = Boolean(
+    name.trim() && phone.trim() && address.trim() && (!isDelivery || zone)
+  );
   const requiresProof =
     paymentMethod !== null && METHODS_REQUIRING_PROOF.includes(paymentMethod);
   const canConfirmPayment = Boolean(
@@ -159,7 +199,11 @@ export default function CartDrawer() {
   const message = buildWhatsAppMessage({
     items,
     products,
-    total: totalPrice,
+    subtotal: totalPrice,
+    deliveryCost,
+    total: grandTotal,
+    deliveryMethod,
+    zone: zone?.name ?? "",
     name,
     phone,
     address,
@@ -189,7 +233,7 @@ export default function CartDrawer() {
           <h2 className="font-display font-700 text-xl">
             {step === "cart" &&
               `Tu pedido${totalItems > 0 ? ` (${totalItems})` : ""}`}
-            {step === "info" && "Tus datos"}
+            {step === "info" && "Entrega y datos"}
             {step === "payment" && "Método de pago"}
             {step === "summary" && "Confirmar pedido"}
           </h2>
@@ -266,6 +310,58 @@ export default function CartDrawer() {
 
           {step === "info" && (
             <div className="space-y-4">
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                  ¿Cómo lo recibes?
+                </span>
+                <div className="mt-1.5 grid grid-cols-2 gap-2">
+                  {(
+                    [
+                      { value: "delivery", label: "Delivery" },
+                      { value: "pickup", label: "Pickup" },
+                    ] as { value: DeliveryMethod; label: string }[]
+                  ).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setDeliveryMethod(option.value)}
+                      className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
+                        deliveryMethod === option.value
+                          ? "bg-ink text-cream border-ink"
+                          : "bg-white border-ink/15 text-ink hover:border-ink/40"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {isDelivery && (
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                    Zona de entrega
+                  </span>
+                  <select
+                    value={zoneName}
+                    onChange={(e) => setZoneName(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm outline-none focus:border-ink/40"
+                  >
+                    <option value="">Selecciona tu zona...</option>
+                    {DELIVERY_ZONES.map((z) => (
+                      <option key={z.name} value={z.name}>
+                        {z.name} — ${z.price.toFixed(2)}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1.5 block text-xs text-ink-soft">
+                    {zone
+                      ? `Se suman $${zone.price.toFixed(2)} de delivery a tu total.`
+                      : "El costo del delivery se suma al total de tu pedido."}
+                  </span>
+                </label>
+              )}
+
               <label className="block">
                 <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
                   Nombre
@@ -292,16 +388,33 @@ export default function CartDrawer() {
               </label>
               <label className="block">
                 <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                  Dirección o punto de entrega
+                  {isDelivery ? "Dirección de entrega" : "Punto de encuentro"}
                 </span>
                 <textarea
                   value={address}
                   onChange={(e) => setAddress(e.target.value)}
                   rows={3}
-                  placeholder="Urbanización, calle, referencia..."
+                  placeholder={
+                    isDelivery
+                      ? "Calle, edificio o quinta, piso/apto y punto de referencia..."
+                      : "¿Dónde te queda cómodo encontrarnos?"
+                  }
                   className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm outline-none focus:border-ink/40 resize-none"
                 />
               </label>
+
+              {isDelivery && (
+                <div className="rounded-xl bg-white/80 border border-ink/10 px-4 py-3 text-sm">
+                  <p className="font-semibold text-ink">
+                    📍 Importante: envíanos tu ubicación GPS
+                  </p>
+                  <p className="text-ink-soft text-xs mt-1">
+                    Al terminar el pedido en WhatsApp, adjunta tu ubicación
+                    (Adjuntar → Ubicación) para que el delivery llegue sin
+                    vueltas. Sin la ubicación no podemos despachar.
+                  </p>
+                </div>
+              )}
             </div>
           )}
 
@@ -349,7 +462,7 @@ export default function CartDrawer() {
                       Total aproximado en bolívares:{" "}
                       <span className="font-display font-700 text-ink">
                         Bs.{" "}
-                        {(totalPrice * bcvRate).toLocaleString("es-VE", {
+                        {(grandTotal * bcvRate).toLocaleString("es-VE", {
                           maximumFractionDigits: 2,
                         })}
                       </span>
@@ -397,7 +510,7 @@ export default function CartDrawer() {
                   <p className="text-sm text-ink-soft">
                     Total a pagar:{" "}
                     <span className="font-display font-700 text-ink">
-                      {totalPrice.toFixed(2)} USDT
+                      {grandTotal.toFixed(2)} USDT
                     </span>
                   </p>
                   <div className="rounded-xl bg-white border border-ink/10 px-4 py-3 text-sm space-y-1">
@@ -454,7 +567,29 @@ export default function CartDrawer() {
                       </li>
                     );
                   })}
+                  {deliveryCost > 0 && (
+                    <li className="flex justify-between gap-3">
+                      <span>Delivery — {zone?.name}</span>
+                      <span>${deliveryCost.toFixed(2)}</span>
+                    </li>
+                  )}
                 </ul>
+              </div>
+              <div>
+                <p className="text-xs font-bold uppercase tracking-wide text-ink-soft mb-1">
+                  Entrega
+                </p>
+                <p>
+                  {isDelivery
+                    ? `Delivery — ${zone?.name}`
+                    : "Pickup / punto de encuentro"}
+                </p>
+                <p className="text-ink-soft">{address}</p>
+                {isDelivery && (
+                  <p className="text-ink-soft mt-1">
+                    📍 Recuerda enviarnos tu ubicación GPS por WhatsApp.
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-ink-soft mb-1">
@@ -462,7 +597,6 @@ export default function CartDrawer() {
                 </p>
                 <p>{name}</p>
                 <p>{phone}</p>
-                <p>{address}</p>
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-ink-soft mb-1">
@@ -492,7 +626,7 @@ export default function CartDrawer() {
                 )}
                 {paymentMethod === "Binance" && (
                   <p className="text-ink-soft">
-                    {totalPrice.toFixed(2)} USDT · {BINANCE.email}
+                    {grandTotal.toFixed(2)} USDT · {BINANCE.email}
                   </p>
                 )}
                 {requiresProof && (
@@ -509,10 +643,23 @@ export default function CartDrawer() {
 
         {items.length > 0 && (
           <div className="border-t border-ink/10 px-6 py-5 space-y-3">
+            {deliveryCost > 0 && (
+              <div className="space-y-0.5 text-sm text-ink-soft">
+                <div className="flex justify-between">
+                  <span>Subtotal</span>
+                  <span>${totalPrice.toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="truncate">Delivery · {zone?.name}</span>
+                  <span className="shrink-0">${deliveryCost.toFixed(2)}</span>
+                </div>
+              </div>
+            )}
+
             <div className="flex justify-between items-baseline">
               <span className="text-ink-soft text-sm">Total</span>
               <span className="font-display font-700 text-2xl">
-                ${totalPrice.toFixed(2)}
+                ${grandTotal.toFixed(2)}
               </span>
             </div>
 

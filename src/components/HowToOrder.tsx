@@ -13,7 +13,7 @@ const steps = [
   },
   {
     title: "Recibe tu pedido",
-    text: "Coordinamos entrega o punto de encuentro contigo por WhatsApp.",
+    text: "Eliges delivery (según tu zona) o punto de encuentro. Si es delivery, envíanos tu ubicación GPS por WhatsApp.",
   },
 ];
 
