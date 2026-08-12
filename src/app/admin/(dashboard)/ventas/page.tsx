@@ -1,6 +1,7 @@
 import { getSaleMonths, getSales } from "@/lib/sales-data";
 import { getAdminProducts } from "@/lib/products-data";
 import { getPromotions } from "@/lib/promotions-data";
+import { getCustomers, toCustomerChoice } from "@/lib/customers-data";
 import BcvConverterWidget from "../_components/BcvConverterWidget";
 import SalesFilters, { type MonthOption } from "./SalesFilters";
 import VentasAdminClient from "./VentasAdminClient";
@@ -44,7 +45,7 @@ export default async function VentasAdminPage({
     ? monthBounds(validMonth)
     : { from: from || undefined, to: to || undefined };
 
-  const [sales, products, promotions, saleMonths] = await Promise.all([
+  const [sales, products, promotions, saleMonths, customers] = await Promise.all([
     getSales({
       from: range.from,
       to: range.to,
@@ -53,6 +54,7 @@ export default async function VentasAdminPage({
     getAdminProducts(),
     getPromotions(),
     getSaleMonths(),
+    getCustomers(),
   ]);
 
   const now = new Date();
@@ -83,7 +85,12 @@ export default async function VentasAdminPage({
             months={months}
           />
 
-          <VentasAdminClient sales={sales} products={products} promotions={promotions} />
+          <VentasAdminClient
+            sales={sales}
+            products={products}
+            promotions={promotions}
+            customers={customers.map(toCustomerChoice)}
+          />
         </div>
 
         <BcvConverterWidget />

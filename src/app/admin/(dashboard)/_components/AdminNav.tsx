@@ -9,6 +9,7 @@ import {
   Boxes,
   Receipt,
   Tag,
+  Users,
   LogOut,
   Menu,
   X,
@@ -21,6 +22,7 @@ const NAV_ITEMS = [
   { href: "/admin/productos", label: "Productos", icon: Package },
   { href: "/admin/inventario", label: "Inventario", icon: Boxes },
   { href: "/admin/ventas", label: "Ventas", icon: Receipt },
+  { href: "/admin/clientes", label: "Clientes", icon: Users },
   { href: "/admin/promociones", label: "Promociones", icon: Tag },
 ];
 
@@ -30,7 +32,11 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
   return (
     <nav className="flex-1 px-3 py-4 space-y-0.5">
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
-        const active = pathname === href;
+        // Las subpáginas marcan su sección: la ficha de un cliente deja
+        // "Clientes" encendido. El dashboard se compara exacto porque su ruta
+        // es prefijo de todas las demás.
+        const active =
+          href === "/admin" ? pathname === href : pathname.startsWith(href);
         return (
           <Link
             key={href}

@@ -1,9 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { Plus, Pencil, Trash2 } from "lucide-react";
 import SaleForm from "./SaleForm";
 import { deleteSaleAction } from "./actions";
+import type { CustomerChoice } from "@/lib/customers";
 import type { AdminProduct } from "@/lib/products-data";
 import type { Promotion } from "@/lib/promotions-data";
 import type { Sale } from "@/lib/sales-data";
@@ -34,10 +36,12 @@ export default function VentasAdminClient({
   sales,
   products,
   promotions,
+  customers,
 }: {
   sales: Sale[];
   products: AdminProduct[];
   promotions: Promotion[];
+  customers: CustomerChoice[];
 }) {
   const [editing, setEditing] = useState<Sale | "new" | null>(null);
 
@@ -171,7 +175,18 @@ export default function VentasAdminClient({
                 <td className="px-4 py-3" title={s.customerEmail ?? undefined}>
                   {s.customerName ? (
                     <>
-                      <p>{s.customerName}</p>
+                      {/* Con ficha, el nombre lleva a su historial. Sin ella la
+                          venta se registró suelta y no hay a dónde ir. */}
+                      {s.customerId ? (
+                        <Link
+                          href={`/admin/clientes/${s.customerId}`}
+                          className="hover:underline underline-offset-2"
+                        >
+                          {s.customerName}
+                        </Link>
+                      ) : (
+                        <p>{s.customerName}</p>
+                      )}
                       {s.customerPhone && (
                         <p className="text-xs text-[#787774]">{s.customerPhone}</p>
                       )}
@@ -286,6 +301,7 @@ export default function VentasAdminClient({
           sale={editing === "new" ? null : editing}
           products={products}
           promotions={promotions}
+          customers={customers}
           onClose={() => setEditing(null)}
         />
       )}

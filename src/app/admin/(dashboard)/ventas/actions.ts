@@ -12,6 +12,7 @@ import {
 } from "@/lib/sales-data";
 import { getAdminProducts, incrementProductSizeStock } from "@/lib/products-data";
 import { getPromotions } from "@/lib/promotions-data";
+import { ensureCustomer, getCustomer } from "@/lib/customers-data";
 import { getBcvRates } from "@/lib/bcv";
 
 /**
@@ -145,11 +146,27 @@ export async function saveSaleAction(formData: FormData) {
   }
   const amountBs = bcvUsdRate ? amountUsd * bcvUsdRate : null;
 
+  // La ficha del cliente: la elegida en el buscador, o la que corresponda al
+  // nombre y teléfono escritos a mano. Escribirlos a mano crea la ficha si es
+  // la primera compra, así la libreta se llena registrando ventas y no hace
+  // falta dar de alta al cliente antes de cobrarle.
+  const pickedId = Number(formData.get("customerId") ?? "");
+  const picked = pickedId ? await getCustomer(pickedId) : undefined;
+  const customerId =
+    picked?.id ??
+    (await ensureCustomer({
+      name: customerName,
+      phone: customerPhone,
+      email: customerEmail,
+      state: deliveryState,
+    }));
+
   const input: SaleInput = {
     saleDate,
     items,
     amountUsd,
     paymentMethod,
+    customerId,
     customerName,
     customerEmail,
     customerPhone,
@@ -180,6 +197,8 @@ export async function saveSaleAction(formData: FormData) {
   revalidatePath("/admin/ventas");
   revalidatePath("/admin");
   revalidatePath("/admin/inventario");
+  // El historial y los totales de cada cliente salen de sus ventas.
+  revalidatePath("/admin/clientes", "layout");
 }
 
 export async function deleteSaleAction(id: number) {
@@ -201,4 +220,6 @@ export async function deleteSaleAction(id: number) {
   revalidatePath("/admin/ventas");
   revalidatePath("/admin");
   revalidatePath("/admin/inventario");
+  // El historial y los totales de cada cliente salen de sus ventas.
+  revalidatePath("/admin/clientes", "layout");
 }

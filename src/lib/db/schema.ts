@@ -75,28 +75,73 @@ export const promotions = pgTable("promotions", {
 });
 
 /**
+ * La libreta de clientes: a quién se le vende, cómo se le escribe y dónde se
+ * le entrega. Cada venta guarda igual el nombre y el teléfono con los que se
+ * hizo, así que borrar un cliente de aquí no reescribe su historial: sólo lo
+ * deja sin ficha.
+ */
+export const customers = pgTable(
+  "customers",
+  {
+    id: serial("id").primaryKey(),
+    name: text("name").notNull(),
+    phone: text("phone"),
+    /**
+     * Sólo los dígitos del teléfono, normalizados. Es lo que reconoce al mismo
+     * cliente aunque una vez se haya anotado 0414-2856600 y otra +58 414 285
+     * 66 00.
+     */
+    phoneKey: text("phone_key"),
+    email: text("email"),
+    instagram: text("instagram"),
+    state: text("state"),
+    city: text("city"),
+    /** Zona de DELIVERY_ZONES: es lo que decide cuánto cuesta llevarle el pedido. */
+    deliveryZone: text("delivery_zone"),
+    address: text("address"),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("customers_phone_key_idx").on(table.phoneKey)],
+);
+
+/**
  * La cabecera de la venta: cliente, pago, entrega y monto total. Lo que se
  * llevó va en `saleItems`, una fila por producto y tamaño, porque un mismo
  * pedido puede traer maní, pistacho y merey a la vez.
  */
-export const sales = pgTable("sales", {
-  id: serial("id").primaryKey(),
-  saleDate: date("sale_date").notNull(),
-  amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
-  paymentMethod: text("payment_method"),
-  customerName: text("customer_name"),
-  customerEmail: text("customer_email"),
-  customerPhone: text("customer_phone"),
-  deliveryMethod: text("delivery_method"),
-  deliveryProvider: text("delivery_provider"),
-  deliveryState: text("delivery_state"),
-  deliveryFeeUsd: numeric("delivery_fee_usd", { precision: 10, scale: 2 }),
-  bcvUsdRate: numeric("bcv_usd_rate", { precision: 12, scale: 4 }),
-  bcvEurRate: numeric("bcv_eur_rate", { precision: 12, scale: 4 }),
-  amountBs: numeric("amount_bs", { precision: 14, scale: 2 }),
-  notes: text("notes"),
-  createdAt: timestamp("created_at").notNull().defaultNow(),
-});
+export const sales = pgTable(
+  "sales",
+  {
+    id: serial("id").primaryKey(),
+    saleDate: date("sale_date").notNull(),
+    amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
+    paymentMethod: text("payment_method"),
+    /**
+     * La ficha del cliente, si la venta se registró con una. Los tres campos
+     * de abajo se siguen guardando aparte: son el nombre y el contacto con los
+     * que se hizo *esta* venta, y no cambian porque el cliente después se mude
+     * o se corrija su teléfono.
+     */
+    customerId: integer("customer_id").references(() => customers.id, {
+      onDelete: "set null",
+    }),
+    customerName: text("customer_name"),
+    customerEmail: text("customer_email"),
+    customerPhone: text("customer_phone"),
+    deliveryMethod: text("delivery_method"),
+    deliveryProvider: text("delivery_provider"),
+    deliveryState: text("delivery_state"),
+    deliveryFeeUsd: numeric("delivery_fee_usd", { precision: 10, scale: 2 }),
+    bcvUsdRate: numeric("bcv_usd_rate", { precision: 12, scale: 4 }),
+    bcvEurRate: numeric("bcv_eur_rate", { precision: 12, scale: 4 }),
+    amountBs: numeric("amount_bs", { precision: 14, scale: 2 }),
+    notes: text("notes"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("sales_customer_id_idx").on(table.customerId)],
+);
 
 /**
  * Cada producto y tamaño que entró en una venta. El nombre se copia aquí (no

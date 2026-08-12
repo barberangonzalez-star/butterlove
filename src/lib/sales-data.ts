@@ -15,6 +15,7 @@ export interface SaleFilters {
   from?: string;
   to?: string;
   productId?: number;
+  customerId?: number;
 }
 
 /**
@@ -50,6 +51,9 @@ export async function getSales(filters: SaleFilters = {}): Promise<Sale[]> {
   const conditions = [];
   if (filters.from) conditions.push(gte(sales.saleDate, filters.from));
   if (filters.to) conditions.push(lte(sales.saleDate, filters.to));
+  if (filters.customerId) {
+    conditions.push(eq(sales.customerId, filters.customerId));
+  }
   if (filters.productId) {
     // Filtrar por producto devuelve la venta completa, con todas sus líneas:
     // si el cliente se llevó maní y pistacho, filtrar por maní no debería
@@ -105,6 +109,8 @@ export interface SaleInput {
   items: SaleItemInput[];
   amountUsd: number;
   paymentMethod: string | null;
+  /** La ficha del cliente. El nombre y el contacto de abajo son los de esta venta. */
+  customerId: number | null;
   customerName: string | null;
   customerEmail: string | null;
   customerPhone: string | null;
@@ -123,6 +129,7 @@ function toRow(input: SaleInput) {
     saleDate: input.saleDate,
     amountUsd: input.amountUsd.toFixed(2),
     paymentMethod: input.paymentMethod,
+    customerId: input.customerId,
     customerName: input.customerName,
     customerEmail: input.customerEmail,
     customerPhone: input.customerPhone,

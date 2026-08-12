@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { X, Plus, Trash2 } from "lucide-react";
 import { saveSaleAction } from "./actions";
+import CustomerPicker from "./CustomerPicker";
 import {
   PAYMENT_METHODS,
   DELIVERY_METHODS,
@@ -10,6 +11,7 @@ import {
   NATIONAL_COURIERS,
   VENEZUELA_STATES,
 } from "@/lib/config";
+import type { CustomerChoice } from "@/lib/customers";
 import type { AdminProduct } from "@/lib/products-data";
 import type { Promotion } from "@/lib/promotions-data";
 import type { Sale } from "@/lib/sales-data";
@@ -60,11 +62,13 @@ export default function SaleForm({
   sale,
   products,
   promotions,
+  customers,
   onClose,
 }: {
   sale: Sale | null;
   products: AdminProduct[];
   promotions: Promotion[];
+  customers: CustomerChoice[];
   onClose: () => void;
 }) {
   const [lines, setLines] = useState<Line[]>(() => {
@@ -115,6 +119,14 @@ export default function SaleForm({
   const [deliveryFee, setDeliveryFee] = useState(
     sale?.deliveryFeeUsd ? String(Number(sale.deliveryFeeUsd)) : "0",
   );
+
+  /**
+   * Elegir a un cliente propone su estado, pero sólo si la venta todavía no
+   * tiene uno: el destino de *este* pedido puede no ser donde vive.
+   */
+  function handlePickCustomer(customer: CustomerChoice | null) {
+    if (customer?.state && !deliveryState) setDeliveryState(customer.state);
+  }
 
   /** Lo que esta venta ya tenía tomado de un producto y tamaño, antes de editarla. */
   function stockHeldBySale(productId: number, grams: number) {
@@ -582,37 +594,17 @@ export default function SaleForm({
           )}
 
           <div className="pt-2 border-t border-black/5">
-            <span className={labelClass}>Datos del cliente (opcional)</span>
+            <span className={labelClass}>Cliente (opcional)</span>
           </div>
 
-          <label className="block">
-            <span className={labelClass}>Nombre</span>
-            <input
-              name="customerName"
-              defaultValue={sale?.customerName ?? ""}
-              className={`${inputClass} mt-1`}
-            />
-          </label>
-
-          <label className="block">
-            <span className={labelClass}>Correo</span>
-            <input
-              type="email"
-              name="customerEmail"
-              defaultValue={sale?.customerEmail ?? ""}
-              className={`${inputClass} mt-1`}
-            />
-          </label>
-
-          <label className="block">
-            <span className={labelClass}>Teléfono</span>
-            <input
-              type="tel"
-              name="customerPhone"
-              defaultValue={sale?.customerPhone ?? ""}
-              className={`${inputClass} mt-1`}
-            />
-          </label>
+          <CustomerPicker
+            customers={customers}
+            initialCustomerId={sale?.customerId ?? null}
+            initialName={sale?.customerName ?? ""}
+            initialEmail={sale?.customerEmail ?? ""}
+            initialPhone={sale?.customerPhone ?? ""}
+            onPick={handlePickCustomer}
+          />
 
           <label className="block">
             <span className={labelClass}>Monto ($)</span>
