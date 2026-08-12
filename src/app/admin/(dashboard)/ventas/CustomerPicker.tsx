@@ -4,6 +4,11 @@ import { useRef, useState } from "react";
 import Link from "next/link";
 import { Search, X, UserRound, ExternalLink } from "lucide-react";
 import {
+  CARACAS_MUNICIPALITIES,
+  CARACAS_ZONES,
+  deliveryPriceForZone,
+} from "@/lib/config";
+import {
   customerLocation,
   formatPhone,
   matchesCustomer,
@@ -43,9 +48,12 @@ export default function CustomerPicker({
   /** Avisa a la venta quién quedó elegido, para poder prellenar la entrega. */
   onPick: (customer: CustomerChoice | null) => void;
 }) {
-  const [picked, setPicked] = useState<CustomerChoice | null>(
-    () => customers.find((c) => c.id === initialCustomerId) ?? null,
-  );
+  const initial = customers.find((c) => c.id === initialCustomerId) ?? null;
+  const [picked, setPicked] = useState<CustomerChoice | null>(initial);
+  // La zona vive aquí y no sólo en la ficha porque la mayoría de los clientes
+  // se conocen vendiéndoles: si no se pudiera anotar mientras se cobra, habría
+  // que acordarse de entrar después a la ficha, y nunca pasa.
+  const [zone, setZone] = useState(initial?.deliveryZone ?? "");
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
   const searchRef = useRef<HTMLInputElement>(null);
@@ -62,6 +70,7 @@ export default function CustomerPicker({
 
   function pick(customer: CustomerChoice) {
     setPicked(customer);
+    setZone(customer.deliveryZone ?? "");
     setQuery("");
     setOpen(false);
     onPick(customer);
@@ -69,13 +78,16 @@ export default function CustomerPicker({
 
   function clear() {
     setPicked(null);
+    // La zona se va con el cliente: dejarla puesta se la pegaría al siguiente.
+    setZone("");
     onPick(null);
     // El foco vuelve al buscador: soltar al cliente es siempre para elegir otro.
     requestAnimationFrame(() => searchRef.current?.focus());
   }
 
   if (picked) {
-    const location = customerLocation(picked);
+    // Con la zona del selector y no con la guardada: cambiarla se ve en el acto.
+    const location = customerLocation({ ...picked, deliveryZone: zone });
     return (
       <div className="rounded-lg border border-black/10 bg-black/[0.02] p-3">
         <input type="hidden" name="customerId" value={picked.id} />
@@ -119,6 +131,16 @@ export default function CustomerPicker({
             Ver historial <ExternalLink size={11} />
           </Link>
         </div>
+
+        <ZoneField
+          zone={zone}
+          onChange={setZone}
+          hint={
+            picked.deliveryZone
+              ? "Cambiarla actualiza su ficha."
+              : "Todavía no tiene zona: la que elijas queda guardada en su ficha."
+          }
+        />
       </div>
     );
   }
@@ -230,6 +252,62 @@ export default function CustomerPicker({
           className={`${inputClass} mt-1`}
         />
       </label>
+
+      <ZoneField
+        zone={zone}
+        onChange={setZone}
+        hint="Se guarda en la ficha del cliente."
+      />
     </div>
+  );
+}
+
+/**
+ * En qué zona de Caracas queda el cliente. El nombre del campo es el mismo en
+ * los dos modos del buscador, así que la venta lo lee igual venga de una ficha
+ * ya elegida o de un cliente escrito a mano.
+ */
+function ZoneField({
+  zone,
+  onChange,
+  hint,
+}: {
+  zone: string;
+  onChange: (zone: string) => void;
+  hint: string;
+}) {
+  return (
+    <label className="block mt-2">
+      <span className={labelClass}>Zona de Caracas</span>
+      <select
+        name="customerZone"
+        value={zone}
+        onChange={(e) => onChange(e.target.value)}
+        className={`${inputClass} mt-1 bg-white`}
+      >
+        <option value="">—</option>
+        {/* Una zona guardada que ya no esté en la lista se sigue ofreciendo,
+            para no borrarla sin querer al registrar una venta. */}
+        {zone && !CARACAS_ZONES.some((z) => z.name === zone) && (
+          <option value={zone}>{zone}</option>
+        )}
+        {CARACAS_MUNICIPALITIES.map((municipality) => (
+          <optgroup key={municipality} label={municipality}>
+            {CARACAS_ZONES.filter((z) => z.municipality === municipality).map(
+              (z) => {
+                const price = deliveryPriceForZone(z.name);
+                return (
+                  <option key={z.name} value={z.name}>
+                    {z.name}
+                    {price !== null ? ` — delivery $${price}` : ""}
+                  </option>
+                );
+              },
+            )}
+          </optgroup>
+        ))}
+      </select>
+      <p className="text-xs text-[#787774] mt-1">{hint}</p>
+    </label>
   );
 }

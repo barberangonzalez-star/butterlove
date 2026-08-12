@@ -12,7 +12,11 @@ import {
 } from "@/lib/sales-data";
 import { getAdminProducts, incrementProductSizeStock } from "@/lib/products-data";
 import { getPromotions } from "@/lib/promotions-data";
-import { ensureCustomer, getCustomer } from "@/lib/customers-data";
+import {
+  ensureCustomer,
+  getCustomer,
+  setCustomerZone,
+} from "@/lib/customers-data";
 import { getBcvRates } from "@/lib/bcv";
 
 /**
@@ -160,6 +164,13 @@ export async function saveSaleAction(formData: FormData) {
       email: customerEmail,
       state: deliveryState,
     }));
+
+  // La zona se anota mientras se cobra, que es cuando se sabe a dónde se le
+  // lleva. Vale igual para una ficha vieja sin zona que para una recién creada.
+  const customerZone = String(formData.get("customerZone") ?? "").trim();
+  if (customerId && customerZone) {
+    await setCustomerZone(customerId, customerZone);
+  }
 
   const input: SaleInput = {
     saleDate,

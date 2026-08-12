@@ -5,9 +5,9 @@ import { X } from "lucide-react";
 import { saveCustomerAction } from "./actions";
 import {
   CARACAS_MUNICIPALITIES,
-  CARACAS_MUNICIPALITY_STATE,
   CARACAS_ZONES,
   deliveryPriceForZone,
+  stateForZone,
   VENEZUELA_STATES,
 } from "@/lib/config";
 import type { Customer } from "@/lib/customers-data";
@@ -29,16 +29,16 @@ export default function CustomerForm({
 
   /**
    * Una zona de Caracas ya dice en qué estado y ciudad queda, así que los
-   * rellena si están vacíos. No pisa lo que ya esté escrito: si alguien anotó
-   * otra ciudad a propósito, manda lo escrito a mano.
+   * rellena si están vacíos. También los corrige si venían de la zona anterior
+   * —mudar a alguien de Baruta a Libertador le cambia el estado—, pero nunca
+   * pisa un estado o una ciudad escritos a mano.
    */
   function pickZone(value: string) {
+    const previousImplied = stateForZone(zone);
     setZone(value);
-    const municipality = CARACAS_ZONES.find(
-      (z) => z.name === value,
-    )?.municipality;
-    if (!municipality) return;
-    if (!state) setState(CARACAS_MUNICIPALITY_STATE[municipality]);
+    const implied = stateForZone(value);
+    if (!implied) return;
+    if (!state || state === previousImplied) setState(implied);
     if (!city) setCity("Caracas");
   }
 

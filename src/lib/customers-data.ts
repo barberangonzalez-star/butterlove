@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, isNotNull, or, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { customers, sales, saleItems } from "./db/schema";
+import { stateForZone } from "./config";
 import {
   normalizeInstagram,
   phoneKey,
@@ -246,6 +247,38 @@ export async function findCustomer(
   // Con teléfono y nombre buscados a la vez pueden volver dos fichas distintas:
   // gana la del teléfono.
   return rows.find((row) => key !== null && row.phoneKey === key) ?? rows[0];
+}
+
+/**
+ * Guarda en qué zona de Caracas queda el cliente. Se llama al registrarle una
+ * venta, que es cuando de verdad se sabe dónde vive.
+ *
+ * A diferencia de `ensureCustomer`, aquí sí se pisa lo que hubiera: elegir una
+ * zona distinta mientras se cobra es corregirla a propósito. El estado y la
+ * ciudad se rellenan sólo si estaban vacíos.
+ */
+export async function setCustomerZone(id: number, zone: string) {
+  const existing = await getCustomer(id);
+  if (!existing || existing.deliveryZone === zone) return;
+
+  const patch: Partial<typeof customers.$inferInsert> = {
+    deliveryZone: zone,
+    updatedAt: new Date(),
+  };
+  const impliedState = stateForZone(zone);
+  if (impliedState) {
+    // El estado se corrige si estaba vacío o si es el que implicaba la zona
+    // anterior: eso lo puso el sistema, no una persona. Un estado escrito a
+    // mano que no cuadra con la zona se respeta.
+    const previousImplied = stateForZone(existing.deliveryZone);
+    if (!existing.state || existing.state === previousImplied) {
+      patch.state = impliedState;
+    }
+    if (!existing.city) patch.city = "Caracas";
+  }
+
+  const db = getDb();
+  await db.update(customers).set(patch).where(eq(customers.id, id));
 }
 
 /**

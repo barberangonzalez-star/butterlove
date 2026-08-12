@@ -91,6 +91,16 @@ export const CARACAS_MUNICIPALITY_STATE: Record<string, string> = {
 };
 
 /**
+ * El estado que implica una zona, o null si no es de Caracas. Sirve para
+ * rellenarlo solo, y también para saber si el estado guardado lo puso una zona
+ * anterior en vez de una persona.
+ */
+export function stateForZone(zone: string | null | undefined) {
+  const municipality = CARACAS_ZONES.find((z) => z.name === zone)?.municipality;
+  return municipality ? CARACAS_MUNICIPALITY_STATE[municipality] ?? null : null;
+}
+
+/**
  * Urbanizaciones y sectores de Caracas, para ubicar al cliente más fino que
  * "Distrito Capital". Es la ubicación de la persona, no la tarifa del envío:
  * el delivery se sigue cobrando por `DELIVERY_ZONES`, que agrupa varias de
