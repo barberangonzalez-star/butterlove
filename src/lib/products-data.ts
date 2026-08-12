@@ -1,6 +1,6 @@
 import "server-only";
 import { cache } from "react";
-import { asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { products, productSizes } from "./db/schema";
 import type { Product, ProductKind } from "./products";
@@ -39,12 +39,17 @@ async function attachSizes(rows: ProductRow[]): Promise<Product[]> {
 }
 
 // Memoizado por request: el layout, la página y `generateMetadata` piden los
-// mismos productos, y así se consulta la base de datos una sola vez.
+// mismos productos, y así se consulta la base de datos una sola vez. Sólo lo
+// que va en la vitrina: el catálogo también guarda productos de sólo encargo.
 export const getProducts = cache(async function getProducts(): Promise<
   Product[]
 > {
   const db = getDb();
-  const rows = await db.select().from(products).orderBy(asc(products.sortOrder));
+  const rows = await db
+    .select()
+    .from(products)
+    .where(eq(products.inStore, true))
+    .orderBy(asc(products.sortOrder));
   return attachSizes(rows);
 });
 
@@ -66,6 +71,7 @@ export async function getProductSitemapEntries(): Promise<
       updatedAt: products.updatedAt,
     })
     .from(products)
+    .where(eq(products.inStore, true))
     .orderBy(asc(products.sortOrder));
 }
 
@@ -79,6 +85,7 @@ export interface AdminSizeOption {
 export interface AdminProduct extends Omit<Product, "sizes"> {
   id: number;
   sortOrder: number;
+  inStore: boolean;
   sizes: AdminSizeOption[];
 }
 
@@ -86,6 +93,7 @@ function toAdminProduct(row: ProductRow, sizeRows: SizeRow[]): AdminProduct {
   return {
     id: row.id,
     sortOrder: row.sortOrder,
+    inStore: row.inStore,
     key: row.key,
     name: row.name,
     kind: row.kind as ProductKind,
@@ -132,12 +140,16 @@ export async function getAdminProduct(id: number): Promise<AdminProduct | undefi
 }
 
 // También memoizado: `generateMetadata`, el JSON-LD y la página piden el mismo
-// producto en un mismo request.
+// producto en un mismo request. Un producto fuera de la vitrina no se resuelve
+// aquí: su URL pública tiene que dar 404 como cualquier sabor inexistente.
 export const getProduct = cache(async function getProduct(
   key: string,
 ): Promise<Product | undefined> {
   const db = getDb();
-  const [row] = await db.select().from(products).where(eq(products.key, key));
+  const [row] = await db
+    .select()
+    .from(products)
+    .where(and(eq(products.key, key), eq(products.inStore, true)));
   if (!row) return undefined;
   const [result] = await attachSizes([row]);
   return result;
@@ -154,6 +166,7 @@ export interface ProductInput {
   bgClass: string;
   accentHex: string;
   badges: string[];
+  inStore: boolean;
   sortOrder: number;
   sizes: { grams: number; price: number }[];
 }
@@ -207,6 +220,7 @@ export async function createProduct(input: ProductInput) {
       bgClass: input.bgClass,
       accentHex: input.accentHex,
       badges: input.badges,
+      inStore: input.inStore,
       sortOrder: input.sortOrder,
     })
     .returning();
@@ -229,6 +243,7 @@ export async function updateProduct(id: number, input: ProductInput) {
       bgClass: input.bgClass,
       accentHex: input.accentHex,
       badges: input.badges,
+      inStore: input.inStore,
       sortOrder: input.sortOrder,
       updatedAt: new Date(),
     })

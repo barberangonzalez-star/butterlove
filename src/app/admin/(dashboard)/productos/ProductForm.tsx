@@ -21,6 +21,9 @@ export default function ProductForm({
   const [sizes, setSizes] = useState(
     product?.sizes.length ? product.sizes : [{ grams: 230, price: 0 }]
   );
+  // Las fotos sólo hacen falta si el producto se va a mostrar en la vitrina;
+  // uno de sólo encargo vive nada más en el panel y no tiene por qué tenerlas.
+  const [inStore, setInStore] = useState(product?.inStore ?? true);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
@@ -92,15 +95,40 @@ export default function ProductForm({
             />
           </Field>
 
+          <label className="flex items-start gap-2.5 rounded-md border border-black/10 p-3">
+            <input
+              type="checkbox"
+              name="inStore"
+              checked={inStore}
+              onChange={(e) => setInStore(e.target.checked)}
+              className="mt-0.5 shrink-0"
+            />
+            <span>
+              <span className="block text-sm font-medium">
+                Mostrar en la tienda
+              </span>
+              <span className="block text-xs text-[#787774] mt-0.5">
+                Si lo desmarcas, el producto no sale en la vitrina ni en el
+                sitemap, pero sigue disponible para registrar ventas y llevarle
+                inventario.
+              </span>
+            </span>
+          </label>
+
           <Field label="Imagen (ruta o URL)">
-            <input name="image" defaultValue={product?.image} required className={inputClass} />
+            <input
+              name="image"
+              defaultValue={product?.image}
+              required={inStore}
+              className={inputClass}
+            />
           </Field>
 
           <Field label="Imagen hero (ruta o URL)">
             <input
               name="heroImage"
               defaultValue={product?.heroImage}
-              required
+              required={inStore}
               className={inputClass}
             />
           </Field>

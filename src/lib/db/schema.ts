@@ -26,6 +26,10 @@ export const products = pgTable("products", {
   bgClass: text("bg_class").notNull(),
   accentHex: text("accent_hex").notNull(),
   badges: jsonb("badges").$type<string[]>().notNull().default([]),
+  // Si el producto se muestra en la vitrina pública. Los que se venden sólo
+  // por encargo existen igual en el catálogo para poder registrarles ventas y
+  // llevarles inventario, pero no aparecen en la tienda ni en el sitemap.
+  inStore: boolean("in_store").notNull().default(true),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

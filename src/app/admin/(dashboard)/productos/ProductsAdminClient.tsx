@@ -6,6 +6,15 @@ import ProductForm from "./ProductForm";
 import { deleteProductAction } from "./actions";
 import type { AdminProduct } from "@/lib/products-data";
 
+/** Marca los productos que no van en la vitrina, sólo en el panel. */
+function HiddenTag() {
+  return (
+    <span className="ml-1.5 align-middle text-[11px] font-normal bg-black/5 text-[#787774] px-1.5 py-0.5 rounded">
+      Fuera de la tienda
+    </span>
+  );
+}
+
 export default function ProductsAdminClient({
   products,
 }: {
@@ -34,7 +43,10 @@ export default function ProductsAdminClient({
             <div className="flex items-start gap-2.5">
               <div className={`w-4 h-4 shrink-0 rounded-full mt-0.5 ${p.bgClass}`} />
               <div className="min-w-0">
-                <p className="font-medium text-sm break-words">{p.name}</p>
+                <p className="font-medium text-sm break-words">
+                  {p.name}
+                  {!p.inStore && <HiddenTag />}
+                </p>
                 <p className="text-xs text-[#787774] break-words">{p.tagline}</p>
               </div>
             </div>
@@ -99,7 +111,10 @@ export default function ProductsAdminClient({
                   <div className={`w-4 h-4 rounded-full ${p.bgClass}`} />
                 </td>
                 <td className="px-4 py-3">
-                  <p className="font-medium">{p.name}</p>
+                  <p className="font-medium">
+                    {p.name}
+                    {!p.inStore && <HiddenTag />}
+                  </p>
                   <p className="text-xs text-[#787774]">{p.tagline}</p>
                 </td>
                 <td className="px-4 py-3 text-[#5f5e5b]">

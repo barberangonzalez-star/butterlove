@@ -32,6 +32,9 @@ function parseProductForm(formData: FormData): ProductInput {
     bgClass: String(formData.get("bgClass") ?? "").trim(),
     accentHex: String(formData.get("accentHex") ?? "").trim(),
     badges,
+    // Un checkbox sin marcar no viaja en el FormData, así que la ausencia del
+    // campo es "no va en la tienda".
+    inStore: formData.get("inStore") === "on",
     sortOrder: Number(formData.get("sortOrder") ?? 0),
     sizes,
   };
