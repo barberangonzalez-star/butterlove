@@ -1,8 +1,15 @@
 "use client";
 
+import { useState } from "react";
 import { X } from "lucide-react";
 import { saveCustomerAction } from "./actions";
-import { DELIVERY_ZONES, VENEZUELA_STATES } from "@/lib/config";
+import {
+  CARACAS_MUNICIPALITIES,
+  CARACAS_MUNICIPALITY_STATE,
+  CARACAS_ZONES,
+  deliveryPriceForZone,
+  VENEZUELA_STATES,
+} from "@/lib/config";
 import type { Customer } from "@/lib/customers-data";
 
 const inputClass =
@@ -16,6 +23,25 @@ export default function CustomerForm({
   customer: Customer | null;
   onClose: () => void;
 }) {
+  const [zone, setZone] = useState(customer?.deliveryZone ?? "");
+  const [state, setState] = useState(customer?.state ?? "");
+  const [city, setCity] = useState(customer?.city ?? "");
+
+  /**
+   * Una zona de Caracas ya dice en qué estado y ciudad queda, así que los
+   * rellena si están vacíos. No pisa lo que ya esté escrito: si alguien anotó
+   * otra ciudad a propósito, manda lo escrito a mano.
+   */
+  function pickZone(value: string) {
+    setZone(value);
+    const municipality = CARACAS_ZONES.find(
+      (z) => z.name === value,
+    )?.municipality;
+    if (!municipality) return;
+    if (!state) setState(CARACAS_MUNICIPALITY_STATE[municipality]);
+    if (!city) setCity("Caracas");
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex justify-end">
       <div className="absolute inset-0 bg-black/20" onClick={onClose} />
@@ -92,10 +118,46 @@ export default function CustomerForm({
           </div>
 
           <label className="block">
+            <span className={labelClass}>Zona de Caracas</span>
+            <select
+              name="deliveryZone"
+              value={zone}
+              onChange={(e) => pickZone(e.target.value)}
+              className={`${inputClass} mt-1`}
+            >
+              <option value="">—</option>
+              {/* Una zona guardada que ya no esté en la lista se sigue
+                  ofreciendo, para no perderla al editar la ficha. */}
+              {zone && !CARACAS_ZONES.some((z) => z.name === zone) && (
+                <option value={zone}>{zone}</option>
+              )}
+              {CARACAS_MUNICIPALITIES.map((municipality) => (
+                <optgroup key={municipality} label={municipality}>
+                  {CARACAS_ZONES.filter(
+                    (z) => z.municipality === municipality,
+                  ).map((z) => {
+                    const price = deliveryPriceForZone(z.name);
+                    return (
+                      <option key={z.name} value={z.name}>
+                        {z.name}
+                        {price !== null ? ` — delivery $${price}` : ""}
+                      </option>
+                    );
+                  })}
+                </optgroup>
+              ))}
+            </select>
+            <p className="text-xs text-[#787774] mt-1">
+              Sólo Caracas. Fuera de la ciudad basta con el estado y la ciudad.
+            </p>
+          </label>
+
+          <label className="block">
             <span className={labelClass}>Estado</span>
             <select
               name="state"
-              defaultValue={customer?.state ?? ""}
+              value={state}
+              onChange={(e) => setState(e.target.value)}
               className={`${inputClass} mt-1`}
             >
               <option value="">—</option>
@@ -111,33 +173,10 @@ export default function CustomerForm({
             <span className={labelClass}>Ciudad</span>
             <input
               name="city"
-              defaultValue={customer?.city ?? ""}
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
               className={`${inputClass} mt-1`}
             />
-          </label>
-
-          <label className="block">
-            <span className={labelClass}>Zona de delivery</span>
-            <select
-              name="deliveryZone"
-              defaultValue={customer?.deliveryZone ?? ""}
-              className={`${inputClass} mt-1`}
-            >
-              <option value="">—</option>
-              {/* Una zona guardada que después salió de la lista de precios se
-                  sigue ofreciendo, para no perderla al editar la ficha. */}
-              {customer?.deliveryZone &&
-                !DELIVERY_ZONES.some((z) => z.name === customer.deliveryZone) && (
-                  <option value={customer.deliveryZone}>
-                    {customer.deliveryZone}
-                  </option>
-                )}
-              {DELIVERY_ZONES.map((zone) => (
-                <option key={zone.name} value={zone.name}>
-                  {zone.name} — ${zone.price}
-                </option>
-              ))}
-            </select>
           </label>
 
           <label className="block">

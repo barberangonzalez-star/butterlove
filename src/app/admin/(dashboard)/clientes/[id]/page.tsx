@@ -8,6 +8,7 @@ import {
   AtSign,
   StickyNote,
 } from "lucide-react";
+import { CARACAS_ZONES, deliveryPriceForZone } from "@/lib/config";
 import { getCustomerWithStats } from "@/lib/customers-data";
 import { getSales, type Sale } from "@/lib/sales-data";
 import { formatPhone, whatsappLink } from "@/lib/customers";
@@ -52,6 +53,16 @@ export default async function ClienteDetailPage({
   const address = [customer.address, customer.deliveryZone, customer.city, customer.state]
     .filter(Boolean)
     .join(", ");
+  // La zona ya va en la línea de arriba; esto agrega lo que no se ve de ella:
+  // en qué municipio cae y cuánto sale llevarle el pedido.
+  const zoneInfo = CARACAS_ZONES.find((z) => z.name === customer.deliveryZone);
+  const zonePrice = deliveryPriceForZone(customer.deliveryZone);
+  const zoneDetail = [
+    zoneInfo && `Municipio ${zoneInfo.municipality}`,
+    zonePrice !== null && `delivery $${zonePrice}`,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div>
@@ -126,10 +137,8 @@ export default async function ClienteDetailPage({
             ) : (
               <p className="text-sm text-[#787774]">Sin ubicación guardada.</p>
             )}
-            {customer.deliveryZone && (
-              <p className="text-xs text-[#787774] mt-1">
-                Zona de delivery: {customer.deliveryZone}
-              </p>
+            {zoneDetail && (
+              <p className="text-xs text-[#787774] mt-1">{zoneDetail}</p>
             )}
           </Card>
 

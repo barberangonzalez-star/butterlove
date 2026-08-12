@@ -96,7 +96,12 @@ export const customers = pgTable(
     instagram: text("instagram"),
     state: text("state"),
     city: text("city"),
-    /** Zona de DELIVERY_ZONES: es lo que decide cuánto cuesta llevarle el pedido. */
+    /**
+     * En qué zona de Caracas vive, de `CARACAS_ZONES`. Es ubicación, no
+     * tarifa: el delivery se cobra por `DELIVERY_ZONES`, que agrupa varias de
+     * estas zonas en una sola área de precio. La columna conserva el nombre
+     * `delivery_zone` con el que nació.
+     */
     deliveryZone: text("delivery_zone"),
     address: text("address"),
     notes: text("notes"),
