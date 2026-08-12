@@ -43,6 +43,13 @@ export const productSizes = pgTable("product_sizes", {
   grams: integer("grams").notNull(),
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   stockQuantity: integer("stock_quantity").notNull().default(0),
+  /**
+   * Lo que cuesta hacer este envase y no sale de la receta: mano de obra, gas,
+   * merma. Los insumos van en `recipeItems`, uno por línea.
+   */
+  extraCostUsd: numeric("extra_cost_usd", { precision: 10, scale: 2 })
+    .notNull()
+    .default("0"),
 });
 
 export const supplyItems = pgTable("supply_items", {
@@ -51,8 +58,77 @@ export const supplyItems = pgTable("supply_items", {
   quantity: integer("quantity").notNull().default(0),
   unit: text("unit").notNull().default("unidades"),
   lowStockThreshold: integer("low_stock_threshold"),
+  /**
+   * Cómo se compra el insumo, para sacar el costo por unidad: "pagué
+   * `purchasePriceUsd` por `purchaseQuantity` unidades". Se guarda así y no ya
+   * dividido porque es como se compra de verdad, y actualizar el precio
+   * cuando sube el maní es cambiar un número.
+   */
+  purchasePriceUsd: numeric("purchase_price_usd", { precision: 10, scale: 2 }),
+  purchaseQuantity: integer("purchase_quantity"),
   notes: text("notes"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+/**
+ * La receta de un envase: qué insumos lleva y cuántos. Un frasco de maní 230g
+ * son 1 frasco, 1 tapa, 1 etiqueta, 1 precinto y ~250 g de maní crudo — la
+ * merma del tostado se mete subiendo esa cantidad.
+ *
+ * Los combos tienen su propia receta, con las dos etiquetas y las dos
+ * porciones, así que no hace falta que una receta apunte a otra.
+ */
+export const recipeItems = pgTable(
+  "recipe_items",
+  {
+    id: serial("id").primaryKey(),
+    productSizeId: integer("product_size_id")
+      .notNull()
+      .references(() => productSizes.id, { onDelete: "cascade" }),
+    // Sin `cascade`: borrar un insumo que está en recetas cambiaría en silencio
+    // el costo de los productos. La acción avisa en vez de dejarlo pasar.
+    supplyItemId: integer("supply_item_id")
+      .notNull()
+      .references(() => supplyItems.id, { onDelete: "restrict" }),
+    /** En la unidad del insumo: 250 si son gramos, 1 si son unidades. */
+    quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (table) => [index("recipe_items_size_idx").on(table.productSizeId)],
+);
+
+/**
+ * Lo que sale del bolsillo y no es materia prima: anuncios, sueldos,
+ * comisiones. `kind` decide si el gasto se resta de la ganancia o no: comprar
+ * maní no se resta aquí porque ya se cuenta frasco a frasco al venderlo, y
+ * restarlo dos veces haría ver el negocio peor de lo que está. Se copia de la
+ * categoría al guardar, para que recategorizar después no reescriba el pasado.
+ */
+export const expenses = pgTable(
+  "expenses",
+  {
+    id: serial("id").primaryKey(),
+    expenseDate: date("expense_date").notNull(),
+    category: text("category").notNull(),
+    kind: text("kind").notNull().default("operativo"),
+    amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
+    description: text("description"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (table) => [index("expenses_date_idx").on(table.expenseDate)],
+);
+
+/**
+ * A qué tasa se consiguen los dólares de verdad, por mes. Cobrar en bolívares
+ * a tasa BCV y reponer comprando dólares más caros es una pérdida que no
+ * aparece en ninguna venta; con esta tasa el reporte la puede medir.
+ */
+export const replacementRates = pgTable("replacement_rates", {
+  /** "YYYY-MM". */
+  month: text("month").primaryKey(),
+  rate: numeric("rate", { precision: 12, scale: 4 }).notNull(),
+  notes: text("notes"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
@@ -139,6 +215,12 @@ export const sales = pgTable(
     deliveryProvider: text("delivery_provider"),
     deliveryState: text("delivery_state"),
     deliveryFeeUsd: numeric("delivery_fee_usd", { precision: 10, scale: 2 }),
+    /**
+     * Lo que costó llevar el pedido: gasolina, el repartidor, lo que cobró
+     * Ridery. Va aparte de `deliveryFeeUsd`, que es lo que se le cobró al
+     * cliente; la diferencia entre los dos es lo que el delivery deja o quita.
+     */
+    deliveryCostUsd: numeric("delivery_cost_usd", { precision: 10, scale: 2 }),
     bcvUsdRate: numeric("bcv_usd_rate", { precision: 12, scale: 4 }),
     bcvEurRate: numeric("bcv_eur_rate", { precision: 12, scale: 4 }),
     amountBs: numeric("amount_bs", { precision: 14, scale: 2 }),
@@ -170,6 +252,12 @@ export const saleItems = pgTable(
       precision: 10,
       scale: 2,
     }).notNull(),
+    /**
+     * Lo que costaba hacer ese envase el día de la venta, congelado igual que
+     * el nombre del producto: si mañana sube el maní, la ganancia de la venta
+     * de ayer no cambia sola. Null cuando el producto no tenía receta cargada.
+     */
+    unitCostUsd: numeric("unit_cost_usd", { precision: 12, scale: 4 }),
     // La promo vive en la línea y no en la venta: un mismo pedido puede llevar
     // el combo de maní y el de merey a la vez.
     promotionId: integer("promotion_id").references(() => promotions.id, {

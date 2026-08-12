@@ -1,4 +1,6 @@
+import Link from "next/link";
 import { getMonthSummary } from "@/lib/sales-data";
+import { getMonthReport } from "@/lib/finance-data";
 import { getBcvRates } from "@/lib/bcv";
 import BcvConverterWidget from "./_components/BcvConverterWidget";
 
@@ -14,13 +16,16 @@ const fmtBs = (n: number) =>
   `Bs. ${n.toLocaleString("es-VE", { maximumFractionDigits: 2 })}`;
 
 export default async function AdminDashboardPage() {
-  const { start, end } = monthRange(new Date());
-  const [summary, bcv] = await Promise.all([
+  const now = new Date();
+  const { start, end } = monthRange(now);
+  const month = start.slice(0, 7);
+  const [summary, bcv, report] = await Promise.all([
     getMonthSummary(start, end),
     getBcvRates(),
+    getMonthReport(month),
   ]);
 
-  const monthLabel = new Date().toLocaleDateString("es-VE", {
+  const monthLabel = now.toLocaleDateString("es-VE", {
     month: "long",
     year: "numeric",
   });
@@ -32,6 +37,29 @@ export default async function AdminDashboardPage() {
 
       <div className="grid md:grid-cols-[1fr_260px] gap-6 items-start">
         <div className="grid sm:grid-cols-2 gap-4">
+          {/* La ganancia va primero: las ventas del mes incluyen el delivery
+              cobrado y el costo de hacer los frascos, así que solas dicen
+              menos de lo que parece. */}
+          <Link href="/admin/finanzas" className="sm:col-span-2 block">
+            <div className="border border-black/10 rounded-lg bg-white p-4 hover:bg-black/[0.02] transition-colors">
+              <p className="text-xs font-medium text-[#787774] uppercase tracking-wide mb-1">
+                Ganancia del mes
+              </p>
+              <p
+                className={`text-lg font-semibold truncate ${
+                  report.netProfit < 0 ? "text-red-700" : ""
+                }`}
+              >
+                {fmtUsd(report.netProfit)}
+              </p>
+              <p className="text-xs text-[#787774] mt-1">
+                {fmtUsd(report.productRevenue)} en producto − {fmtUsd(report.cogs)}{" "}
+                de costo − {fmtUsd(report.operatingExpenses)} de gastos
+                {report.jarsWithoutCost > 0 && " · faltan recetas"}
+              </p>
+            </div>
+          </Link>
+
           <StatCard label="Ventas del mes ($)" value={fmtUsd(summary.totalUsd)} />
           <StatCard label="Ventas del mes (Bs.)" value={fmtBs(summary.totalBs)} />
           <StatCard label="Pedidos registrados" value={String(summary.count)} />

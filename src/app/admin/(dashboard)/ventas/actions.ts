@@ -11,6 +11,8 @@ import {
   type SaleItemInput,
 } from "@/lib/sales-data";
 import { getAdminProducts, incrementProductSizeStock } from "@/lib/products-data";
+import { adjustSupplyItemQuantity } from "@/lib/inventory-data";
+import { getRecipeConsumption, getSizeCosts } from "@/lib/costs-data";
 import { getPromotions } from "@/lib/promotions-data";
 import {
   ensureCustomer,
@@ -26,6 +28,34 @@ import { getBcvRates } from "@/lib/bcv";
  * tomar lo nuevo. Si ambas coinciden el delta queda en cero y no se toca la
  * base; y dos líneas del mismo producto y tamaño se suman en un solo update.
  */
+/**
+ * Acumula lo que la venta consume de insumos: un frasco de maní 230g se lleva
+ * un frasco, una tapa, una etiqueta y 250 g de maní crudo.
+ *
+ * Se aplica con la receta de hoy, también al revertir una venta vieja. Si la
+ * receta cambió entremedio la devolución no es exacta — igual que el stock de
+ * producto, que se repone con las cantidades actuales.
+ */
+function supplyLedger() {
+  const deltas = new Map<number, number>();
+
+  return {
+    add(supplyItemId: number, delta: number) {
+      deltas.set(supplyItemId, (deltas.get(supplyItemId) ?? 0) + delta);
+    },
+    async apply() {
+      for (const [supplyItemId, delta] of deltas) {
+        // El inventario de insumos lleva enteros: los decimales se acumulan
+        // primero y se redondean una sola vez, al final.
+        const rounded = Math.round(delta);
+        if (rounded !== 0) {
+          await adjustSupplyItemQuantity(supplyItemId, rounded);
+        }
+      }
+    },
+  };
+}
+
 function stockLedger() {
   const deltas = new Map<
     string,
@@ -78,6 +108,14 @@ export async function saveSaleAction(formData: FormData) {
     deliveryMethod === "Delivery" && deliveryProvider === "Nosotros"
       ? Number(formData.get("deliveryFeeUsd") ?? 0)
       : null;
+  // Lo que costó la entrega se puede anotar en cualquier modo que no sea
+  // pickup: la gasolina de un delivery propio, lo que cobró Ridery, la guía
+  // de MRW si la paga el negocio.
+  const deliveryCostRaw = String(formData.get("deliveryCostUsd") ?? "").trim();
+  const deliveryCostUsd =
+    deliveryMethod !== "Pickup" && deliveryCostRaw
+      ? Number(deliveryCostRaw)
+      : null;
 
   // Las líneas llegan como campos repetidos, así que cada `getAll` devuelve una
   // columna y el índice las cruza.
@@ -102,13 +140,21 @@ export async function saveSaleAction(formData: FormData) {
     throw new Error("Las líneas de la venta llegaron incompletas.");
   }
 
-  const [products, promotions, existing] = await Promise.all([
+  const [products, promotions, existing, sizeCosts] = await Promise.all([
     getAdminProducts(),
     getPromotions(),
     id ? getSaleById(id) : Promise.resolve(undefined),
+    getSizeCosts(),
   ]);
 
   if (id && !existing) throw new Error("La venta ya no existe.");
+
+  /** El id del tamaño con el que se vendió, que es lo que ata receta y costo. */
+  function sizeIdOf(productId: number | null, grams: number) {
+    if (!productId) return null;
+    const product = products.find((p) => p.id === productId);
+    return product?.sizes.find((s) => s.grams === grams)?.id ?? null;
+  }
 
   const items: SaleItemInput[] = itemProductIds.map((raw, i) => {
     const product = products.find((p) => p.id === Number(raw));
@@ -116,15 +162,22 @@ export async function saveSaleAction(formData: FormData) {
     const promo = promoRaw
       ? promotions.find((p) => p.id === Number(promoRaw))
       : undefined;
+    const grams = Number(itemGrams[i]);
+    const sizeId = sizeIdOf(product?.id ?? null, grams);
+    const cost = sizeId ? sizeCosts.get(sizeId) : undefined;
     return {
       productId: product?.id ?? null,
       // Una línea cuyo producto se borró del catálogo conserva el nombre con
       // el que se registró.
       productName:
         product?.name ?? (String(itemNames[i]) || "Producto eliminado"),
-      grams: Number(itemGrams[i]),
+      grams,
       quantity: Number(itemQuantities[i]),
       unitPriceUsd: Number(itemUnitPrices[i]),
+      // Sólo se congela un costo completo. Una receta a medias o con insumos
+      // sin precio da un número más bajo que el real, y guardarlo haría ver
+      // una ganancia que no existe; en null, el reporte avisa que falta.
+      unitCostUsd: cost?.complete ? cost.total : null,
       promotionId: promo?.id ?? null,
       // El título se copia: si la promo se borra o se renombra después, la
       // venta sigue diciendo con qué combo se cobró.
@@ -185,6 +238,7 @@ export async function saveSaleAction(formData: FormData) {
     deliveryProvider,
     deliveryState,
     deliveryFeeUsd,
+    deliveryCostUsd,
     bcvUsdRate,
     bcvEurRate,
     amountBs,
@@ -192,24 +246,54 @@ export async function saveSaleAction(formData: FormData) {
   };
 
   const ledger = stockLedger();
+  const supplies = supplyLedger();
+  // Las recetas de todos los tamaños en juego, los de ahora y los de la
+  // versión anterior de la venta, en una sola consulta.
+  const touchedSizeIds = [
+    ...new Set(
+      [...items, ...(existing?.items ?? [])]
+        .map((item) => sizeIdOf(item.productId, item.grams))
+        .filter((sizeId): sizeId is number => sizeId !== null),
+    ),
+  ];
+  const recipes = await getRecipeConsumption(touchedSizeIds);
+
+  /** Suma (o devuelve, con el signo al revés) los insumos de una línea. */
+  function consume(
+    productId: number | null,
+    grams: number,
+    quantity: number,
+    sign: 1 | -1,
+  ) {
+    const sizeId = sizeIdOf(productId, grams);
+    if (!sizeId) return;
+    for (const line of recipes.get(sizeId) ?? []) {
+      supplies.add(line.supplyItemId, sign * line.quantity * quantity);
+    }
+  }
+
   if (existing) {
     await updateSale(existing.id, input);
     for (const item of existing.items) {
       ledger.add(item.productId, item.grams, item.quantity);
+      consume(item.productId, item.grams, item.quantity, 1);
     }
   } else {
     await createSale(input);
   }
   for (const item of items) {
     ledger.add(item.productId, item.grams, -item.quantity);
+    consume(item.productId, item.grams, item.quantity, -1);
   }
   await ledger.apply();
+  await supplies.apply();
 
   revalidatePath("/admin/ventas");
   revalidatePath("/admin");
   revalidatePath("/admin/inventario");
   // El historial y los totales de cada cliente salen de sus ventas.
   revalidatePath("/admin/clientes", "layout");
+  revalidatePath("/admin/finanzas");
 }
 
 export async function deleteSaleAction(id: number) {
@@ -220,17 +304,42 @@ export async function deleteSaleAction(id: number) {
   const existing = await getSaleById(id);
   if (!existing) return;
 
+  // Los tamaños se resuelven contra el catálogo de hoy, igual que al guardar.
+  const products = await getAdminProducts();
+  const sizeIds = existing.items
+    .map((item) => {
+      if (!item.productId) return null;
+      const product = products.find((p) => p.id === item.productId);
+      return product?.sizes.find((s) => s.grams === item.grams)?.id ?? null;
+    })
+    .filter((sizeId): sizeId is number => sizeId !== null);
+  const recipes = await getRecipeConsumption([...new Set(sizeIds)]);
+
   await deleteSale(id);
 
   const ledger = stockLedger();
+  const supplies = supplyLedger();
   for (const item of existing.items) {
     ledger.add(item.productId, item.grams, item.quantity);
+
+    // Los insumos vuelven al inventario con la venta: si el frasco no se
+    // vendió, el frasco sigue estando.
+    const product = item.productId
+      ? products.find((p) => p.id === item.productId)
+      : undefined;
+    const sizeId = product?.sizes.find((s) => s.grams === item.grams)?.id;
+    if (!sizeId) continue;
+    for (const line of recipes.get(sizeId) ?? []) {
+      supplies.add(line.supplyItemId, line.quantity * item.quantity);
+    }
   }
   await ledger.apply();
+  await supplies.apply();
 
   revalidatePath("/admin/ventas");
   revalidatePath("/admin");
   revalidatePath("/admin/inventario");
   // El historial y los totales de cada cliente salen de sus ventas.
   revalidatePath("/admin/clientes", "layout");
+  revalidatePath("/admin/finanzas");
 }

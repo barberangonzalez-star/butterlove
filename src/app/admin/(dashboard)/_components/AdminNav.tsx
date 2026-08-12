@@ -10,6 +10,7 @@ import {
   Receipt,
   Tag,
   Users,
+  Wallet,
   LogOut,
   Menu,
   X,
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: "/admin/inventario", label: "Inventario", icon: Boxes },
   { href: "/admin/ventas", label: "Ventas", icon: Receipt },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
+  { href: "/admin/finanzas", label: "Finanzas", icon: Wallet },
   { href: "/admin/promociones", label: "Promociones", icon: Tag },
 ];
 

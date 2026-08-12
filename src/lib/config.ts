@@ -19,6 +19,13 @@ export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 export const PAYMENT_METHODS = ["Pago Móvil", "USD en efectivo", "Binance"];
 
+/**
+ * Los que se cobran en bolívares. Son los únicos en los que hay diferencia
+ * entre lo que dice la venta y los dólares que quedan al reponer, porque el
+ * monto se calculó a tasa BCV.
+ */
+export const BS_PAYMENT_METHODS = ["Pago Móvil"];
+
 export const DELIVERY_METHODS = ["Pickup", "Delivery", "Envío nacional"];
 
 // Delivery dentro de la ciudad.
@@ -268,6 +275,39 @@ export const VENEZUELA_STATES = [
   "Yaracuy",
   "Zulia",
 ];
+
+/**
+ * Categorías de gasto y, sobre todo, si se restan de la ganancia.
+ *
+ * `inventario` es plata que salió del bolsillo pero que todavía no es un
+ * gasto: comprar 5 kg de maní es cambiar dólares por maní, y ese costo se
+ * cuenta frasco a frasco cuando se vende. Restarlo aquí además de contarlo en
+ * el costo de lo vendido sería contarlo dos veces y haría ver el negocio peor
+ * de lo que está. Aparece igual en la vista de caja, que es la que responde
+ * "cuánto entró y cuánto salió este mes".
+ */
+export interface ExpenseCategory {
+  name: string;
+  kind: "operativo" | "inventario";
+}
+
+export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
+  { name: "Anuncios (Meta, Instagram)", kind: "operativo" },
+  { name: "Insumos y materia prima", kind: "inventario" },
+  { name: "Delivery y transporte", kind: "operativo" },
+  { name: "Sueldos y ayudantes", kind: "operativo" },
+  { name: "Comisiones y bancos", kind: "operativo" },
+  { name: "Servicios (luz, gas, internet)", kind: "operativo" },
+  { name: "Equipos y utensilios", kind: "operativo" },
+  { name: "Ferias y eventos", kind: "operativo" },
+  { name: "Otros", kind: "operativo" },
+];
+
+export function expenseKind(category: string): "operativo" | "inventario" {
+  return (
+    EXPENSE_CATEGORIES.find((c) => c.name === category)?.kind ?? "operativo"
+  );
+}
 
 export const PAGO_MOVIL = {
   bank: "Mercantil",

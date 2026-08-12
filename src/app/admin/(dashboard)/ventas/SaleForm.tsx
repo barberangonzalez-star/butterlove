@@ -593,6 +593,30 @@ export default function SaleForm({
             </label>
           )}
 
+          {/* El costo de la entrega no depende de quién la haga: puede ser la
+              gasolina propia, lo que cobró Ridery o la guía de MRW. Sólo no
+              aplica en pickup, donde nadie se mueve. */}
+          {deliveryMethod !== "Pickup" && (
+            <label className="block">
+              <span className={labelClass}>Costo de la entrega ($)</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                name="deliveryCostUsd"
+                defaultValue={
+                  sale?.deliveryCostUsd ? String(Number(sale.deliveryCostUsd)) : ""
+                }
+                placeholder="0.00"
+                className={`${inputClass} mt-1`}
+              />
+              <p className="text-xs text-[#787774] mt-1">
+                Lo que te costó a ti llevarlo. No se le cobra al cliente ni se
+                suma al monto: sirve para saber si el delivery deja o quita.
+              </p>
+            </label>
+          )}
+
           <div className="pt-2 border-t border-black/5">
             <span className={labelClass}>Cliente (opcional)</span>
           </div>

@@ -99,6 +99,12 @@ export interface SaleItemInput {
   grams: number;
   quantity: number;
   unitPriceUsd: number;
+  /**
+   * Lo que costaba hacer el envase ese día. Null cuando el producto no tenía
+   * receta completa: es más honesto no saberlo que anotar un costo más bajo
+   * que el real y creerse la ganancia.
+   */
+  unitCostUsd: number | null;
   /** El combo con el que se vendió esta línea, si fue por promo. */
   promotionId: number | null;
   promotionLabel: string | null;
@@ -118,6 +124,8 @@ export interface SaleInput {
   deliveryProvider: string | null;
   deliveryState: string | null;
   deliveryFeeUsd: number | null;
+  /** Lo que costó la entrega, contra lo que se le cobró al cliente. */
+  deliveryCostUsd: number | null;
   bcvUsdRate: number | null;
   bcvEurRate: number | null;
   amountBs: number | null;
@@ -137,6 +145,7 @@ function toRow(input: SaleInput) {
     deliveryProvider: input.deliveryProvider,
     deliveryState: input.deliveryState,
     deliveryFeeUsd: input.deliveryFeeUsd?.toFixed(2) ?? null,
+    deliveryCostUsd: input.deliveryCostUsd?.toFixed(2) ?? null,
     bcvUsdRate: input.bcvUsdRate?.toFixed(4) ?? null,
     bcvEurRate: input.bcvEurRate?.toFixed(4) ?? null,
     amountBs: input.amountBs?.toFixed(2) ?? null,
@@ -152,6 +161,7 @@ function toItemRows(saleId: number, items: SaleItemInput[]) {
     grams: item.grams,
     quantity: item.quantity,
     unitPriceUsd: item.unitPriceUsd.toFixed(2),
+    unitCostUsd: item.unitCostUsd?.toFixed(4) ?? null,
     promotionId: item.promotionId,
     promotionLabel: item.promotionLabel,
     position,

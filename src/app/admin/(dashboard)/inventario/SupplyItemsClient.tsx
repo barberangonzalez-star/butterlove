@@ -7,6 +7,7 @@ import {
   setSupplyQuantityAction,
   deleteSupplyItemAction,
 } from "./actions";
+import { fmtUnitCost, supplyUnitCost } from "@/lib/costs";
 import type { SupplyItem } from "@/lib/inventory-data";
 
 const inputClass =
@@ -36,6 +37,23 @@ function QuantityCell({ item }: { item: SupplyItem }) {
         isLow(item) ? "border-red-300 text-red-700 bg-red-50" : "border-black/15"
       }`}
     />
+  );
+}
+
+/** El costo por unidad, con el precio de compra del que salió. */
+function UnitCostCell({ item }: { item: SupplyItem }) {
+  const unitCost = supplyUnitCost(item);
+  if (unitCost === null) {
+    return <span className="text-xs text-amber-700">Sin precio</span>;
+  }
+  return (
+    <>
+      <span className="tabular-nums">{fmtUnitCost(unitCost)}</span>
+      <span className="block text-xs text-[#787774]">
+        ${Number(item.purchasePriceUsd).toFixed(2)} / {item.purchaseQuantity}{" "}
+        {item.unit}
+      </span>
+    </>
   );
 }
 
@@ -104,6 +122,43 @@ function SupplyItemForm({
           </label>
         </div>
 
+        {/* Se pregunta cómo se compra, no el costo por unidad: nadie sabe de
+            memoria cuánto cuesta un gramo de maní, pero todo el mundo sabe qué
+            pagó por el kilo. El costo unitario sale de la división. */}
+        <div className="rounded-md border border-black/10 bg-black/[0.02] p-3 mb-3">
+          <span className={labelClass}>Precio de compra (opcional)</span>
+          <div className="grid grid-cols-2 gap-3 mt-1">
+            <label className="block">
+              <span className="text-xs text-[#787774]">Pagué ($)</span>
+              <input
+                type="number"
+                step="0.01"
+                min="0"
+                name="purchasePriceUsd"
+                defaultValue={item?.purchasePriceUsd ?? ""}
+                placeholder="12.00"
+                className={`${inputClass} mt-0.5`}
+              />
+            </label>
+            <label className="block">
+              <span className="text-xs text-[#787774]">Por (cantidad)</span>
+              <input
+                type="number"
+                step="1"
+                min="0"
+                name="purchaseQuantity"
+                defaultValue={item?.purchaseQuantity ?? ""}
+                placeholder="1000"
+                className={`${inputClass} mt-0.5`}
+              />
+            </label>
+          </div>
+          <p className="text-xs text-[#787774] mt-2">
+            Ej: $12 por 1000 g de maní, o $25 por 100 frascos. Sin esto, los
+            productos que lo llevan quedan con el costo incompleto.
+          </p>
+        </div>
+
         <label className="block mb-3">
           <span className={labelClass}>Alerta de stock bajo (opcional)</span>
           <input
@@ -141,7 +196,8 @@ export default function SupplyItemsClient({ items }: { items: SupplyItem[] }) {
 
   async function handleDelete(item: SupplyItem) {
     if (!confirm(`¿Eliminar "${item.name}"?`)) return;
-    await deleteSupplyItemAction(item.id);
+    const result = await deleteSupplyItemAction(item.id);
+    if (result.error) alert(result.error);
   }
 
   return (
@@ -161,6 +217,9 @@ export default function SupplyItemsClient({ items }: { items: SupplyItem[] }) {
               <th className="px-3 md:px-4 py-2.5 font-medium">Insumo</th>
               <th className="px-3 md:px-4 py-2.5 font-medium text-right">Cantidad</th>
               <th className="px-4 py-2.5 font-medium hidden md:table-cell">Unidad</th>
+              <th className="px-4 py-2.5 font-medium text-right hidden md:table-cell">
+                Costo unitario
+              </th>
               <th className="px-3 md:px-4 py-2.5 font-medium w-20"></th>
             </tr>
           </thead>
@@ -177,6 +236,9 @@ export default function SupplyItemsClient({ items }: { items: SupplyItem[] }) {
                   <QuantityCell item={item} />
                 </td>
                 <td className="px-4 py-3 text-[#787774] hidden md:table-cell">{item.unit}</td>
+                <td className="px-4 py-3 text-right hidden md:table-cell">
+                  <UnitCostCell item={item} />
+                </td>
                 <td className="px-3 md:px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">
                     <button
@@ -197,7 +259,7 @@ export default function SupplyItemsClient({ items }: { items: SupplyItem[] }) {
             ))}
             {items.length === 0 && (
               <tr>
-                <td colSpan={4} className="px-4 py-10 text-center text-[#787774]">
+                <td colSpan={5} className="px-4 py-10 text-center text-[#787774]">
                   No hay insumos registrados todavía.
                 </td>
               </tr>

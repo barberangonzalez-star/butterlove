@@ -15,19 +15,29 @@ export interface SupplyItemInput {
   quantity: number;
   unit: string;
   lowStockThreshold: number | null;
+  /** Cómo se compra: cuánto se pagó y cuánto rindió esa compra. */
+  purchasePriceUsd: number | null;
+  purchaseQuantity: number | null;
   notes: string | null;
+}
+
+function toRow(input: SupplyItemInput) {
+  return {
+    ...input,
+    purchasePriceUsd: input.purchasePriceUsd?.toFixed(2) ?? null,
+  };
 }
 
 export async function createSupplyItem(input: SupplyItemInput) {
   const db = getDb();
-  await db.insert(supplyItems).values(input);
+  await db.insert(supplyItems).values(toRow(input));
 }
 
 export async function updateSupplyItem(id: number, input: SupplyItemInput) {
   const db = getDb();
   await db
     .update(supplyItems)
-    .set({ ...input, updatedAt: new Date() })
+    .set({ ...toRow(input), updatedAt: new Date() })
     .where(eq(supplyItems.id, id));
 }
 
