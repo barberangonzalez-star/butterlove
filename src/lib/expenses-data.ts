@@ -2,13 +2,15 @@ import "server-only";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { expenses, replacementRates } from "./db/schema";
-import { expenseKind } from "./config";
+import type { ExpenseKind } from "./config";
 
 export type Expense = typeof expenses.$inferSelect;
 
 export interface ExpenseInput {
   expenseDate: string;
   category: string;
+  /** Si el gasto se resta de la ganancia. Lo decide quien lo registra. */
+  kind: ExpenseKind;
   amountUsd: number;
   description: string | null;
 }
@@ -17,10 +19,10 @@ function toRow(input: ExpenseInput) {
   return {
     expenseDate: input.expenseDate,
     category: input.category,
-    // Se copia de la categoría en vez de mirarse al leer: si mañana se decide
-    // que una categoría cuenta distinto, los gastos ya registrados se quedan
-    // como se registraron.
-    kind: expenseKind(input.category),
+    // Se guarda en el gasto y no se deduce de la categoría al leer: así
+    // recategorizar mañana no reescribe cómo contó el pasado, y un gasto puede
+    // salirse de lo que su categoría hace por defecto.
+    kind: input.kind,
     amountUsd: input.amountUsd.toFixed(2),
     description: input.description,
   };

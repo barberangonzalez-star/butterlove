@@ -3,7 +3,13 @@
 import { useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { saveExpenseAction, deleteExpenseAction } from "./actions";
-import { EXPENSE_CATEGORIES, expenseKind } from "@/lib/config";
+import {
+  EXPENSE_CATEGORIES,
+  EXPENSE_KINDS,
+  expenseKind,
+  isExpenseKind,
+  type ExpenseKind,
+} from "@/lib/config";
 import type { Expense } from "@/lib/expenses-data";
 
 const inputClass =
@@ -25,7 +31,12 @@ function ExpenseForm({
   const [category, setCategory] = useState(
     expense?.category ?? EXPENSE_CATEGORIES[0].name,
   );
-  const isInventory = expenseKind(category) === "inventario";
+  // La categoría propone, pero manda lo que se elija aquí. Cambiar de categoría
+  // vuelve a proponer: es lo que casi siempre se quiere, y el interruptor está
+  // a la vista para desdecirlo.
+  const [kind, setKind] = useState<ExpenseKind>(
+    isExpenseKind(expense?.kind) ? expense.kind : expenseKind(category),
+  );
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -57,7 +68,10 @@ function ExpenseForm({
           <select
             name="category"
             value={category}
-            onChange={(e) => setCategory(e.target.value)}
+            onChange={(e) => {
+              setCategory(e.target.value);
+              setKind(expenseKind(e.target.value));
+            }}
             className={`${inputClass} mt-1`}
           >
             {EXPENSE_CATEGORIES.map((c) => (
@@ -69,18 +83,42 @@ function ExpenseForm({
         </label>
 
         {/* La distinción no es un detalle contable: es la diferencia entre una
-            ganancia real y una que resta el maní dos veces. */}
-        <p
-          className={`text-xs rounded-md px-3 py-2 mb-3 ${
-            isInventory
-              ? "bg-amber-50 text-amber-900"
-              : "bg-black/[0.03] text-[#5f5e5b]"
-          }`}
-        >
-          {isInventory
-            ? "No se resta de la ganancia: ese costo ya se cuenta frasco a frasco cuando vendes. Sí aparece en la caja del mes."
-            : "Se resta de la ganancia del mes."}
-        </p>
+            ganancia real y una que resta el maní dos veces. Por eso se elige
+            gasto por gasto y no queda amarrada a la categoría. */}
+        <div className="mb-4">
+          <span className={labelClass}>¿Resta de la ganancia?</span>
+          <div className="grid grid-cols-2 gap-2 mt-1">
+            {EXPENSE_KINDS.map((option) => (
+              <label
+                key={option.value}
+                className={`cursor-pointer rounded-md border px-3 py-2 text-sm text-center transition-colors ${
+                  kind === option.value
+                    ? "border-[#37352f] bg-[#37352f] text-white"
+                    : "border-black/15 hover:bg-black/[0.03]"
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="kind"
+                  value={option.value}
+                  checked={kind === option.value}
+                  onChange={() => setKind(option.value)}
+                  className="sr-only"
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
+          <p
+            className={`text-xs rounded-md px-3 py-2 mt-2 ${
+              kind === "inventario"
+                ? "bg-amber-50 text-amber-900"
+                : "bg-black/[0.03] text-[#5f5e5b]"
+            }`}
+          >
+            {EXPENSE_KINDS.find((k) => k.value === kind)?.hint}
+          </p>
+        </div>
 
         <div className="grid grid-cols-2 gap-3 mb-3">
           <label className="block">
@@ -168,8 +206,11 @@ export default function ExpensesPanel({
               <p className="text-sm">
                 {expense.category}
                 {expense.kind === "inventario" && (
-                  <span className="ml-1.5 text-[11px] bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded-full">
-                    inventario
+                  <span
+                    className="ml-1.5 text-[11px] bg-amber-50 text-amber-800 px-1.5 py-0.5 rounded-full"
+                    title="No se resta de la ganancia, sólo de la caja"
+                  >
+                    no resta
                   </span>
                 )}
               </p>

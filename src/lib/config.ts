@@ -277,18 +277,41 @@ export const VENEZUELA_STATES = [
 ];
 
 /**
- * Categorías de gasto y, sobre todo, si se restan de la ganancia.
+ * Cómo cuenta un gasto contra la ganancia del mes.
  *
- * `inventario` es plata que salió del bolsillo pero que todavía no es un
- * gasto: comprar 5 kg de maní es cambiar dólares por maní, y ese costo se
+ * `operativo` se resta: anuncios, sueldos, comisiones. Es plata que se fue y no
+ * dejó nada a cambio.
+ *
+ * `inventario` no se resta. Es plata que salió del bolsillo pero que todavía no
+ * es un gasto: comprar 5 kg de maní es cambiar dólares por maní, y ese costo se
  * cuenta frasco a frasco cuando se vende. Restarlo aquí además de contarlo en
  * el costo de lo vendido sería contarlo dos veces y haría ver el negocio peor
  * de lo que está. Aparece igual en la vista de caja, que es la que responde
  * "cuánto entró y cuánto salió este mes".
+ *
+ * La categoría propone uno de los dos, pero el que manda es el que se eligió al
+ * registrar el gasto: comprar una tostadora es un equipo que dura años y no
+ * tiene por qué hundir el mes en que se compró.
  */
+export type ExpenseKind = "operativo" | "inventario";
+
+export const EXPENSE_KINDS: { value: ExpenseKind; label: string; hint: string }[] =
+  [
+    {
+      value: "operativo",
+      label: "Sí resta",
+      hint: "Se resta de la ganancia del mes.",
+    },
+    {
+      value: "inventario",
+      label: "No resta",
+      hint: "Salió de la caja pero no de la ganancia: es inventario o algo que te queda. La materia prima ya se cuenta frasco a frasco cuando vendes.",
+    },
+  ];
+
 export interface ExpenseCategory {
   name: string;
-  kind: "operativo" | "inventario";
+  kind: ExpenseKind;
 }
 
 export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
@@ -303,7 +326,12 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   { name: "Otros", kind: "operativo" },
 ];
 
-export function expenseKind(category: string): "operativo" | "inventario" {
+export function isExpenseKind(value: unknown): value is ExpenseKind {
+  return EXPENSE_KINDS.some((k) => k.value === value);
+}
+
+/** Lo que la categoría propone, y con lo que arranca el formulario. */
+export function expenseKind(category: string): ExpenseKind {
   return (
     EXPENSE_CATEGORIES.find((c) => c.name === category)?.kind ?? "operativo"
   );

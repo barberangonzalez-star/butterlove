@@ -9,6 +9,7 @@ import {
   updateExpense,
   type ExpenseInput,
 } from "@/lib/expenses-data";
+import { expenseKind, isExpenseKind } from "@/lib/config";
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -16,6 +17,7 @@ function parseExpense(formData: FormData): ExpenseInput {
   const amount = Number(formData.get("amountUsd") ?? 0);
   const category = String(formData.get("category") ?? "").trim();
   const expenseDate = String(formData.get("expenseDate") ?? "").trim();
+  const kind = formData.get("kind");
 
   if (!category) throw new Error("El gasto necesita una categoría.");
   if (!expenseDate) throw new Error("El gasto necesita una fecha.");
@@ -26,6 +28,9 @@ function parseExpense(formData: FormData): ExpenseInput {
   return {
     expenseDate,
     category,
+    // Si el formulario no lo mandó, manda lo que propone la categoría: es lo
+    // que el usuario vio marcado en pantalla.
+    kind: isExpenseKind(kind) ? kind : expenseKind(category),
     amountUsd: amount,
     description: String(formData.get("description") ?? "").trim() || null,
   };

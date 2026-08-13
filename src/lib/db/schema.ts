@@ -99,11 +99,13 @@ export const recipeItems = pgTable(
 );
 
 /**
- * Lo que sale del bolsillo y no es materia prima: anuncios, sueldos,
- * comisiones. `kind` decide si el gasto se resta de la ganancia o no: comprar
- * maní no se resta aquí porque ya se cuenta frasco a frasco al venderlo, y
- * restarlo dos veces haría ver el negocio peor de lo que está. Se copia de la
- * categoría al guardar, para que recategorizar después no reescriba el pasado.
+ * Lo que sale del bolsillo: anuncios, sueldos, comisiones, materia prima.
+ *
+ * `kind` decide si el gasto se resta de la ganancia o sólo de la caja. Lo
+ * elige quien registra el gasto — la categoría sólo propone el valor inicial —
+ * y se guarda en la fila, para que recategorizar después no reescriba el
+ * pasado. Comprar maní por defecto no resta: ya se cuenta frasco a frasco al
+ * venderlo, y restarlo dos veces haría ver el negocio peor de lo que está.
  */
 export const expenses = pgTable(
   "expenses",
