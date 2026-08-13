@@ -80,8 +80,6 @@ export interface AdminSizeOption {
   grams: number;
   price: number;
   stockQuantity: number;
-  /** Lo que cuesta el envase escrito a mano, fuera de la receta. */
-  costUsd: number;
 }
 
 export interface AdminProduct extends Omit<Product, "sizes"> {
@@ -114,7 +112,6 @@ function toAdminProduct(row: ProductRow, sizeRows: SizeRow[]): AdminProduct {
         grams: s.grams,
         price: Number(s.price),
         stockQuantity: s.stockQuantity,
-        costUsd: Number(s.extraCostUsd),
       })),
   };
 }
@@ -171,13 +168,16 @@ export interface ProductInput {
   badges: string[];
   inStore: boolean;
   sortOrder: number;
-  sizes: { grams: number; price: number; costUsd: number }[];
+  sizes: { grams: number; price: number }[];
 }
 
 // Diffs against existing sizes (matched by grams) instead of delete-then-reinsert,
 // so editing a product's name/tagline/etc. doesn't reset stockQuantity to 0.
 // Por lo mismo se conserva la receta: borrar el tamaño se llevaría sus líneas
 // por cascada.
+//
+// El costo (`extraCostUsd`) tampoco se toca aquí: se edita en Finanzas, y este
+// formulario no lo manda. Escribirlo con lo que no llegó lo borraría.
 async function replaceSizes(productId: number, sizes: ProductInput["sizes"]) {
   const db = getDb();
   const existing = await db
@@ -198,17 +198,13 @@ async function replaceSizes(productId: number, sizes: ProductInput["sizes"]) {
     if (match) {
       await db
         .update(productSizes)
-        .set({
-          price: size.price.toFixed(2),
-          extraCostUsd: size.costUsd.toFixed(2),
-        })
+        .set({ price: size.price.toFixed(2) })
         .where(eq(productSizes.id, match.id));
     } else {
       await db.insert(productSizes).values({
         productId,
         grams: size.grams,
         price: size.price.toFixed(2),
-        extraCostUsd: size.costUsd.toFixed(2),
       });
     }
   }

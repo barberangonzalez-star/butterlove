@@ -127,6 +127,19 @@ export async function getSizeCost(
   return costs.get(productSizeId);
 }
 
+/**
+ * Escribe a mano lo que cuesta un envase, sin tocar su receta. Es el camino
+ * corto: se edita desde Finanzas, que es donde el número significa algo.
+ */
+export async function setSizeCost(productSizeId: number, costUsd: number) {
+  const db = getDb();
+  const safe = Number.isFinite(costUsd) ? Math.max(0, costUsd) : 0;
+  await db
+    .update(productSizes)
+    .set({ extraCostUsd: safe.toFixed(2) })
+    .where(eq(productSizes.id, productSizeId));
+}
+
 export interface RecipeLineInput {
   supplyItemId: number;
   quantity: number;

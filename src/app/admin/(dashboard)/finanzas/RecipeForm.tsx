@@ -263,8 +263,8 @@ export default function RecipeForm({
                   />
                   <span className="text-xs text-[#787774]">
                     Mano de obra, gas, lo que no está en la lista de insumos. Es
-                    el mismo número que &quot;Costo&quot; en el formulario del
-                    producto: se suma a los insumos de arriba.
+                    el mismo número de la columna &quot;Costo&quot; de la tabla:
+                    se suma a los insumos de arriba.
                   </span>
                 </label>
 

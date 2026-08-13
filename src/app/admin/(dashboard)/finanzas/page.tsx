@@ -1,11 +1,10 @@
-import Link from "next/link";
 import { TriangleAlert } from "lucide-react";
 import { getMonthReport, getProductSales, monthBounds } from "@/lib/finance-data";
 import { getExpenseMonths, getExpenses } from "@/lib/expenses-data";
 import { getSaleMonths } from "@/lib/sales-data";
 import { getAdminProducts } from "@/lib/products-data";
 import { getSizeCosts } from "@/lib/costs-data";
-import { marginPercent } from "@/lib/costs";
+import { getSupplyItems } from "@/lib/inventory-data";
 import {
   isIsoDate,
   isPeriodKind,
@@ -16,6 +15,7 @@ import {
 import MonthPicker, { type MonthOption } from "./MonthPicker";
 import PeriodPicker from "./PeriodPicker";
 import ExpensesPanel from "./ExpensesPanel";
+import CostsPanel from "./CostsPanel";
 import RateField from "./RateField";
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -64,16 +64,25 @@ export default async function FinanzasPage({
       : from;
   const period = resolvePeriod(periodKind, anchor);
 
-  const [report, sold, expenses, saleMonths, expenseMonths, products, costs] =
-    await Promise.all([
-      getMonthReport(month),
-      getProductSales(period.from, period.to),
-      getExpenses(from, to),
-      getSaleMonths(),
-      getExpenseMonths(),
-      getAdminProducts(),
-      getSizeCosts(),
-    ]);
+  const [
+    report,
+    sold,
+    expenses,
+    saleMonths,
+    expenseMonths,
+    products,
+    costs,
+    supplies,
+  ] = await Promise.all([
+    getMonthReport(month),
+    getProductSales(period.from, period.to),
+    getExpenses(from, to),
+    getSaleMonths(),
+    getExpenseMonths(),
+    getAdminProducts(),
+    getSizeCosts(),
+    getSupplyItems(),
+  ]);
 
   const months: MonthOption[] = [
     ...new Set([currentMonth, month, ...saleMonths, ...expenseMonths]),
@@ -115,8 +124,8 @@ export default async function FinanzasPage({
           <span>
             {report.jarsWithoutCost} de los {report.jars} frascos vendidos este
             mes no tienen costo conocido, así que la ganancia sale más alta de
-            lo que es. Cárgales el costo en Productos, al lado del precio de
-            cada talla, y las próximas ventas ya lo usarán.
+            lo que es. Cárgalo abajo, en &quot;Costo y ganancia por frasco&quot;,
+            y las próximas ventas ya lo usarán.
           </span>
         </p>
       )}
@@ -238,80 +247,11 @@ export default async function FinanzasPage({
             </p>
           </Card>
 
-          <Card title="Costo y ganancia por frasco">
-            <div className="overflow-x-auto -mx-4">
-              <table className="w-full min-w-[520px] text-sm">
-                <thead>
-                  <tr className="text-left text-xs text-[#787774] uppercase tracking-wide border-b border-black/10">
-                    <th className="px-4 py-2 font-medium">Producto</th>
-                    <th className="px-4 py-2 font-medium text-right">Precio</th>
-                    <th className="px-4 py-2 font-medium text-right">Costo</th>
-                    <th className="px-4 py-2 font-medium text-right">Deja</th>
-                    <th className="px-4 py-2 font-medium text-right">Margen</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {products.flatMap((product) =>
-                    product.sizes.map((size) => {
-                      const cost = costs.get(size.id);
-                      // Un costo a medias es más bajo que el real: se dice que
-                      // falta en vez de mostrar una ganancia que no existe.
-                      const total = cost?.complete ? cost.total : null;
-                      const profit = total === null ? null : size.price - total;
-                      const percent =
-                        total === null ? null : marginPercent(size.price, total);
-
-                      return (
-                        <tr
-                          key={size.id}
-                          className="border-b border-black/5 last:border-0"
-                        >
-                          <td className="px-4 py-2.5">
-                            {product.name}{" "}
-                            <span className="text-[#787774]">{size.grams}g</span>
-                          </td>
-                          <td className="px-4 py-2.5 text-right tabular-nums">
-                            {fmtUsd(size.price)}
-                          </td>
-                          <td className="px-4 py-2.5 text-right tabular-nums text-[#787774]">
-                            {total !== null ? (
-                              fmtUsd(total)
-                            ) : (
-                              <span className="text-amber-700 whitespace-nowrap">
-                                {cost?.known ? "faltan precios" : "sin costo"}
-                              </span>
-                            )}
-                          </td>
-                          <td
-                            className={`px-4 py-2.5 text-right tabular-nums font-medium ${
-                              profit !== null && profit < 0 ? "text-red-700" : ""
-                            }`}
-                          >
-                            {profit === null ? "—" : fmtUsd(profit)}
-                          </td>
-                          <td className="px-4 py-2.5 text-right tabular-nums text-[#787774]">
-                            {percent === null ? "—" : `${percent.toFixed(0)}%`}
-                          </td>
-                        </tr>
-                      );
-                    }),
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <p className="text-xs text-[#787774] mt-3">
-              El costo se carga en{" "}
-              <Link href="/admin/productos" className="underline">
-                Productos
-              </Link>
-              : al editar el producto, junto al precio de cada talla. Si
-              prefieres desglosarlo insumo por insumo, carga los precios en{" "}
-              <Link href="/admin/inventario" className="underline">
-                Inventario
-              </Link>{" "}
-              y arma la receta con el botón de receta.
-            </p>
-          </Card>
+          <CostsPanel
+            products={products}
+            costs={[...costs.values()]}
+            supplies={supplies}
+          />
         </div>
 
         <div className="space-y-6 min-w-0">

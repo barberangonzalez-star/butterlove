@@ -1,13 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Pencil, Trash2, Calculator, TriangleAlert } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 import ProductForm from "./ProductForm";
-import RecipeForm from "./RecipeForm";
 import { deleteProductAction } from "./actions";
-import { marginPercent } from "@/lib/costs";
-import type { SizeCost } from "@/lib/costs-data";
-import type { SupplyItem } from "@/lib/inventory-data";
 import type { AdminProduct } from "@/lib/products-data";
 
 /** Marca los productos que no van en la vitrina, sólo en el panel. */
@@ -19,67 +15,15 @@ function HiddenTag() {
   );
 }
 
-/**
- * Lo que cuesta y lo que deja cada tamaño. Un costo incompleto se marca en vez
- * de mostrarse como bueno: es más bajo que el real y engañaría al leerlo.
- */
-function CostSummary({
-  product,
-  costs,
-}: {
-  product: AdminProduct;
-  costs: SizeCost[];
-}) {
-  if (product.sizes.length === 0) return <span className="text-[#787774]">—</span>;
-
-  return (
-    <ul className="space-y-0.5">
-      {product.sizes.map((size) => {
-        const cost = costs.find((c) => c.productSizeId === size.id);
-        if (!cost?.known) {
-          return (
-            <li key={size.id} className="whitespace-nowrap text-amber-700">
-              {size.grams}g · sin costo
-            </li>
-          );
-        }
-        const percent = marginPercent(size.price, cost.total);
-        return (
-          <li key={size.id} className="whitespace-nowrap tabular-nums">
-            {size.grams}g · ${cost.total.toFixed(2)}
-            {percent !== null && (
-              <span
-                className={percent < 0 ? "text-red-700" : "text-[#5f5e5b]"}
-              >
-                {" "}
-                → {percent.toFixed(0)}%
-              </span>
-            )}
-            {cost.missing.length > 0 && (
-              <TriangleAlert
-                size={12}
-                className="inline ml-1 -mt-0.5 text-amber-600"
-                aria-label="Faltan precios de insumos"
-              />
-            )}
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
+// El catálogo es la cara pública del producto: foto, texto y precio de venta.
+// Lo que cuesta hacerlo y lo que deja se edita en Finanzas, que es donde esos
+// números se leen junto a las ventas.
 export default function ProductsAdminClient({
   products,
-  costs,
-  supplies,
 }: {
   products: AdminProduct[];
-  costs: SizeCost[];
-  supplies: SupplyItem[];
 }) {
   const [editing, setEditing] = useState<AdminProduct | "new" | null>(null);
-  const [costing, setCosting] = useState<AdminProduct | null>(null);
 
   async function handleDelete(product: AdminProduct) {
     if (!confirm(`¿Eliminar "${product.name}"? Esta acción no se puede deshacer.`)) return;
@@ -114,10 +58,6 @@ export default function ProductsAdminClient({
               {p.sizes.map((s) => `${s.grams}g $${s.price}`).join(" · ") || "—"}
             </p>
 
-            <div className="text-xs text-[#5f5e5b] mt-1">
-              <CostSummary product={p} costs={costs} />
-            </div>
-
             {p.badges.length > 0 && (
               <div className="flex flex-wrap gap-1 mt-2">
                 {p.badges.map((b) => (
@@ -132,12 +72,6 @@ export default function ProductsAdminClient({
             )}
 
             <div className="flex gap-2 mt-3 pt-3 border-t border-black/5">
-              <button
-                onClick={() => setCosting(p)}
-                className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-black/15 py-2 text-sm font-medium hover:bg-black/5"
-              >
-                <Calculator size={14} /> Receta
-              </button>
               <button
                 onClick={() => setEditing(p)}
                 className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-black/15 py-2 text-sm font-medium hover:bg-black/5"
@@ -169,7 +103,6 @@ export default function ProductsAdminClient({
               <th className="px-4 py-2.5 font-medium w-8"></th>
               <th className="px-4 py-2.5 font-medium">Producto</th>
               <th className="px-4 py-2.5 font-medium">Tallas</th>
-              <th className="px-4 py-2.5 font-medium">Costo → margen</th>
               <th className="px-4 py-2.5 font-medium">Badges</th>
               <th className="px-4 py-2.5 font-medium w-20"></th>
             </tr>
@@ -190,9 +123,6 @@ export default function ProductsAdminClient({
                 <td className="px-4 py-3 text-[#5f5e5b]">
                   {p.sizes.map((s) => `${s.grams}g $${s.price}`).join(" · ") || "—"}
                 </td>
-                <td className="px-4 py-3 text-xs text-[#5f5e5b]">
-                  <CostSummary product={p} costs={costs} />
-                </td>
                 <td className="px-4 py-3">
                   <div className="flex flex-wrap gap-1">
                     {p.badges.map((b) => (
@@ -207,13 +137,6 @@ export default function ProductsAdminClient({
                 </td>
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1 justify-end">
-                    <button
-                      onClick={() => setCosting(p)}
-                      title="Receta y costo"
-                      className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
-                    >
-                      <Calculator size={14} />
-                    </button>
                     <button
                       onClick={() => setEditing(p)}
                       className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
@@ -232,7 +155,7 @@ export default function ProductsAdminClient({
             ))}
             {products.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-[#787774]">
+                <td colSpan={5} className="px-4 py-10 text-center text-[#787774]">
                   Todavía no hay productos.
                 </td>
               </tr>
@@ -246,15 +169,6 @@ export default function ProductsAdminClient({
         <ProductForm
           product={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
-        />
-      )}
-
-      {costing && (
-        <RecipeForm
-          product={costing}
-          supplies={supplies}
-          costs={costs}
-          onClose={() => setCosting(null)}
         />
       )}
     </div>

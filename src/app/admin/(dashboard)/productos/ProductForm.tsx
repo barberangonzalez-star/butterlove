@@ -19,7 +19,7 @@ export default function ProductForm({
   onClose: () => void;
 }) {
   const [sizes, setSizes] = useState(
-    product?.sizes.length ? product.sizes : [{ grams: 230, price: 0, costUsd: 0 }]
+    product?.sizes.length ? product.sizes : [{ grams: 230, price: 0 }]
   );
   // Las fotos sólo hacen falta si el producto se va a mostrar en la vitrina;
   // uno de sólo encargo vive nada más en el panel y no tiene por qué tenerlas.
@@ -177,72 +177,42 @@ export default function ProductForm({
             <span className={labelClass}>Tallas</span>
             <div className="space-y-2 mt-1">
               {sizes.map((size, i) => (
-                <div
-                  key={i}
-                  className="rounded-md border border-black/10 p-2.5 pb-2"
-                >
-                  <div className="flex items-start gap-2">
-                    <div className="grid grid-cols-3 gap-2 flex-1 min-w-0">
-                      <SizeField label="Gramos">
-                        <input
-                          type="number"
-                          name="grams"
-                          defaultValue={size.grams}
-                          className={inputClass}
-                        />
-                      </SizeField>
-                      <SizeField label="Precio $">
-                        <input
-                          type="number"
-                          step="0.01"
-                          name="price"
-                          defaultValue={size.price}
-                          className={inputClass}
-                        />
-                      </SizeField>
-                      <SizeField label="Costo $">
-                        <input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          name="costUsd"
-                          defaultValue={size.costUsd || ""}
-                          placeholder="0.00"
-                          className={inputClass}
-                        />
-                      </SizeField>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() =>
-                        setSizes((prev) => prev.filter((_, idx) => idx !== i))
-                      }
-                      aria-label="Quitar talla"
-                      className="mt-5 w-8 h-8 shrink-0 flex items-center justify-center rounded-md hover:bg-black/5 text-[#787774]"
-                    >
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                <div key={i} className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    name="grams"
+                    defaultValue={size.grams}
+                    placeholder="Gramos"
+                    className={`${inputClass} flex-1`}
+                  />
+                  <input
+                    type="number"
+                    step="0.01"
+                    name="price"
+                    defaultValue={size.price}
+                    placeholder="Precio $"
+                    className={`${inputClass} flex-1`}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSizes((prev) => prev.filter((_, idx) => idx !== i))}
+                    className="w-8 h-8 shrink-0 flex items-center justify-center rounded-md hover:bg-black/5 text-[#787774]"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
               ))}
               <button
                 type="button"
-                onClick={() =>
-                  setSizes((prev) => [
-                    ...prev,
-                    { grams: 0, price: 0, costUsd: 0 },
-                  ])
-                }
+                onClick={() => setSizes((prev) => [...prev, { grams: 0, price: 0 }])}
                 className="flex items-center gap-1.5 text-xs font-medium text-[#787774] hover:text-[#37352f] mt-1"
               >
                 <Plus size={14} /> Agregar talla
               </button>
             </div>
             <p className="text-xs text-[#787774] mt-2">
-              El costo es lo que te cuesta hacer ese frasco: envase, etiqueta,
-              materia prima y mano de obra. Con eso ya se calcula la ganancia.
-              Si prefieres desglosarlo insumo por insumo —y que suba solo cuando
-              suba el maní— usa el botón de receta en la lista de productos.
+              Este es el precio al público. Lo que te cuesta hacerlo se carga en
+              Finanzas.
             </p>
           </div>
         </div>
@@ -257,22 +227,6 @@ export default function ProductForm({
         </div>
       </form>
     </div>
-  );
-}
-
-/** Etiqueta chiquita para las tres columnas de una talla. */
-function SizeField({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="block min-w-0">
-      <span className="block text-[11px] text-[#787774] mb-0.5">{label}</span>
-      {children}
-    </label>
   );
 }
 
