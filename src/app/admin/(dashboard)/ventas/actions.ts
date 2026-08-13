@@ -174,10 +174,10 @@ export async function saveSaleAction(formData: FormData) {
       grams,
       quantity: Number(itemQuantities[i]),
       unitPriceUsd: Number(itemUnitPrices[i]),
-      // Sólo se congela un costo completo. Una receta a medias o con insumos
-      // sin precio da un número más bajo que el real, y guardarlo haría ver
-      // una ganancia que no existe; en null, el reporte avisa que falta.
-      unitCostUsd: cost?.complete ? cost.total : null,
+      // Se congela el costo del día, si es que hay uno cargado. Sin nada
+      // escrito va en null: el reporte avisa que falta en vez de hacer ver una
+      // ganancia que no existe.
+      unitCostUsd: cost?.known ? cost.total : null,
       promotionId: promo?.id ?? null,
       // El título se copia: si la promo se borra o se renombra después, la
       // venta sigue diciendo con qué combo se cobró.

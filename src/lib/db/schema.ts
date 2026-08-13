@@ -75,9 +75,36 @@ export const supplyItems = pgTable("supply_items", {
 });
 
 /**
+ * Lo que cuesta un envase, desglosado a mano: "frasco $0.25", "etiqueta
+ * $0.12", "maní $0.90". Cada línea trae su costo ya calculado por frasco, que
+ * es como se piensa el costo cuando se hace el presupuesto.
+ *
+ * Es a propósito más tonto que `recipeItems`: no sabe de unidades, ni de
+ * precios de compra, ni descuenta inventario. A cambio se llena en diez
+ * segundos y no depende de tener el catálogo de insumos cargado.
+ */
+export const costItems = pgTable(
+  "cost_items",
+  {
+    id: serial("id").primaryKey(),
+    productSizeId: integer("product_size_id")
+      .notNull()
+      .references(() => productSizes.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    /** Lo que aporta al costo de UN frasco. */
+    amountUsd: numeric("amount_usd", { precision: 10, scale: 4 }).notNull(),
+    position: integer("position").notNull().default(0),
+  },
+  (table) => [index("cost_items_size_idx").on(table.productSizeId)],
+);
+
+/**
  * La receta de un envase: qué insumos lleva y cuántos. Un frasco de maní 230g
  * son 1 frasco, 1 tapa, 1 etiqueta, 1 precinto y ~250 g de maní crudo — la
  * merma del tostado se mete subiendo esa cantidad.
+ *
+ * Hoy sirve para descontar inventario al vender, no para el costo: el costo
+ * sale de `costItems`, que es más simple de llenar.
  *
  * Los combos tienen su propia receta, con las dos etiquetas y las dos
  * porciones, así que no hace falta que una receta apunte a otra.

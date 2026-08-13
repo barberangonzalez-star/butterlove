@@ -1,7 +1,7 @@
 /**
- * Cuentas de costo que corren en los dos lados: el editor de recetas es un
- * componente de cliente y necesita calcular igual que el servidor para mostrar
- * el costo mientras se escribe.
+ * Cuentas de costo que corren en los dos lados: los editores son componentes de
+ * cliente y necesitan calcular igual que el servidor para mostrar el número
+ * mientras se escribe.
  */
 
 export interface SupplyCostLike {
@@ -14,7 +14,10 @@ export interface SupplyCostLike {
 /**
  * Lo que cuesta una unidad del insumo: un frasco, un gramo de maní. Null si
  * todavía no se sabe cómo se compra — que es distinto de que sea gratis, y por
- * eso el costo del producto se marca incompleto en vez de contarlo como cero.
+ * eso se muestra vacío en vez de cero.
+ *
+ * Es para mirar el inventario, no para costear el producto: el costo del frasco
+ * se escribe a mano en el desglose (`costItems`).
  */
 export function supplyUnitCost(item: SupplyCostLike): number | null {
   if (item.purchasePriceUsd === null || !item.purchaseQuantity) return null;

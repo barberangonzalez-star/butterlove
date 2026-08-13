@@ -1,84 +1,77 @@
 import "server-only";
 import { asc, eq, inArray } from "drizzle-orm";
 import { getDb } from "./db";
-import { productSizes, recipeItems, supplyItems } from "./db/schema";
-import { supplyUnitCost } from "./costs";
+import { costItems, productSizes, recipeItems } from "./db/schema";
 
-export type RecipeItemRow = typeof recipeItems.$inferSelect;
-
-/** Una línea de receta ya resuelta: el insumo con nombre, unidad y costo. */
-export interface RecipeLine {
+/**
+ * Una línea del desglose: cómo se llama y cuánto le pone al costo de UN frasco.
+ * No sabe de unidades ni de precios de compra — el número ya viene hecho.
+ */
+export interface CostLine {
   id: number;
-  supplyItemId: number;
-  supplyName: string;
-  unit: string;
-  quantity: number;
-  /** Costo de una unidad del insumo, o null si no se sabe cómo se compra. */
-  unitCost: number | null;
-  /** Lo que aporta esta línea al envase. Null arrastra el null del insumo. */
-  lineCost: number | null;
+  name: string;
+  amount: number;
 }
 
 /**
  * Lo que cuesta hacer un envase.
  *
- * Hay dos maneras de saberlo y las dos valen. La corta es escribir el costo del
- * frasco a mano (`extra`). La larga es desglosarlo en insumos (`lines`), que
- * tiene la ventaja de que subir el precio del maní actualiza solo todos los
- * productos que lo llevan. Se pueden combinar: el desglose cubre los materiales
- * y el número suelto agrega lo que no está en la lista, como la mano de obra.
+ * Hay dos maneras de escribirlo y las dos valen. La corta es un solo número
+ * (`extra`), que se edita en la tabla misma. La larga es desglosarlo en líneas
+ * (`lines`): "frasco $0.25", "etiqueta $0.12", "maní $0.90". Se suman, así que
+ * se pueden combinar: el desglose cubre lo que está listado y el número suelto
+ * agrega el resto.
  *
- * `known` dice si hay algún costo cargado. `complete` dice además que se puede
- * creer: una receta con un insumo sin precio da un costo más bajo que el real,
- * y el reporte prefiere avisar antes que mostrar una ganancia inventada.
+ * `known` dice si hay algún costo cargado. Sin eso, la ganancia se muestra
+ * vacía en vez de inventada.
  */
 export interface SizeCost {
   productSizeId: number;
-  materials: number;
-  /** El costo escrito a mano, fuera de la receta. */
+  /** Lo que suman las líneas del desglose. */
+  breakdown: number;
+  /** El costo escrito de un tirón, fuera del desglose. */
   extra: number;
   total: number;
-  hasRecipe: boolean;
+  hasBreakdown: boolean;
   known: boolean;
-  complete: boolean;
-  /** Insumos de la receta a los que les falta el precio de compra. */
-  missing: string[];
-  lines: RecipeLine[];
+  lines: CostLine[];
 }
 
 function emptyCost(productSizeId: number, extra: number): SizeCost {
   return {
     productSizeId,
-    materials: 0,
+    breakdown: 0,
     extra,
     total: extra,
-    hasRecipe: false,
+    hasBreakdown: false,
     known: extra > 0,
-    complete: false,
-    missing: [],
     lines: [],
   };
 }
 
 /**
- * El costo de todos los tamaños del catálogo, en tres consultas. Se calcula
- * entero en vez de guardarse: así cambiar el precio del maní actualiza solo
- * todos los productos que lo llevan, sin recalcular nada a mano.
+ * El costo de todos los tamaños del catálogo, en dos consultas.
+ *
+ * Antes esto salía de las recetas, resolviendo cada insumo contra su precio de
+ * compra. Se cambió porque llenar catorce recetas con unidades y rendimientos
+ * era demasiado trabajo para lo que se quería saber, que es cuánto deja un
+ * frasco. Las recetas siguen existiendo, pero para descontar inventario.
  */
 export async function getSizeCosts(): Promise<Map<number, SizeCost>> {
   const db = getDb();
-  const [sizes, lines, supplies] = await Promise.all([
+  const [sizes, lines] = await Promise.all([
     db
       .select({
         id: productSizes.id,
         extraCostUsd: productSizes.extraCostUsd,
       })
       .from(productSizes),
-    db.select().from(recipeItems).orderBy(asc(recipeItems.position), asc(recipeItems.id)),
-    db.select().from(supplyItems),
+    db
+      .select()
+      .from(costItems)
+      .orderBy(asc(costItems.position), asc(costItems.id)),
   ]);
 
-  const supplyById = new Map(supplies.map((s) => [s.id, s]));
   const costs = new Map<number, SizeCost>();
   for (const size of sizes) {
     costs.set(size.id, emptyCost(size.id, Number(size.extraCostUsd)));
@@ -86,35 +79,17 @@ export async function getSizeCosts(): Promise<Map<number, SizeCost>> {
 
   for (const row of lines) {
     const cost = costs.get(row.productSizeId);
-    const supply = supplyById.get(row.supplyItemId);
-    if (!cost || !supply) continue;
+    if (!cost) continue;
 
-    const quantity = Number(row.quantity);
-    const unitCost = supplyUnitCost(supply);
-    const lineCost = unitCost === null ? null : unitCost * quantity;
-
-    cost.hasRecipe = true;
-    cost.lines.push({
-      id: row.id,
-      supplyItemId: supply.id,
-      supplyName: supply.name,
-      unit: supply.unit,
-      quantity,
-      unitCost,
-      lineCost,
-    });
-
-    if (lineCost === null) cost.missing.push(supply.name);
-    else cost.materials += lineCost;
+    const amount = Number(row.amountUsd);
+    cost.hasBreakdown = true;
+    cost.lines.push({ id: row.id, name: row.name, amount });
+    cost.breakdown += amount;
   }
 
   for (const cost of costs.values()) {
-    cost.total = cost.materials + cost.extra;
-    // Un costo escrito a mano vale tanto como uno desglosado: lo que invalida
-    // el número no es que falte la receta, sino que falte un precio de la que sí
-    // hay. Sin receta y sin costo a mano no se sabe nada, y eso se dice.
-    cost.known = cost.hasRecipe || cost.extra > 0;
-    cost.complete = cost.known && cost.missing.length === 0;
+    cost.total = cost.breakdown + cost.extra;
+    cost.known = cost.hasBreakdown || cost.extra > 0;
   }
 
   return costs;
@@ -128,8 +103,8 @@ export async function getSizeCost(
 }
 
 /**
- * Escribe a mano lo que cuesta un envase, sin tocar su receta. Es el camino
- * corto: se edita desde Finanzas, que es donde el número significa algo.
+ * Escribe de un tirón lo que cuesta un envase, sin tocar su desglose. Es el
+ * camino corto: se edita desde Finanzas, que es donde el número significa algo.
  */
 export async function setSizeCost(productSizeId: number, costUsd: number) {
   const db = getDb();
@@ -140,23 +115,89 @@ export async function setSizeCost(productSizeId: number, costUsd: number) {
     .where(eq(productSizes.id, productSizeId));
 }
 
+export interface CostLineInput {
+  name: string;
+  amount: number;
+}
+
+/**
+ * Reemplaza el desglose entero de un tamaño. Igual que las líneas de una venta:
+ * es más simple que reconciliar altas y bajas, y un desglose es corto.
+ */
+export async function saveCostItems(
+  productSizeId: number,
+  lines: CostLineInput[],
+) {
+  const db = getDb();
+  const rows = lines
+    .map((line) => ({ name: line.name.trim(), amount: line.amount }))
+    // Una línea sin nombre o en cero no dice nada y sólo ensucia el desglose.
+    .filter((line) => line.name.length > 0 && line.amount > 0)
+    .map((line, position) => ({
+      productSizeId,
+      name: line.name,
+      amountUsd: line.amount.toFixed(4),
+      position,
+    }));
+
+  const clear = db
+    .delete(costItems)
+    .where(eq(costItems.productSizeId, productSizeId));
+
+  // `batch` mantiene los pasos atómicos: nunca queda un desglose a medio borrar.
+  if (rows.length > 0) {
+    await db.batch([clear, db.insert(costItems).values(rows)]);
+  } else {
+    await clear;
+  }
+}
+
 export interface RecipeLineInput {
   supplyItemId: number;
   quantity: number;
 }
 
+export interface SizeRecipe {
+  productSizeId: number;
+  lines: RecipeLineInput[];
+}
+
 /**
- * Reemplaza la receta entera de un tamaño. Igual que las líneas de una venta:
- * es más simple que reconciliar altas y bajas, y una receta es corta.
+ * La receta de cada tamaño: qué insumos lleva y cuántos. Es lo que se descuenta
+ * del inventario al vender; el costo ya no sale de acá.
+ */
+export async function getRecipes(): Promise<SizeRecipe[]> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(recipeItems)
+    .orderBy(asc(recipeItems.position), asc(recipeItems.id));
+
+  const recipes = new Map<number, SizeRecipe>();
+  for (const row of rows) {
+    let recipe = recipes.get(row.productSizeId);
+    if (!recipe) {
+      recipe = { productSizeId: row.productSizeId, lines: [] };
+      recipes.set(row.productSizeId, recipe);
+    }
+    recipe.lines.push({
+      supplyItemId: row.supplyItemId,
+      quantity: Number(row.quantity),
+    });
+  }
+  return [...recipes.values()];
+}
+
+/**
+ * Reemplaza la receta entera de un tamaño, por el mismo motivo que el desglose.
  */
 export async function saveRecipe(
   productSizeId: number,
   lines: RecipeLineInput[],
-  extraCostUsd: number,
 ) {
   const db = getDb();
   const rows = lines
-    // Una línea en cero no cuesta nada y sólo ensucia la receta.
+    // Una línea en cero no consume nada y sólo ensucia la receta.
     .filter((line) => line.supplyItemId > 0 && line.quantity > 0)
     .map((line, position) => ({
       productSizeId,
@@ -165,19 +206,14 @@ export async function saveRecipe(
       position,
     }));
 
-  const setExtra = db
-    .update(productSizes)
-    .set({ extraCostUsd: extraCostUsd.toFixed(2) })
-    .where(eq(productSizes.id, productSizeId));
   const clear = db
     .delete(recipeItems)
     .where(eq(recipeItems.productSizeId, productSizeId));
 
-  // `batch` mantiene los pasos atómicos: nunca queda una receta a medio borrar.
   if (rows.length > 0) {
-    await db.batch([setExtra, clear, db.insert(recipeItems).values(rows)]);
+    await db.batch([clear, db.insert(recipeItems).values(rows)]);
   } else {
-    await db.batch([setExtra, clear]);
+    await clear;
   }
 }
 

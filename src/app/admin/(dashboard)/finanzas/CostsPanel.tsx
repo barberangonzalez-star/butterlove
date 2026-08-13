@@ -1,11 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Calculator, TriangleAlert } from "lucide-react";
+import { Boxes, Calculator } from "lucide-react";
+import CostForm from "./CostForm";
 import RecipeForm from "./RecipeForm";
 import { setSizeCostAction } from "./actions";
 import { marginPercent } from "@/lib/costs";
-import type { SizeCost } from "@/lib/costs-data";
+import type { SizeCost, SizeRecipe } from "@/lib/costs-data";
 import type { SupplyItem } from "@/lib/inventory-data";
 import type { AdminProduct } from "@/lib/products-data";
 
@@ -54,13 +55,16 @@ function CostCell({ sizeId, value }: { sizeId: number; value: number }) {
 export default function CostsPanel({
   products,
   costs,
+  recipes,
   supplies,
 }: {
   products: AdminProduct[];
   costs: SizeCost[];
+  recipes: SizeRecipe[];
   supplies: SupplyItem[];
 }) {
   const [costing, setCosting] = useState<AdminProduct | null>(null);
+  const [recipeOf, setRecipeOf] = useState<AdminProduct | null>(null);
 
   return (
     <div className="border border-black/10 rounded-lg bg-white p-4">
@@ -73,7 +77,7 @@ export default function CostsPanel({
       </p>
 
       <div className="overflow-x-auto -mx-4">
-        <table className="w-full min-w-[560px] text-sm">
+        <table className="w-full min-w-[600px] text-sm">
           <thead>
             <tr className="text-left text-xs text-[#787774] uppercase tracking-wide border-b border-black/10">
               <th className="px-4 py-2 font-medium">Producto</th>
@@ -81,16 +85,16 @@ export default function CostsPanel({
               <th className="px-4 py-2 font-medium text-right">Costo</th>
               <th className="px-4 py-2 font-medium text-right">Deja</th>
               <th className="px-4 py-2 font-medium text-right">Margen</th>
-              <th className="px-4 py-2 font-medium w-10"></th>
+              <th className="px-4 py-2 font-medium w-20"></th>
             </tr>
           </thead>
           <tbody>
             {products.flatMap((product) =>
               product.sizes.map((size) => {
                 const cost = costs.find((c) => c.productSizeId === size.id);
-                // Un costo a medias es más bajo que el real: se dice que falta
-                // en vez de mostrar una ganancia que no existe.
-                const total = cost?.complete ? cost.total : null;
+                // Sin ningún costo cargado no se inventa una ganancia: se dice
+                // que falta y listo.
+                const total = cost?.known ? cost.total : null;
                 const profit = total === null ? null : size.price - total;
                 const percent =
                   total === null ? null : marginPercent(size.price, total);
@@ -108,21 +112,16 @@ export default function CostsPanel({
                       {fmtUsd(size.price)}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      {/* La clave lleva el valor del servidor: si la receta lo
+                      {/* La clave lleva el valor del servidor: si el desglose lo
                           cambia, el campo se refresca en vez de quedar viejo. */}
                       <CostCell
                         key={`${size.id}-${cost?.extra ?? 0}`}
                         sizeId={size.id}
                         value={cost?.extra ?? 0}
                       />
-                      {cost && cost.materials > 0 && (
+                      {cost && cost.breakdown > 0 && (
                         <span className="block text-[11px] text-[#787774] mt-0.5">
-                          + {fmtUsd(cost.materials)} de insumos
-                        </span>
-                      )}
-                      {cost && cost.missing.length > 0 && (
-                        <span className="flex items-center justify-end gap-1 text-[11px] text-amber-700 mt-0.5">
-                          <TriangleAlert size={11} /> faltan precios
+                          + {fmtUsd(cost.breakdown)} del desglose
                         </span>
                       )}
                     </td>
@@ -137,14 +136,24 @@ export default function CostsPanel({
                       {percent === null ? "—" : `${percent.toFixed(0)}%`}
                     </td>
                     <td className="px-4 py-2">
-                      <button
-                        type="button"
-                        onClick={() => setCosting(product)}
-                        title="Desglosar por insumos"
-                        className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
-                      >
-                        <Calculator size={14} />
-                      </button>
+                      <div className="flex items-center gap-1">
+                        <button
+                          type="button"
+                          onClick={() => setCosting(product)}
+                          title="Desglosar el costo"
+                          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
+                        >
+                          <Calculator size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setRecipeOf(product)}
+                          title="Receta: qué descuenta del inventario"
+                          className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
+                        >
+                          <Boxes size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 );
@@ -165,17 +174,26 @@ export default function CostsPanel({
       </div>
 
       <p className="text-xs text-[#787774] mt-3">
-        Con la calculadora puedes desglosarlo insumo por insumo, usando los
-        precios de compra de Inventario. La ventaja es que cuando suba el maní,
-        suben solos todos los productos que lo llevan.
+        Con la calculadora puedes desglosarlo: frasco, tapa, etiqueta, materia
+        prima, cada uno con lo que le pone a un frasco. Lo que escribas acá se
+        suma a ese desglose. El otro botón es la receta, que no toca el costo:
+        sólo dice qué sacar del inventario al vender.
       </p>
 
       {costing && (
-        <RecipeForm
+        <CostForm
           product={costing}
-          supplies={supplies}
           costs={costs}
           onClose={() => setCosting(null)}
+        />
+      )}
+
+      {recipeOf && (
+        <RecipeForm
+          product={recipeOf}
+          supplies={supplies}
+          recipes={recipes}
+          onClose={() => setRecipeOf(null)}
         />
       )}
     </div>

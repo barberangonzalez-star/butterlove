@@ -3,7 +3,7 @@ import { getMonthReport, getProductSales, monthBounds } from "@/lib/finance-data
 import { getExpenseMonths, getExpenses } from "@/lib/expenses-data";
 import { getSaleMonths } from "@/lib/sales-data";
 import { getAdminProducts } from "@/lib/products-data";
-import { getSizeCosts } from "@/lib/costs-data";
+import { getRecipes, getSizeCosts } from "@/lib/costs-data";
 import { getSupplyItems } from "@/lib/inventory-data";
 import {
   isIsoDate,
@@ -72,6 +72,7 @@ export default async function FinanzasPage({
     expenseMonths,
     products,
     costs,
+    recipes,
     supplies,
   ] = await Promise.all([
     getMonthReport(month),
@@ -81,6 +82,7 @@ export default async function FinanzasPage({
     getExpenseMonths(),
     getAdminProducts(),
     getSizeCosts(),
+    getRecipes(),
     getSupplyItems(),
   ]);
 
@@ -250,6 +252,7 @@ export default async function FinanzasPage({
           <CostsPanel
             products={products}
             costs={[...costs.values()]}
+            recipes={recipes}
             supplies={supplies}
           />
         </div>

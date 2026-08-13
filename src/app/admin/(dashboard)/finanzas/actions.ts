@@ -10,7 +10,7 @@ import {
   type ExpenseInput,
 } from "@/lib/expenses-data";
 import { expenseKind, isExpenseKind } from "@/lib/config";
-import { saveRecipe, setSizeCost } from "@/lib/costs-data";
+import { saveCostItems, saveRecipe, setSizeCost } from "@/lib/costs-data";
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -34,30 +34,57 @@ export async function setSizeCostAction(sizeId: number, costUsd: number) {
   revalidateCosts();
 }
 
+export interface CostSizeInput {
+  sizeId: number;
+  lines: { name: string; amount: number }[];
+}
+
+/**
+ * Guarda el desglose de costo de todos los tamaños de un producto de una vez.
+ * Va con un argumento tipado en vez de FormData porque son listas dentro de
+ * listas, y aplanarlas a campos repetidos sólo complicaría los dos lados.
+ */
+export async function saveCostItemsAction(sizes: CostSizeInput[]) {
+  await verifySession();
+
+  for (const size of sizes) {
+    if (!Number.isInteger(size.sizeId) || size.sizeId <= 0) continue;
+    const lines = size.lines
+      .filter((line) => Number.isFinite(line.amount))
+      .map((line) => ({
+        name: String(line.name ?? ""),
+        amount: Math.max(0, line.amount),
+      }));
+    await saveCostItems(size.sizeId, lines);
+  }
+
+  revalidateCosts();
+}
+
 export interface RecipeSizeInput {
   sizeId: number;
-  extraCostUsd: number;
   lines: { supplyItemId: number; quantity: number }[];
 }
 
 /**
- * Guarda las recetas de todos los tamaños de un producto de una vez. Va con un
- * argumento tipado en vez de FormData porque son listas dentro de listas, y
- * aplanarlas a campos repetidos sólo complicaría los dos lados.
+ * Guarda las recetas de todos los tamaños de un producto. La receta ya no
+ * decide el costo: es lo que se descuenta del inventario al vender.
  */
 export async function saveRecipesAction(sizes: RecipeSizeInput[]) {
   await verifySession();
 
   for (const size of sizes) {
     if (!Number.isInteger(size.sizeId) || size.sizeId <= 0) continue;
-    const extra = Number.isFinite(size.extraCostUsd) ? size.extraCostUsd : 0;
     const lines = size.lines.filter(
       (line) =>
         Number.isInteger(line.supplyItemId) && Number.isFinite(line.quantity),
     );
-    await saveRecipe(size.sizeId, lines, Math.max(0, extra));
+    await saveRecipe(size.sizeId, lines);
   }
 
+  // El inventario cambia de sentido cuando cambia la receta, y el aviso de
+  // stock del panel sale de ahí.
+  revalidatePath("/admin/inventario");
   revalidateCosts();
 }
 
