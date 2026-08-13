@@ -115,8 +115,8 @@ export default async function FinanzasPage({
           <span>
             {report.jarsWithoutCost} de los {report.jars} frascos vendidos este
             mes no tienen costo conocido, así que la ganancia sale más alta de
-            lo que es. Cárgales la receta en Productos y las próximas ventas ya
-            la usarán.
+            lo que es. Cárgales el costo en Productos, al lado del precio de
+            cada talla, y las próximas ventas ya lo usarán.
           </span>
         </p>
       )}
@@ -278,7 +278,7 @@ export default async function FinanzasPage({
                               fmtUsd(total)
                             ) : (
                               <span className="text-amber-700 whitespace-nowrap">
-                                {cost?.hasRecipe ? "faltan precios" : "sin receta"}
+                                {cost?.known ? "faltan precios" : "sin costo"}
                               </span>
                             )}
                           </td>
@@ -300,17 +300,16 @@ export default async function FinanzasPage({
               </table>
             </div>
             <p className="text-xs text-[#787774] mt-3">
-              El costo sale de la receta de cada envase: frasco, tapa, etiqueta y
-              materia prima, con el precio al que compras cada insumo. Los
-              precios se cargan en{" "}
-              <Link href="/admin/inventario" className="underline">
-                Inventario
-              </Link>{" "}
-              y las recetas en{" "}
+              El costo se carga en{" "}
               <Link href="/admin/productos" className="underline">
                 Productos
               </Link>
-              .
+              : al editar el producto, junto al precio de cada talla. Si
+              prefieres desglosarlo insumo por insumo, carga los precios en{" "}
+              <Link href="/admin/inventario" className="underline">
+                Inventario
+              </Link>{" "}
+              y arma la receta con el botón de receta.
             </p>
           </Card>
         </div>

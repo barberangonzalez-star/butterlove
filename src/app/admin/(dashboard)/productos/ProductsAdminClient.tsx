@@ -36,10 +36,10 @@ function CostSummary({
     <ul className="space-y-0.5">
       {product.sizes.map((size) => {
         const cost = costs.find((c) => c.productSizeId === size.id);
-        if (!cost?.hasRecipe) {
+        if (!cost?.known) {
           return (
             <li key={size.id} className="whitespace-nowrap text-amber-700">
-              {size.grams}g · sin receta
+              {size.grams}g · sin costo
             </li>
           );
         }

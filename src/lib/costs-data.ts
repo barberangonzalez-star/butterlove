@@ -22,16 +22,24 @@ export interface RecipeLine {
 /**
  * Lo que cuesta hacer un envase.
  *
- * `complete` es lo que decide si el número se puede creer: una receta a medias
- * o un insumo sin precio dan un costo más bajo que el real, y el reporte
- * prefiere avisar antes que mostrar una ganancia inventada.
+ * Hay dos maneras de saberlo y las dos valen. La corta es escribir el costo del
+ * frasco a mano (`extra`). La larga es desglosarlo en insumos (`lines`), que
+ * tiene la ventaja de que subir el precio del maní actualiza solo todos los
+ * productos que lo llevan. Se pueden combinar: el desglose cubre los materiales
+ * y el número suelto agrega lo que no está en la lista, como la mano de obra.
+ *
+ * `known` dice si hay algún costo cargado. `complete` dice además que se puede
+ * creer: una receta con un insumo sin precio da un costo más bajo que el real,
+ * y el reporte prefiere avisar antes que mostrar una ganancia inventada.
  */
 export interface SizeCost {
   productSizeId: number;
   materials: number;
+  /** El costo escrito a mano, fuera de la receta. */
   extra: number;
   total: number;
   hasRecipe: boolean;
+  known: boolean;
   complete: boolean;
   /** Insumos de la receta a los que les falta el precio de compra. */
   missing: string[];
@@ -45,6 +53,7 @@ function emptyCost(productSizeId: number, extra: number): SizeCost {
     extra,
     total: extra,
     hasRecipe: false,
+    known: extra > 0,
     complete: false,
     missing: [],
     lines: [],
@@ -101,7 +110,11 @@ export async function getSizeCosts(): Promise<Map<number, SizeCost>> {
 
   for (const cost of costs.values()) {
     cost.total = cost.materials + cost.extra;
-    cost.complete = cost.hasRecipe && cost.missing.length === 0;
+    // Un costo escrito a mano vale tanto como uno desglosado: lo que invalida
+    // el número no es que falte la receta, sino que falte un precio de la que sí
+    // hay. Sin receta y sin costo a mano no se sabe nada, y eso se dice.
+    cost.known = cost.hasRecipe || cost.extra > 0;
+    cost.complete = cost.known && cost.missing.length === 0;
   }
 
   return costs;

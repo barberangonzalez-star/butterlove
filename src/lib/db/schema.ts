@@ -44,8 +44,11 @@ export const productSizes = pgTable("product_sizes", {
   price: numeric("price", { precision: 10, scale: 2 }).notNull(),
   stockQuantity: integer("stock_quantity").notNull().default(0),
   /**
-   * Lo que cuesta hacer este envase y no sale de la receta: mano de obra, gas,
-   * merma. Los insumos van en `recipeItems`, uno por línea.
+   * Lo que cuesta hacer este envase y no sale de la receta. Es el camino corto
+   * y el más usado: se escribe el costo del frasco a mano y con eso ya se
+   * calcula la ganancia. Si además se desglosa en `recipeItems`, este número
+   * queda como lo que los insumos no cubren — mano de obra, gas, merma — y se
+   * suma encima.
    */
   extraCostUsd: numeric("extra_cost_usd", { precision: 10, scale: 2 })
     .notNull()

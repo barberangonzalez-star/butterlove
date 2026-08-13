@@ -11,7 +11,7 @@ export default async function ProductosAdminPage() {
   ]);
 
   const costList = [...costs.values()];
-  const withoutRecipe = costList.filter((c) => !c.hasRecipe).length;
+  const withoutCost = costList.filter((c) => !c.known).length;
 
   return (
     <div>
@@ -21,8 +21,8 @@ export default async function ProductosAdminPage() {
           <p className="text-sm text-[#787774] mt-0.5">
             {products.length} producto{products.length !== 1 ? "s" : ""} en el
             catálogo
-            {withoutRecipe > 0 &&
-              ` · ${withoutRecipe} tamaño${withoutRecipe === 1 ? "" : "s"} sin receta`}
+            {withoutCost > 0 &&
+              ` · ${withoutCost} tamaño${withoutCost === 1 ? "" : "s"} sin costo`}
             .
           </p>
         </div>

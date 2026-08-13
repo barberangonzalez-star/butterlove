@@ -13,8 +13,15 @@ import { saveRecipe } from "@/lib/costs-data";
 function parseProductForm(formData: FormData): ProductInput {
   const grams = formData.getAll("grams").map(Number);
   const prices = formData.getAll("price").map(Number);
+  const costs = formData.getAll("costUsd").map(Number);
   const sizes = grams
-    .map((g, i) => ({ grams: g, price: prices[i] }))
+    .map((g, i) => ({
+      grams: g,
+      price: prices[i],
+      // Vacío es "no lo sé", que aquí se guarda como cero: el costo se marca
+      // desconocido por estar en cero, no por ser negativo o NaN.
+      costUsd: Number.isFinite(costs[i]) ? Math.max(0, costs[i]) : 0,
+    }))
     .filter((s) => s.grams > 0 && s.price >= 0);
 
   const badges = String(formData.get("badges") ?? "")

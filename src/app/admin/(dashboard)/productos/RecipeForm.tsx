@@ -134,7 +134,7 @@ export default function RecipeForm({
               Receta y costo · {product.name}
             </h2>
             <p className="text-xs text-[#787774]">
-              Qué lleva cada envase y cuánto cuesta hacerlo
+              Desglosa el costo insumo por insumo
             </p>
           </div>
           <button
@@ -147,13 +147,22 @@ export default function RecipeForm({
         </div>
 
         <div className="p-6 space-y-6">
-          {supplies.length === 0 && (
-            <p className="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-              Todavía no hay insumos cargados. Créalos en Inventario (frascos,
-              tapas, etiquetas, maní crudo…) con su precio de compra y vuelve
-              aquí.
-            </p>
-          )}
+          <p className="rounded-md border border-black/10 bg-black/[0.02] px-3 py-2 text-xs text-[#5f5e5b]">
+            {supplies.length === 0 ? (
+              <>
+                Todavía no hay insumos cargados. Créalos en Inventario (frascos,
+                tapas, etiquetas, maní crudo…) con su precio de compra y vuelve
+                aquí. Si no quieres desglosarlo, escribe el costo del frasco en
+                &quot;Otros costos&quot; y con eso basta.
+              </>
+            ) : (
+              <>
+                Desglosar la receta no es obligatorio: el costo puede ser un solo
+                número. La ventaja es que cuando suba el maní, suben solos todos
+                los productos que lo llevan.
+              </>
+            )}
+          </p>
 
           {sizes.map((size) => {
             const { total, missing, hasLines } = costOf(size);
@@ -253,7 +262,9 @@ export default function RecipeForm({
                     className={`${inputClass} mt-1`}
                   />
                   <span className="text-xs text-[#787774]">
-                    Mano de obra, gas, lo que no está en la lista de insumos.
+                    Mano de obra, gas, lo que no está en la lista de insumos. Es
+                    el mismo número que &quot;Costo&quot; en el formulario del
+                    producto: se suma a los insumos de arriba.
                   </span>
                 </label>
 
@@ -272,13 +283,16 @@ export default function RecipeForm({
                   </span>
                 </div>
 
-                {(missing.length > 0 || !hasLines) && (
+                {/* Faltar la receta ya no es un problema si hay un costo
+                    escrito a mano: lo que rompe el número es un insumo sin
+                    precio, o no tener nada de nada. */}
+                {(missing.length > 0 || (!hasLines && total <= 0)) && (
                   <p className="mt-2 flex items-start gap-1.5 text-xs text-amber-800">
                     <TriangleAlert size={13} className="shrink-0 mt-0.5" />
                     <span>
-                      {!hasLines
-                        ? "Sin receta: el costo de este tamaño no se puede calcular."
-                        : `Sin precio de compra: ${[...new Set(missing)].join(", ")}. El costo sale más bajo que el real.`}
+                      {missing.length > 0
+                        ? `Sin precio de compra: ${[...new Set(missing)].join(", ")}. El costo sale más bajo que el real.`
+                        : "Sin costo: agrega insumos o escribe cuánto te cuesta el frasco."}
                     </span>
                   </p>
                 )}

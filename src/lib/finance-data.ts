@@ -38,7 +38,7 @@ export interface MonthReport {
   productRevenue: number;
 
   cogs: number;
-  /** Frascos vendidos sin receta completa: el costo de esos no se sabe. */
+  /** Frascos vendidos sin costo cargado o completo: de esos no se sabe. */
   jarsWithoutCost: number;
   grossMargin: number;
 
