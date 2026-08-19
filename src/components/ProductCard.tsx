@@ -1,13 +1,11 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Product, isCombo, productTitle, sizeLabel } from "@/lib/products";
 import { useCart } from "@/lib/cart-context";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const [infoOpen, setInfoOpen] = useState(false);
   const { addItem } = useCart();
   // La vitrina cotiza siempre el frasco de 230g, que es el que se lleva la
   // mayoría: un solo precio por tarjeta se lee de un vistazo, y quien quiera
@@ -25,27 +23,18 @@ export default function ProductCard({ product }: { product: Product }) {
         // fondo y se dibujan con object-cover— les cortaba los lados.
         className={`relative ${product.bgClass} pt-4 px-4 pb-0 aspect-square flex flex-col`}
       >
-        {/* Tocar el frasco abre su ficha, como en cualquier tienda. Antes sólo
-            se llegaba por el nombre de abajo o por dentro del panel de
-            información, y el gesto natural —tocar la foto— no llevaba a nada. */}
+        {/* Tocar el frasco abre su ficha, como en cualquier tienda: es el
+            gesto que la gente ya hace, y ahí está todo lo que no cabe acá. */}
         <Link
           href={`/productos/${product.key}`}
           aria-label={`Ver ${title}`}
           className="absolute inset-0 z-10"
         />
 
-        <div className="flex items-start justify-between relative z-20">
+        <div className="relative z-20">
           <span className="bg-white/90 text-ink text-xs px-3 py-1 rounded-full">
-            {isCombo(product) ? "Combo" : "100% natural"}
+            {isCombo(product) ? "Combo" : "Sin azúcar"}
           </span>
-          <button
-            onClick={() => setInfoOpen((v) => !v)}
-            aria-expanded={infoOpen}
-            aria-label={`Información de ${product.name}`}
-            className="w-7 h-7 rounded-full bg-white/90 text-ink flex items-center justify-center font-display font-700 text-sm hover:bg-white transition-colors"
-          >
-            i
-          </button>
         </div>
 
         {/* Los sabores sueltos son recortes sin fondo, así que flotan sobre el
@@ -78,31 +67,6 @@ export default function ProductCard({ product }: { product: Product }) {
           </>
         )}
 
-        {infoOpen && (
-          <div className="absolute inset-0 z-30 bg-ink/95 text-cream p-5 flex flex-col justify-center">
-            <button
-              onClick={() => setInfoOpen(false)}
-              aria-label="Cerrar información"
-              className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
-            >
-              ✕
-            </button>
-            <p className="text-sm leading-relaxed">{product.description}</p>
-            <ul className="mt-4 space-y-1">
-              {product.badges.map((b) => (
-                <li key={b} className="text-xs text-cream/80">
-                  • {b}
-                </li>
-              ))}
-            </ul>
-            <Link
-              href={`/productos/${product.key}`}
-              className="mt-4 inline-block text-xs font-bold uppercase tracking-wide text-cream underline underline-offset-4 hover:text-white w-fit"
-            >
-              Más información →
-            </Link>
-          </div>
-        )}
       </div>
 
       {/* Pie de la tarjeta: nombre, precio y el botón, todo en un renglón. El
