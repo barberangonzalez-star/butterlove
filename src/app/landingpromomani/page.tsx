@@ -181,19 +181,25 @@ export default async function LandingPromoMani() {
         </p>
       </section>
 
-      {/* Lo que la marca promete, en cuatro palabras que se leen sin bajar. */}
-      <ul className="px-4 pt-5 flex flex-wrap justify-center gap-2 text-sm">
+      {/* Lo que la marca promete, en cuatro palabras que se leen sin bajar.
+          Eran cuatro píldoras con fondo y se acomodaban tres arriba y una
+          suelta abajo, que es la fila que se ve rota. Ahora es una franja entre
+          dos líneas finas, con la letra pequeña y espaciada de una etiqueta de
+          producto: nada encerrado.
+
+          Dos columnas en todos los anchos, no cuatro: la página nunca pasa de
+          576px, así que cuatro columnas quedan apretadas hasta en el
+          escritorio y "sin azúcar agregada" se parte en dos renglones. De dos
+          en dos siempre entran de corrido y las cuatro pesan igual. */}
+      <ul className="mx-4 mt-7 grid grid-cols-2 gap-x-3 gap-y-3 border-y border-ink/10 py-4 text-center text-[11px] font-bold uppercase tracking-widest text-ink-soft">
         {[
           "1 solo ingrediente",
           "Sin azúcar agregada",
           "Hecha a mano",
           "100% natural",
-        ].map((chip) => (
-          <li
-            key={chip}
-            className="rounded-full bg-surface px-3.5 py-1.5 font-semibold text-ink"
-          >
-            {chip}
+        ].map((claim) => (
+          <li key={claim} className="leading-snug">
+            {claim}
           </li>
         ))}
       </ul>
