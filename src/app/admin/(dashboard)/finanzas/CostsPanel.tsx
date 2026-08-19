@@ -112,17 +112,28 @@ export default function CostsPanel({
                       {fmtUsd(size.price)}
                     </td>
                     <td className="px-4 py-2 text-right">
-                      {/* La clave lleva el valor del servidor: si el desglose lo
-                          cambia, el campo se refresca en vez de quedar viejo. */}
-                      <CostCell
-                        key={`${size.id}-${cost?.extra ?? 0}`}
-                        sizeId={size.id}
-                        value={cost?.extra ?? 0}
-                      />
-                      {cost && cost.breakdown > 0 && (
-                        <span className="block text-[11px] text-[#787774] mt-0.5">
-                          + {fmtUsd(cost.breakdown)} del desglose
-                        </span>
+                      {/* Con desglose cargado la columna muestra el total y no
+                          se edita acá: un campo que sólo cambia una parte del
+                          costo, en la columna que se llama "Costo", se lee como
+                          si el resto no existiera. */}
+                      {cost?.hasBreakdown ? (
+                        <button
+                          type="button"
+                          onClick={() => setCosting(product)}
+                          title="Ver el desglose"
+                          className="tabular-nums underline decoration-dotted underline-offset-4 decoration-black/25 hover:decoration-black/60"
+                        >
+                          {fmtUsd(cost.total)}
+                        </button>
+                      ) : (
+                        /* La clave lleva el valor del servidor: si el desglose
+                           lo cambia, el campo se refresca en vez de quedar
+                           viejo. */
+                        <CostCell
+                          key={`${size.id}-${cost?.extra ?? 0}`}
+                          sizeId={size.id}
+                          value={cost?.extra ?? 0}
+                        />
                       )}
                     </td>
                     <td
@@ -174,10 +185,10 @@ export default function CostsPanel({
       </div>
 
       <p className="text-xs text-[#787774] mt-3">
-        Con la calculadora puedes desglosarlo: frasco, tapa, etiqueta, materia
-        prima, cada uno con lo que le pone a un frasco. Lo que escribas acá se
-        suma a ese desglose. El otro botón es la receta, que no toca el costo:
-        sólo dice qué sacar del inventario al vender.
+        Escribe el costo derecho en la tabla si ya lo tienes de cabeza, o ábrelo
+        con la calculadora para desglosarlo: frasco, tapa, etiqueta, materia
+        prima. El otro botón es la receta, que no toca el costo — sólo dice qué
+        sacar del inventario al vender.
       </p>
 
       {costing && (

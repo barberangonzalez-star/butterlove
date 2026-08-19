@@ -8,13 +8,14 @@
  * para atrás.
  */
 
-export type PeriodKind = "dia" | "semana" | "mes" | "anio";
+export type PeriodKind = "dia" | "semana" | "mes" | "anio" | "rango";
 
 export const PERIOD_KINDS: { value: PeriodKind; label: string }[] = [
   { value: "dia", label: "Día" },
   { value: "semana", label: "Semana" },
   { value: "mes", label: "Mes" },
   { value: "anio", label: "Año" },
+  { value: "rango", label: "Rango" },
 ];
 
 export interface Period {
@@ -62,10 +63,10 @@ function fmt(date: string, options: Intl.DateTimeFormatOptions): string {
 }
 
 function label(kind: PeriodKind, from: string, to: string): string {
-  if (kind === "dia") {
+  if (kind === "dia" || (kind === "rango" && from === to)) {
     return fmt(from, { weekday: "short", day: "numeric", month: "short", year: "numeric" });
   }
-  if (kind === "semana") {
+  if (kind === "semana" || kind === "rango") {
     // El año va una sola vez, al final, salvo que la semana cruce de diciembre
     // a enero y las dos puntas no sean del mismo.
     const sameYear = from.slice(0, 4) === to.slice(0, 4);
@@ -87,14 +88,27 @@ function label(kind: PeriodKind, from: string, to: string): string {
  * El rango que cubre un período, a partir de cualquier día que caiga dentro.
  * El ancla que devuelve es el primer día del rango, así que dos fechas de la
  * misma semana dan el mismo período y la URL queda estable.
+ *
+ * `end` sólo lo usa el rango a medida, donde las dos puntas las elige quien
+ * mira; los demás períodos la deducen del ancla.
  */
-export function resolvePeriod(kind: PeriodKind, anchor: string): Period {
+export function resolvePeriod(
+  kind: PeriodKind,
+  anchor: string,
+  end?: string,
+): Period {
   const date = isIsoDate(anchor) ? parse(anchor) : parse(today());
 
   let from: Date;
   let to: Date;
 
-  if (kind === "dia") {
+  if (kind === "rango") {
+    const other = isIsoDate(end) ? parse(end) : date;
+    // Al revés es un rango igual de válido: se ordenan las puntas en vez de
+    // devolver nada, que es lo que pasaría al consultar de mayor a menor.
+    from = other < date ? other : date;
+    to = other < date ? date : other;
+  } else if (kind === "dia") {
     from = date;
     to = date;
   } else if (kind === "semana") {
@@ -119,6 +133,16 @@ export function resolvePeriod(kind: PeriodKind, anchor: string): Period {
 /** El período de al lado: −1 es el anterior, +1 el siguiente. */
 export function shiftPeriod(period: Period, delta: number): Period {
   const start = parse(period.from);
+
+  if (period.kind === "rango") {
+    // Un rango a medida se mueve entero, tantos días como dure: de "los
+    // primeros diez de agosto" se pasa a los diez anteriores.
+    const days =
+      Math.round((parse(period.to).getTime() - start.getTime()) / 86_400_000) + 1;
+    const from = addDays(start, delta * days);
+    return resolvePeriod("rango", iso(from), iso(addDays(from, days - 1)));
+  }
+
   let next: Date;
 
   if (period.kind === "dia") next = addDays(start, delta);

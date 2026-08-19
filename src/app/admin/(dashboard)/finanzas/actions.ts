@@ -36,13 +36,16 @@ export async function setSizeCostAction(sizeId: number, costUsd: number) {
 
 export interface CostSizeInput {
   sizeId: number;
+  /** Lo que no está desglosado. Es el mismo número de la columna "Costo". */
+  extraUsd: number;
   lines: { name: string; amount: number }[];
 }
 
 /**
- * Guarda el desglose de costo de todos los tamaños de un producto de una vez.
- * Va con un argumento tipado en vez de FormData porque son listas dentro de
- * listas, y aplanarlas a campos repetidos sólo complicaría los dos lados.
+ * Guarda el costo de todos los tamaños de un producto de una vez: el desglose y
+ * el número suelto, que se editan en la misma pantalla. Va con un argumento
+ * tipado en vez de FormData porque son listas dentro de listas, y aplanarlas a
+ * campos repetidos sólo complicaría los dos lados.
  */
 export async function saveCostItemsAction(sizes: CostSizeInput[]) {
   await verifySession();
@@ -56,6 +59,7 @@ export async function saveCostItemsAction(sizes: CostSizeInput[]) {
         amount: Math.max(0, line.amount),
       }));
     await saveCostItems(size.sizeId, lines);
+    await setSizeCost(size.sizeId, size.extraUsd);
   }
 
   revalidateCosts();

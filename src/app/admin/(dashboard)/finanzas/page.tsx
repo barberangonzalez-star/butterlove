@@ -44,9 +44,14 @@ function monthLabel(month: string) {
 export default async function FinanzasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ month?: string; vista?: string; fecha?: string }>;
+  searchParams: Promise<{
+    month?: string;
+    vista?: string;
+    fecha?: string;
+    hasta?: string;
+  }>;
 }) {
-  const { month: monthParam, vista, fecha } = await searchParams;
+  const { month: monthParam, vista, fecha, hasta } = await searchParams;
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
   const month =
@@ -62,7 +67,11 @@ export default async function FinanzasPage({
     : month === currentMonth
       ? today()
       : from;
-  const period = resolvePeriod(periodKind, anchor);
+  const period = resolvePeriod(
+    periodKind,
+    anchor,
+    isIsoDate(hasta) ? hasta : undefined,
+  );
 
   const [
     report,
