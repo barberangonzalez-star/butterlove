@@ -25,7 +25,7 @@ export default function HowToOrder() {
       </h2>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
         {steps.map((s, i) => (
-          <div key={s.title} className="torn-card bg-white/70 p-6">
+          <div key={s.title} className="torn-card bg-surface p-6">
             <span className="font-display font-700 text-3xl text-ink-soft">
               {String(i + 1).padStart(2, "0")}
             </span>

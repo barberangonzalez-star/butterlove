@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
 :root {
+  /* El fondo de la página y el tono de las superficies que van encima. El
+     blanco roto es lo que separa una tarjeta del fondo: sobre blanco puro una
+     tarjeta blanca no existe, y llenar el sitio de bordes lo endurece. */
+  --page: #ffffff;
+  --surface: #f7f4ec;
+
+  /* El crema dejó de ser el fondo del sitio y quedó como color de acento. */
   --cream: #f4efda;
   --ink: #1e4356;
   --ink-soft: #3f6577;
@@ -16,6 +23,8 @@
 }
 
 @theme inline {
+  --color-page: var(--page);
+  --color-surface: var(--surface);
   --color-cream: var(--cream);
   --color-ink: var(--ink);
   --color-ink-soft: var(--ink-soft);
@@ -33,7 +42,7 @@
 }
 
 body {
-  background: var(--cream);
+  background: var(--page);
   color: var(--ink);
   font-family: var(--font-body), sans-serif;
 }

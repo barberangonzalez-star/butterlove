@@ -11,8 +11,9 @@ export default async function ProductsGrid() {
           Productos
         </h2>
         <p className="text-ink-soft max-w-xs text-sm">
-          Toca el ícono <span className="font-bold">i</span> en cada frasco
-          para ver ingredientes. Elige tamaño y agrega al pedido.
+          Toca un frasco para abrir su ficha completa, o el ícono{" "}
+          <span className="font-bold">i</span> para ver los ingredientes sin
+          salir de aquí.
         </p>
       </div>
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">

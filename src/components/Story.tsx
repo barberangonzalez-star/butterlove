@@ -58,7 +58,7 @@ export default async function Story() {
 
       {/* "Only the best is good enough" — sourcing story panel */}
       <div className="torn-card bg-mani-bg px-6 sm:px-10 py-10 sm:py-14 grid md:grid-cols-2 gap-8 items-center">
-        <div className="bg-white/90 rounded-3xl p-6 sm:p-8">
+        <div className="bg-surface rounded-3xl p-6 sm:p-8">
           <h2 className="font-display font-700 text-2xl sm:text-3xl mb-4 text-ink">
             Solo lo mejor
             <br />

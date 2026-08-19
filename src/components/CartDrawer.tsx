@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { useProducts } from "@/lib/products-context";
 import { Product, productTitle, sizeLabel } from "@/lib/products";
+import { trackInitiateCheckout } from "@/lib/pixel";
 import {
   WHATSAPP_NUMBER,
   PAYMENT_METHODS,
@@ -223,7 +224,7 @@ export default function CartDrawer() {
         }`}
       />
       <aside
-        className={`fixed top-0 right-0 h-full w-full sm:w-[400px] bg-cream z-50 shadow-2xl transition-transform duration-300 flex flex-col ${
+        className={`fixed top-0 right-0 h-full w-full sm:w-[400px] bg-page z-50 shadow-2xl transition-transform duration-300 flex flex-col ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
         aria-hidden={!isOpen}
@@ -261,7 +262,7 @@ export default function CartDrawer() {
                   return (
                     <li
                       key={`${item.key}-${item.grams}`}
-                      className={`rounded-2xl ${product?.bgClass ?? "bg-white/60"} p-4 flex gap-3 items-center`}
+                      className={`rounded-2xl ${product?.bgClass ?? "bg-surface"} p-4 flex gap-3 items-center`}
                     >
                       <div className="flex-1">
                         <p className="font-semibold">
@@ -329,7 +330,7 @@ export default function CartDrawer() {
                       className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
                         deliveryMethod === option.value
                           ? "bg-ink text-cream border-ink"
-                          : "bg-white border-ink/15 text-ink hover:border-ink/40"
+                          : "bg-surface border-ink/15 text-ink hover:border-ink/40"
                       }`}
                     >
                       {option.label}
@@ -346,7 +347,7 @@ export default function CartDrawer() {
                   <select
                     value={zoneName}
                     onChange={(e) => setZoneName(e.target.value)}
-                    className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm outline-none focus:border-ink/40"
+                    className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40"
                   >
                     <option value="">Selecciona tu zona...</option>
                     {DELIVERY_ZONES.map((z) => (
@@ -372,7 +373,7 @@ export default function CartDrawer() {
                   onChange={(e) => setName(e.target.value)}
                   type="text"
                   placeholder="Tu nombre completo"
-                  className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm outline-none focus:border-ink/40"
+                  className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
               </label>
               <label className="block">
@@ -384,7 +385,7 @@ export default function CartDrawer() {
                   onChange={(e) => setPhone(e.target.value)}
                   type="tel"
                   placeholder="04XX-XXXXXXX"
-                  className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm outline-none focus:border-ink/40"
+                  className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
               </label>
               <label className="block">
@@ -400,12 +401,12 @@ export default function CartDrawer() {
                       ? "Calle, edificio o quinta, piso/apto y punto de referencia..."
                       : "¿Dónde te queda cómodo encontrarnos?"
                   }
-                  className="mt-1 w-full rounded-xl border border-ink/15 bg-white px-4 py-2.5 text-sm outline-none focus:border-ink/40 resize-none"
+                  className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40 resize-none"
                 />
               </label>
 
               {isDelivery && (
-                <div className="rounded-xl bg-white/80 border border-ink/10 px-4 py-3 text-sm">
+                <div className="rounded-xl bg-surface border border-ink/10 px-4 py-3 text-sm">
                   <p className="font-semibold text-ink">
                     📍 Importante: envíanos tu ubicación GPS
                   </p>
@@ -421,7 +422,7 @@ export default function CartDrawer() {
 
           {step === "payment" && (
             <div className="space-y-4">
-              <div className="rounded-2xl bg-white/80 px-4 py-3 text-sm text-ink-soft">
+              <div className="rounded-2xl bg-surface px-4 py-3 text-sm text-ink-soft">
                 {bcvLoading ? (
                   "Cargando tasa BCV del día..."
                 ) : bcvRate ? (
@@ -448,7 +449,7 @@ export default function CartDrawer() {
                     className={`w-full text-left rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
                       paymentMethod === method
                         ? "bg-ink text-cream border-ink"
-                        : "bg-white border-ink/15 text-ink hover:border-ink/40"
+                        : "bg-surface border-ink/15 text-ink hover:border-ink/40"
                     }`}
                   >
                     {method}
@@ -469,7 +470,7 @@ export default function CartDrawer() {
                       </span>
                     </p>
                   )}
-                  <div className="rounded-xl bg-white border border-ink/10 px-4 py-3 text-sm space-y-1">
+                  <div className="rounded-xl bg-surface border border-ink/10 px-4 py-3 text-sm space-y-1">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
                         Datos para Pago Móvil
@@ -514,7 +515,7 @@ export default function CartDrawer() {
                       {grandTotal.toFixed(2)} USDT
                     </span>
                   </p>
-                  <div className="rounded-xl bg-white border border-ink/10 px-4 py-3 text-sm space-y-1">
+                  <div className="rounded-xl bg-surface border border-ink/10 px-4 py-3 text-sm space-y-1">
                     <div className="flex items-center justify-between mb-1">
                       <p className="text-xs font-bold uppercase tracking-wide text-ink-soft">
                         Datos para Binance Pay
@@ -530,7 +531,7 @@ export default function CartDrawer() {
               )}
 
               {requiresProof && (
-                <label className="flex items-start gap-2 rounded-xl bg-white border border-ink/15 px-4 py-3 text-sm cursor-pointer">
+                <label className="flex items-start gap-2 rounded-xl bg-surface border border-ink/15 px-4 py-3 text-sm cursor-pointer">
                   <input
                     type="checkbox"
                     checked={paymentConfirmed}
@@ -716,6 +717,7 @@ export default function CartDrawer() {
               <div className="space-y-2">
                 <a
                   href={waLink}
+                  onClick={() => trackInitiateCheckout(items, grandTotal)}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full rounded-full bg-[#25D366] text-white font-semibold py-3 hover:opacity-90 transition-opacity"

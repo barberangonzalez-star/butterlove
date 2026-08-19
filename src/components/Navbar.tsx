@@ -37,7 +37,7 @@ export default function Navbar() {
 
         <button
           onClick={openCart}
-          className="relative rounded-full bg-white border border-ink/20 px-4 sm:px-5 py-2 text-xs sm:text-sm font-bold uppercase tracking-wide text-ink hover:bg-ink hover:text-cream transition-colors"
+          className="relative rounded-full bg-surface border border-ink/20 px-4 sm:px-5 py-2 text-xs sm:text-sm font-bold uppercase tracking-wide text-ink hover:bg-ink hover:text-cream transition-colors"
         >
           Mi pedido
           {totalItems > 0 && (

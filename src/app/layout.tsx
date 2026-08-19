@@ -80,7 +80,7 @@ export default function RootLayout({
       lang="es"
       className={`${fredoka.variable} ${dmSans.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col bg-cream text-ink font-body">
+      <body className="min-h-full flex flex-col bg-page text-ink font-body">
         <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />
         {children}
       </body>

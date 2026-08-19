@@ -1,13 +1,20 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getProducts, getProduct } from "@/lib/products-data";
-import { isCombo, productTitle } from "@/lib/products";
+import { isCombo, productTitle, sizeLabel } from "@/lib/products";
 import { posts, CATEGORY_LABEL, formatPostDateShort } from "@/lib/posts";
+import ProductGallery from "@/components/ProductGallery";
 import ProductPurchase from "@/components/ProductPurchase";
+import ProductVideo from "@/components/ProductVideo";
+import RelatedProducts from "@/components/RelatedProducts";
 import JsonLd from "@/components/JsonLd";
-import { productSchema, breadcrumbSchema, OG_DEFAULTS } from "@/lib/seo";
+import {
+  productSchema,
+  breadcrumbSchema,
+  SITE_NAME,
+  OG_DEFAULTS,
+} from "@/lib/seo";
 
 export async function generateStaticParams() {
   const products = await getProducts();
@@ -63,7 +70,18 @@ export default async function ProductPage({
   const product = await getProduct(slug);
   if (!product) notFound();
 
+  const title = productTitle(product);
   const productPosts = posts.filter((p) => p.productKey === product.key);
+
+  const details: [string, string][] = [
+    ["Marca", SITE_NAME],
+    ["Categoría", "Mantequilla de frutos secos"],
+    [
+      "Presentaciones",
+      product.sizes.map((s) => sizeLabel(product, s)).join(" · "),
+    ],
+    ["Tipo", isCombo(product) ? "Combo de frascos" : "Sabor suelto"],
+  ];
 
   return (
     <>
@@ -73,100 +91,116 @@ export default async function ProductPage({
       <JsonLd
         data={breadcrumbSchema([
           { name: "Inicio", path: "/" },
-          {
-            name: productTitle(product),
-            path: `/productos/${product.key}`,
-          },
+          { name: "Productos", path: "/#productos" },
+          { name: title, path: `/productos/${product.key}` },
         ])}
       />
-      <section className="px-3 sm:px-5 pt-4">
-        <div className="relative overflow-hidden torn-card min-h-[320px] sm:min-h-[420px] flex flex-col">
-          <Image
-            src={product.heroImage}
-            alt={`Butter Love ${product.name} — mantequilla artesanal`}
-            fill
-            priority
-            sizes="100vw"
-            className="object-cover"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-black/0 to-black/10" />
-          <div className="relative flex-1 flex flex-col justify-end px-6 sm:px-10 pb-8 pt-10">
-            <Link
-              href="/#productos"
-              className="text-xs font-bold uppercase tracking-widest text-white/80 mb-2 w-fit hover:text-white transition-colors"
-            >
-              ← Volver a productos
+
+      {/* Las mismas migas que declara el JSON-LD, pero visibles: dicen dónde
+          está parada la persona y devuelven al catálogo sin el botón atrás. */}
+      <nav
+        aria-label="Migas de pan"
+        className="mx-auto max-w-7xl px-5 sm:px-8 pt-6"
+      >
+        <ol className="flex flex-wrap items-center gap-1.5 text-xs text-ink-soft">
+          <li>
+            <Link href="/" className="hover:text-ink hover:underline">
+              Inicio
             </Link>
-            <h1 className="font-display font-700 text-3xl sm:text-5xl text-white max-w-lg drop-shadow">
-              {productTitle(product)}
+          </li>
+          <li aria-hidden="true">›</li>
+          <li>
+            <Link href="/#productos" className="hover:text-ink hover:underline">
+              Productos
+            </Link>
+          </li>
+          <li aria-hidden="true">›</li>
+          <li className="font-semibold text-ink" aria-current="page">
+            {title}
+          </li>
+        </ol>
+      </nav>
+
+      {/* Tres columnas como en una tienda grande: fotos, detalle y la caja de
+          compra. Las piezas se colocan por fila y columna en vez de dejarlas
+          fluir, porque el orden bueno en el teléfono no es el mismo que en
+          pantalla ancha: abajo se apila nombre → foto → precio → detalle, para
+          saber qué se está viendo antes de ver la foto, y decidir antes de leer
+          el texto largo. */}
+      <section className="mx-auto max-w-7xl px-5 sm:px-8 pt-6 pb-12 sm:pb-16">
+        <div className="grid gap-x-8 gap-y-6 lg:gap-y-8 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)_300px] lg:grid-rows-[auto_1fr] lg:items-start">
+          <header className="order-1 lg:col-start-2 lg:row-start-1">
+            <h1 className="font-display font-700 text-3xl sm:text-4xl text-ink">
+              {title}
             </h1>
-          </div>
-        </div>
-      </section>
+            <p className="mt-2 text-base text-ink-soft">{product.tagline}</p>
 
-      <section className="mx-auto max-w-6xl px-5 sm:px-8 py-12 sm:py-16 grid md:grid-cols-2 gap-10">
-        {/* Igual que en la tarjeta: el frasco recortado flota sobre el color y
-            la foto de combo llena la tarjeta de borde a borde. */}
-        {isCombo(product) ? (
-          <div className="torn-card relative aspect-square overflow-hidden">
-            <Image
-              src={product.image}
-              alt={`${productTitle(product)} Butter Love`}
-              fill
-              sizes="(max-width: 768px) 90vw, 500px"
-              className="object-cover"
-            />
-          </div>
-        ) : (
-          <div
-            className={`torn-card ${product.bgClass} p-8 flex items-center justify-center`}
-          >
-            <div className="relative w-full aspect-square max-w-xs">
-              <Image
-                src={product.image}
-                alt={`${productTitle(product)} Butter Love`}
-                fill
-                sizes="(max-width: 768px) 90vw, 400px"
-                className="object-contain drop-shadow-xl"
-              />
-            </div>
-          </div>
-        )}
-
-        <div>
-          <p className="text-ink-soft mb-6">{product.tagline}</p>
-
-          <ProductPurchase product={product} />
-
-          <div className="mt-10 pt-8 border-t border-ink/10">
-            <h2 className="font-display font-700 text-2xl text-ink mb-4">
-              Más información
-            </h2>
-            <p className="text-ink-soft leading-relaxed mb-4">
-              {product.description}
-            </p>
-            <div className="flex flex-wrap gap-2 mb-4">
+            <div className="mt-4 flex flex-wrap gap-2">
               {product.badges.map((b) => (
                 <span
                   key={b}
-                  className="bg-white text-ink text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full border border-ink/10"
+                  className="bg-surface text-ink text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full border border-ink/10"
                 >
                   {b}
                 </span>
               ))}
             </div>
-            <p className="text-sm text-ink-soft">
-              Todos nuestros productos son sin azúcar y están hechos de forma
-              artesanal, en tandas pequeñas, sin atajos.
-            </p>
+          </header>
+
+          <div className="order-2 lg:col-start-1 lg:row-start-1 lg:row-span-2">
+            <ProductGallery product={product} />
+          </div>
+
+          <aside className="order-3 lg:col-start-3 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-6">
+            <ProductPurchase product={product} />
+          </aside>
+
+          <div className="order-4 lg:col-start-2 lg:row-start-2">
+            <div className="pt-6 border-t border-ink/10">
+              <h2 className="font-display font-700 text-2xl text-ink mb-3">
+                Acerca de este producto
+              </h2>
+              <p className="text-base text-ink-soft leading-relaxed">
+                {product.description}
+              </p>
+              <p className="mt-4 text-base text-ink-soft leading-relaxed">
+                Todos nuestros productos son sin azúcar y están hechos de forma
+                artesanal, en tandas pequeñas, sin atajos.
+              </p>
+            </div>
+
+            <div className="mt-6 pt-6 border-t border-ink/10">
+              <h2 className="font-display font-700 text-2xl text-ink mb-3">
+                Detalles
+              </h2>
+              <dl className="text-base">
+                {details.map(([label, value]) => (
+                  <div
+                    key={label}
+                    className="flex gap-4 py-2 border-b border-ink/5 last:border-0"
+                  >
+                    <dt className="w-32 shrink-0 text-ink-soft">{label}</dt>
+                    <dd className="text-ink">{value}</dd>
+                  </div>
+                ))}
+              </dl>
+            </div>
           </div>
         </div>
       </section>
 
+      <ProductVideo
+        productKey={product.key}
+        title={title}
+        poster={product.heroImage}
+      />
+
+      <RelatedProducts currentKey={product.key} />
+
       {/* El blog ya enlaza al producto; esto cierra el camino de vuelta, para
           que Google recorra ambas secciones en lugar de tratarlas por separado. */}
       {productPosts.length > 0 && (
-        <section className="mx-auto max-w-6xl px-5 sm:px-8 pb-12 sm:pb-16">
+        <section className="mx-auto max-w-7xl px-5 sm:px-8 pb-12 sm:pb-16">
           <h2 className="font-display font-700 text-2xl text-ink mb-5">
             Del blog: mantequilla de {product.name}
           </h2>
@@ -175,7 +209,7 @@ export default async function ProductPage({
               <Link
                 key={post.slug}
                 href={`/blog/${post.slug}`}
-                className="torn-card bg-white/70 hover:bg-white transition-colors p-5 flex flex-col gap-2 group"
+                className="torn-card bg-surface hover:bg-cream transition-colors p-5 flex flex-col gap-2 group"
               >
                 <span className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">
                   {CATEGORY_LABEL[post.category]} · {post.readTime} de lectura

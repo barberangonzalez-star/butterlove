@@ -17,18 +17,24 @@ export default function ProductCard({ product }: { product: Product }) {
     <div className="torn-card overflow-hidden flex flex-col">
       {/* Colored "torn card" — mirrors Charlie's product tile */}
       <div
-        onClick={() => setInfoOpen((v) => !v)}
-        className={`relative ${product.bgClass} pt-4 px-4 pb-0 aspect-[4/5] flex flex-col cursor-pointer`}
+        className={`relative ${product.bgClass} pt-4 px-4 pb-0 aspect-[4/5] flex flex-col`}
       >
-        <div className="flex items-start justify-between relative z-10">
+        {/* Tocar el frasco abre su ficha, como en cualquier tienda. Antes sólo
+            se llegaba por el nombre de abajo o por dentro del panel de
+            información, y el gesto natural —tocar la foto— no llevaba a nada. */}
+        <Link
+          href={`/productos/${product.key}`}
+          aria-label={`Ver ${title}`}
+          className="absolute inset-0 z-10"
+        />
+
+        <div className="flex items-start justify-between relative z-20">
           <span className="bg-white/90 text-ink text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
             {isCombo(product) ? "Combo" : "100% natural"}
           </span>
           <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setInfoOpen((v) => !v);
-            }}
+            onClick={() => setInfoOpen((v) => !v)}
+            aria-expanded={infoOpen}
             aria-label={`Información de ${product.name}`}
             className="w-7 h-7 rounded-full bg-white/90 text-ink flex items-center justify-center font-display font-700 text-sm hover:bg-white transition-colors"
           >
@@ -67,12 +73,9 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
 
         {infoOpen && (
-          <div className="absolute inset-0 z-20 bg-ink/95 text-cream p-5 flex flex-col justify-center">
+          <div className="absolute inset-0 z-30 bg-ink/95 text-cream p-5 flex flex-col justify-center">
             <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setInfoOpen(false);
-              }}
+              onClick={() => setInfoOpen(false)}
               aria-label="Cerrar información"
               className="absolute top-3 right-3 w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center"
             >
@@ -88,7 +91,6 @@ export default function ProductCard({ product }: { product: Product }) {
             </ul>
             <Link
               href={`/productos/${product.key}`}
-              onClick={(e) => e.stopPropagation()}
               className="mt-4 inline-block text-xs font-bold uppercase tracking-wide text-cream underline underline-offset-4 hover:text-white w-fit"
             >
               Más información →
@@ -98,7 +100,7 @@ export default function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* White footer strip — product name, like Charlie's label under each can */}
-      <div className="bg-white/80 px-4 pt-3 pb-4">
+      <div className="bg-surface px-4 pt-3 pb-4">
         <Link
           href={`/productos/${product.key}`}
           className="block font-display font-700 text-xl text-center mb-3 hover:underline"

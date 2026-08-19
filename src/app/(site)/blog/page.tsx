@@ -55,7 +55,7 @@ function PostCard({
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="torn-card overflow-hidden flex flex-col bg-white/70 hover:bg-white transition-colors group"
+      className="torn-card overflow-hidden flex flex-col bg-surface hover:bg-cream transition-colors group"
     >
       <div
         className={`relative ${product.bgClass} h-44 flex items-center justify-center`}

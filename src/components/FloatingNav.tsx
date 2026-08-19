@@ -8,7 +8,7 @@ export default function FloatingNav() {
 
   return (
     <nav
-      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 bg-white/95 backdrop-blur shadow-lg rounded-full px-2 py-2 flex items-center gap-1"
+      className="fixed bottom-5 left-1/2 -translate-x-1/2 z-40 bg-surface/95 backdrop-blur shadow-lg rounded-full px-2 py-2 flex items-center gap-1"
       aria-label="Navegación principal"
     >
       {links.map((l) => (

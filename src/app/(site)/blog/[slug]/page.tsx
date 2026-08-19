@@ -79,7 +79,7 @@ function RelatedCard({
   return (
     <Link
       href={`/blog/${post.slug}`}
-      className="torn-card overflow-hidden flex items-center gap-4 bg-white/70 hover:bg-white transition-colors p-4 group"
+      className="torn-card overflow-hidden flex items-center gap-4 bg-surface hover:bg-cream transition-colors p-4 group"
     >
       <div
         className={`relative shrink-0 w-16 h-16 rounded-2xl ${product.bgClass} flex items-center justify-center`}
