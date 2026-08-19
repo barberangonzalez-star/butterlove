@@ -7,10 +7,13 @@ import { Product, isCombo, productTitle, sizeLabel } from "@/lib/products";
 import { useCart } from "@/lib/cart-context";
 
 export default function ProductCard({ product }: { product: Product }) {
-  const [sizeIdx, setSizeIdx] = useState(0);
   const [infoOpen, setInfoOpen] = useState(false);
   const { addItem } = useCart();
-  const size = product.sizes[sizeIdx];
+  // La vitrina cotiza siempre el frasco de 230g, que es el que se lleva la
+  // mayoría: un solo precio por tarjeta se lee de un vistazo, y quien quiera
+  // otro tamaño lo elige en la ficha. Los combos no tienen 230g, así que caen
+  // en su presentación única.
+  const size = product.sizes.find((s) => s.grams === 230) ?? product.sizes[0];
   const title = productTitle(product);
 
   return (
@@ -99,49 +102,26 @@ export default function ProductCard({ product }: { product: Product }) {
         )}
       </div>
 
-      {/* White footer strip — product name, like Charlie's label under each can */}
-      <div className="px-4 pt-3 pb-4">
+      {/* Pie de la tarjeta: nombre, precio y el botón, todo en un renglón. El
+          gramaje no se nombra —es siempre el mismo— y así el precio queda
+          pegado al nombre, que es como se pregunta en la calle: "¿a cómo la
+          de maní?". */}
+      <div className="px-4 pt-3 pb-4 flex items-center justify-between gap-2">
         <Link
           href={`/productos/${product.key}`}
-          className="block font-display font-700 text-xl text-center mb-3 hover:underline"
+          className="min-w-0 font-display font-700 text-sm lg:text-base leading-tight text-ink hover:underline"
         >
-          {title}
+          {title}{" "}
+          <span className="whitespace-nowrap">${size.price.toFixed(2)}</span>
         </Link>
-
-        {/* Con un solo tamaño el selector no elige nada: se muestra como dato. */}
-        {product.sizes.length > 1 ? (
-          <div className="flex gap-2 mb-3">
-            {product.sizes.map((s, i) => (
-              <button
-                key={s.grams}
-                onClick={() => setSizeIdx(i)}
-                className={`flex-1 rounded-full py-1.5 text-xs font-semibold transition-colors ${
-                  i === sizeIdx
-                    ? "bg-ink text-cream"
-                    : "text-ink-soft ring-1 ring-ink/15 hover:ring-ink/40"
-                }`}
-              >
-                {sizeLabel(product, s)}
-              </button>
-            ))}
-          </div>
-        ) : (
-          <p className="text-center text-xs font-semibold text-ink-soft mb-3">
-            {sizeLabel(product, size)}
-          </p>
-        )}
-
-        <div className="flex items-center justify-between gap-3">
-          <span className="font-display font-700 text-2xl text-ink">
-            ${size.price.toFixed(2)}
-          </span>
-          <button
-            onClick={() => addItem(product.key, size.grams, size.price)}
-            className="rounded-full bg-ink text-cream px-4 py-2 text-sm font-semibold hover:opacity-85 transition-opacity"
-          >
-            Agregar
-          </button>
-        </div>
+        {/* En el teléfono el botón va más chico para que el nombre más largo
+            ("Dúo Pistacho + Almendras $38.00") siga cabiendo en el renglón. */}
+        <button
+          onClick={() => addItem(product.key, size.grams, size.price)}
+          className="shrink-0 rounded-full bg-ink text-cream px-3 py-1.5 text-xs lg:px-4 lg:py-2 lg:text-sm font-semibold hover:opacity-85 transition-opacity"
+        >
+          Agregar
+        </button>
       </div>
     </div>
   );

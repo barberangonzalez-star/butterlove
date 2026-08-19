@@ -16,7 +16,10 @@ export default async function ProductsGrid() {
           salir de aquí.
         </p>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Tres por fila y no cuatro: con cuatro, el renglón del pie —nombre,
+          precio y botón— no alcanza para "Mantequilla de Almendras $12.99" y
+          el nombre se parte en dos. De paso el frasco se ve más grande. */}
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {products.map((p) => (
           <ProductCard key={p.key} product={p} />
         ))}
