@@ -20,7 +20,10 @@ export default function ProductCard({ product }: { product: Product }) {
     <div className="torn-card overflow-hidden flex flex-col">
       {/* Colored "torn card" — mirrors Charlie's product tile */}
       <div
-        className={`relative ${product.bgClass} pt-4 px-4 pb-0 aspect-[4/5] flex flex-col`}
+        // Cuadrada como las fotos, que son todas de 1080x1080. En 4:5 el
+        // marco es más alto que ancho y a los combos —que traen su propio
+        // fondo y se dibujan con object-cover— les cortaba los lados.
+        className={`relative ${product.bgClass} pt-4 px-4 pb-0 aspect-square flex flex-col`}
       >
         {/* Tocar el frasco abre su ficha, como en cualquier tienda. Antes sólo
             se llegaba por el nombre de abajo o por dentro del panel de
@@ -53,7 +56,7 @@ export default function ProductCard({ product }: { product: Product }) {
             src={product.image}
             alt={`${title} Butter Love ${sizeLabel(product, size)}`}
             fill
-            sizes="(max-width: 640px) 90vw, 280px"
+            sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 400px"
             className="absolute inset-0 object-cover"
           />
         ) : (
@@ -68,7 +71,7 @@ export default function ProductCard({ product }: { product: Product }) {
                 src={product.image}
                 alt={`${title} Butter Love ${sizeLabel(product, size)}`}
                 fill
-                sizes="(max-width: 640px) 90vw, 280px"
+                sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 400px"
                 className="object-contain object-bottom drop-shadow-xl"
               />
             </div>
