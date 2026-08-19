@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import { Check, X } from "lucide-react";
 import { getProductsByKeys } from "@/lib/products-data";
 import {
@@ -8,6 +7,7 @@ import {
   DELIVERY_METHODS,
   NATIONAL_COURIERS,
 } from "@/lib/config";
+import HeroVideo from "./_components/HeroVideo";
 import PromoBuy from "./_components/PromoBuy";
 import { buildPacks, PACK_KEYS } from "./packs";
 
@@ -26,57 +26,30 @@ export const metadata: Metadata = {
   },
 };
 
-const benefits = [
+/**
+ * Por qué comprarla, en cinco renglones.
+ *
+ * Antes esto eran dos bloques —"beneficios" y "si estás cuidando lo que comes"—
+ * de seis puntos cada uno, con un párrafo debajo de cada título, y a mitad de
+ * camino se repetían: los dos hablaban de proteína, de saciedad y de azúcar.
+ * Doce argumentos no convencen más que cinco; cansan, y el que se cansa no
+ * vuelve al precio. Cada uno cabe ahora en un renglón, que es lo que alguien
+ * de verdad lee entre un anuncio y un botón.
+ */
+const reasons = [
+  { title: "Corta el antojo de las 4 pm", text: "Dos cucharadas y se apaga." },
   {
-    title: "Proteína vegetal que sacia",
-    text: "Una cucharada aguanta la mañana. Es el snack que satisface por más tiempo, y el complemento fácil después de entrenar.",
+    title: "Sacia con proteína vegetal",
+    text: "Un desayuno que te sostiene hasta el almuerzo.",
   },
-  {
-    title: "Grasas buenas para el corazón",
-    text: "Aporta grasas mayormente insaturadas, las mismas que se asocian con la salud cardiovascular cuando reemplazan grasas saturadas.",
-  },
-  {
-    title: "Vitamina E, magnesio y niacina",
-    text: "Nutrientes que participan en la producción de energía y en la salud de la piel. Están en el maní, y siguen ahí porque no le quitamos nada.",
-  },
-  {
-    title: "Fibra para la digestión",
-    text: "El maní entero, molido entero. La fibra ayuda a la digestión y a la sensación de saciedad.",
-  },
-  {
-    title: "Energía que dura",
-    text: "Sin azúcar agregada no hay subidón ni caída. La energía entra despacio y se queda.",
-  },
-  {
-    title: "Va con todo",
-    text: "Avena, tostada, batido, panqueca, manzana, o directo de la cuchara. Nadie te está viendo.",
-  },
-];
-
-const dietPoints = [
-  {
-    title: "Corta el antojo dulce",
-    text: "Dos cucharadas y el antojo de las 4 pm se apaga. Es la manera más simple de no terminar en la galleta.",
-  },
-  {
-    title: "Sin azúcar agregada",
-    text: "Cero azúcar añadida, cero jarabes. Lo dulce que sientes es del maní tostado.",
-  },
-  {
-    title: "Suma proteína a lo que ya comes",
-    text: "Una cucharada convierte un desayuno de puros carbohidratos en uno que te sostiene hasta el almuerzo.",
-  },
+  { title: "Sin azúcar agregada", text: "Ni subidón, ni caída." },
   {
     title: "Encaja en keto y low carb",
-    text: "Mayormente grasas y proteína, pocos carbohidratos. Por eso es de las pocas cremas que sobreviven a una dieta baja en carbos.",
+    text: "Grasas y proteína, pocos carbohidratos.",
   },
   {
     title: "Pre y post entreno",
-    text: "Antes, energía que no pesa. Después, proteína para acompañar la recuperación.",
-  },
-  {
-    title: "Una porción es una cucharada",
-    text: "Es densa en calorías porque es maní puro: rinde muchísimo y con una o dos cucharadas ya cumpliste.",
+    text: "Energía antes, proteína después.",
   },
 ];
 
@@ -148,20 +121,13 @@ export default async function LandingPromoMani() {
   return (
     // El espacio de abajo es del botón flotante: sin él, tapa el cierre.
     <div className="mx-auto max-w-xl pb-32">
-      {/* La foto va sola: nada de texto encima. El titular y la oferta van
-          justo debajo, sobre fondo propio, para que ni la letra compita con
-          el frasco ni el frasco se lea peor por el degradado. */}
+      {/* El video va solo: nada de texto encima. El titular y la oferta van
+          justo debajo, sobre fondo propio, para que ni la letra compita con el
+          frasco ni el frasco se lea peor por el degradado. En 16:9 no se
+          recorta ningún cuadro, y de paso el precio entra en la primera
+          pantalla del teléfono. */}
       <section className="px-3 pt-3">
-        <div className="relative overflow-hidden torn-card aspect-[4/5] sm:aspect-[16/11]">
-          <Image
-            src="/hero/duo-mani-mesa.jpg"
-            alt="Frascos de mantequilla de maní Butter Love"
-            fill
-            priority
-            sizes="(max-width: 640px) 100vw, 576px"
-            className="object-cover"
-          />
-        </div>
+        <HeroVideo />
       </section>
 
       {/* La oferta arranca aquí, no después de los beneficios: precio,
@@ -203,6 +169,15 @@ export default async function LandingPromoMani() {
         >
           Ver combos y precios
         </a>
+
+        {/* Las dudas que frenan una compra por anuncio —cómo pago, cómo me
+            llega— contestadas junto al botón y no doce pantallas más abajo,
+            que es donde estaban. */}
+        <p className="mt-3 text-center text-sm text-ink-soft leading-relaxed">
+          Pides por WhatsApp y pagas al confirmar con{" "}
+          {PAYMENT_METHODS.join(", ")}. Delivery en Caracas y envío a todo el
+          país.
+        </p>
       </section>
 
       {/* Lo que la marca promete, en cuatro palabras que se leen sin bajar. */}
@@ -271,70 +246,54 @@ export default async function LandingPromoMani() {
         </div>
       </section>
 
+      {/* Sin panel de color y sin recuadros: cinco renglones sobre el fondo de
+          la página. El argumento se sostiene con la negrita del primer trozo de
+          cada frase, y lo que antes hacía el fondo azul —separar esta parte del
+          resto— lo hace ahora el aire de arriba y abajo. */}
       <section className="px-4 pb-14">
-        <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">
-          Beneficios
-        </p>
-        <h2 className="font-display font-700 text-3xl text-ink mt-2">
-          Por qué el maní es un clásico que nunca falla
+        <h2 className="font-display font-700 text-3xl text-ink">
+          La mantequilla de maní juega a tu favor
         </h2>
+        <p className="mt-3 text-ink-soft leading-relaxed">
+          Lo que arruina una dieta no es la comida: es el antojo de media tarde.
+        </p>
 
-        <div className="mt-6 space-y-3">
-          {benefits.map((b) => (
-            <div key={b.title} className="rounded-3xl bg-surface p-5">
-              <h3 className="font-display font-700 text-lg text-ink">
-                {b.title}
-              </h3>
-              <p className="mt-1.5 text-ink-soft leading-relaxed">{b.text}</p>
-            </div>
+        <ul className="mt-6 space-y-3">
+          {reasons.map((r) => (
+            <li key={r.title} className="text-ink-soft leading-relaxed">
+              <span className="font-semibold text-ink">{r.title}.</span>{" "}
+              {r.text}
+            </li>
           ))}
-        </div>
+        </ul>
+
+        {/* El que leyó hasta acá ya se convenció: el camino de vuelta a los
+            combos no puede ser desandar la página. */}
+        <a
+          href="#combos"
+          className="mt-7 block rounded-full bg-ink text-cream px-6 py-4 text-center font-bold hover:opacity-85 transition-opacity"
+        >
+          {topSaver && topSaver.jars > 1
+            ? `Quiero mi combo · ahorra $${topSaver.saved.toFixed(2)}`
+            : "Quiero el mío"}
+        </a>
+
+        <p className="mt-6 text-xs leading-relaxed text-ink-soft/80">
+          Una porción es una cucharada: es maní puro y rinde muchísimo. Es un
+          alimento, no un tratamiento, y no sustituye la orientación de un
+          profesional de la salud. Contiene maní.
+        </p>
       </section>
 
-      {/* La dieta va en su propio panel oscuro: es el argumento que más pesa
-          en quien llega desde un anuncio, y separarlo lo hace imposible de
-          pasar por alto. */}
-      <section className="px-3 pb-14">
-        <div className="rounded-[34px] bg-dark-panel px-6 py-12 text-cream">
-          <p className="text-xs font-bold uppercase tracking-widest text-cream/60">
-            Si estás cuidando lo que comes
-          </p>
-          <h2 className="font-display font-700 text-3xl mt-2">
-            La mantequilla de maní juega a tu favor
-          </h2>
-          <p className="mt-3 text-cream/80 leading-relaxed">
-            Lo que arruina una dieta casi nunca es la comida: es el antojo a
-            media tarde. Aquí es donde una crema de un solo ingrediente hace la
-            diferencia.
-          </p>
-
-          <div className="mt-8 space-y-6">
-            {dietPoints.map((d) => (
-              <div key={d.title} className="border-l-2 border-mani-bg pl-4">
-                <h3 className="font-display font-700 text-lg">{d.title}</h3>
-                <p className="mt-1 text-cream/75 leading-relaxed">{d.text}</p>
-              </div>
-            ))}
-          </div>
-
-          <p className="mt-8 text-xs leading-relaxed text-cream/50">
-            Es un alimento, no un tratamiento: acompaña una alimentación
-            balanceada, no la reemplaza, y esto no sustituye la orientación de
-            un profesional de la salud. Contiene maní.
-          </p>
-        </div>
-      </section>
-
+      {/* Cuatro maneras, sin cuatro tarjetas: el emoji ya separa un renglón
+          del otro sin que haga falta pintarle un fondo detrás. */}
       <section className="px-4 pb-14">
         <h2 className="font-display font-700 text-3xl text-ink">
           Cuatro maneras de acabártela
         </h2>
-        <ul className="mt-5 grid grid-cols-2 gap-3">
+        <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
           {uses.map((u) => (
-            <li
-              key={u.text}
-              className="rounded-3xl bg-surface p-5 flex flex-col gap-2"
-            >
+            <li key={u.text} className="flex flex-col gap-1.5">
               <span className="text-3xl" aria-hidden="true">
                 {u.emoji}
               </span>
