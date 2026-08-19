@@ -29,7 +29,7 @@ export default function ProductCard({ product }: { product: Product }) {
         />
 
         <div className="flex items-start justify-between relative z-20">
-          <span className="bg-white/90 text-ink text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
+          <span className="bg-white/90 text-ink text-xs px-3 py-1 rounded-full">
             {isCombo(product) ? "Combo" : "100% natural"}
           </span>
           <button
@@ -100,7 +100,7 @@ export default function ProductCard({ product }: { product: Product }) {
       </div>
 
       {/* White footer strip — product name, like Charlie's label under each can */}
-      <div className="bg-surface px-4 pt-3 pb-4">
+      <div className="px-4 pt-3 pb-4">
         <Link
           href={`/productos/${product.key}`}
           className="block font-display font-700 text-xl text-center mb-3 hover:underline"
@@ -115,10 +115,10 @@ export default function ProductCard({ product }: { product: Product }) {
               <button
                 key={s.grams}
                 onClick={() => setSizeIdx(i)}
-                className={`flex-1 rounded-full py-1.5 text-xs font-semibold border transition-colors ${
+                className={`flex-1 rounded-full py-1.5 text-xs font-semibold transition-colors ${
                   i === sizeIdx
-                    ? "bg-ink text-cream border-ink"
-                    : "bg-transparent border-ink/15 text-ink-soft hover:border-ink/40"
+                    ? "bg-ink text-cream"
+                    : "text-ink-soft ring-1 ring-ink/15 hover:ring-ink/40"
                 }`}
               >
                 {sizeLabel(product, s)}

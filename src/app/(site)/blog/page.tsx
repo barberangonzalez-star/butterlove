@@ -60,7 +60,7 @@ function PostCard({
       <div
         className={`relative ${product.bgClass} h-44 flex items-center justify-center`}
       >
-        <span className="absolute top-3 left-3 z-10 bg-white/90 text-ink text-[11px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-full">
+        <span className="absolute top-3 left-3 z-10 bg-white/90 text-ink text-xs px-3 py-1.5 rounded-full">
           {CATEGORY_LABEL[post.category]}
         </span>
         {/* Burbujas decorativas, el mismo guiño que en las tarjetas de producto */}

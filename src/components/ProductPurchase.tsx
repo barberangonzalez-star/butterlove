@@ -7,9 +7,12 @@ import { trackViewContent } from "@/lib/pixel";
 import { DELIVERY_METHODS, PAYMENT_METHODS } from "@/lib/config";
 
 /**
- * La caja de compra de la ficha: precio, tamaño, cantidad y el botón. Vive en
- * su propia columna y se queda pegada al hacer scroll, así el precio nunca
- * queda fuera de pantalla mientras se lee el detalle del producto.
+ * La zona de compra: precio, tamaño, cantidad y el botón.
+ *
+ * No vive dentro de una caja a propósito. Encerrarla sumaba un marco alrededor
+ * de cosas que ya son marcos —cada tamaño es un botón, la cantidad otro— y el
+ * resultado era una caja con cajas adentro. Lo que la separa del texto de al
+ * lado es la columna y el aire, no un borde.
  */
 export default function ProductPurchase({ product }: { product: Product }) {
   const [sizeIdx, setSizeIdx] = useState(0);
@@ -33,7 +36,7 @@ export default function ProductPurchase({ product }: { product: Product }) {
   }, [product]);
 
   return (
-    <div className="rounded-3xl border border-ink/10 bg-surface p-5 shadow-sm">
+    <div>
       <div className="flex items-baseline gap-2">
         <span className="font-display font-700 text-4xl text-ink">
           ${size.price.toFixed(2)}
@@ -44,32 +47,27 @@ export default function ProductPurchase({ product }: { product: Product }) {
       </div>
 
       {multiSize ? (
-        <div className="mt-5">
-          <p className="text-xs font-bold uppercase tracking-wide text-ink-soft mb-2">
-            Elige tamaño
-          </p>
-          {/* Cada opción muestra su propio precio, como las variantes de una
-              tienda grande: así se compara sin tener que tocarlas una por una. */}
-          <div className="grid grid-cols-2 gap-2">
+        <div className="mt-6">
+          <p className="text-sm text-ink-soft mb-2">Tamaño</p>
+          {/* Cada opción muestra su propio precio: así se comparan sin tener
+              que tocarlas una por una. */}
+          <div className="flex flex-wrap gap-2">
             {product.sizes.map((s, i) => (
               <button
                 key={s.grams}
                 onClick={() => setSizeIdx(i)}
                 aria-pressed={i === sizeIdx}
-                className={`rounded-2xl border px-3 py-2 text-left transition-colors ${
+                className={`rounded-full px-4 py-2 text-sm transition-colors ${
                   i === sizeIdx
-                    ? "border-ink bg-ink text-cream"
-                    : "border-ink/15 text-ink hover:border-ink/40"
+                    ? "bg-ink text-cream"
+                    : "text-ink-soft ring-1 ring-ink/15 hover:ring-ink/40"
                 }`}
               >
-                <span className="block text-sm font-semibold">
-                  {sizeLabel(product, s)}
-                </span>
+                <span className="font-semibold">{sizeLabel(product, s)}</span>
                 <span
-                  className={`block text-xs ${
-                    i === sizeIdx ? "text-cream/80" : "text-ink-soft"
-                  }`}
+                  className={i === sizeIdx ? "text-cream/70" : "text-ink-soft"}
                 >
+                  {" "}
                   ${s.price.toFixed(2)}
                 </span>
               </button>
@@ -77,34 +75,32 @@ export default function ProductPurchase({ product }: { product: Product }) {
           </div>
         </div>
       ) : (
-        <p className="mt-4 text-sm font-semibold text-ink">
-          Presentación: {sizeLabel(product, size)}
+        <p className="mt-4 text-sm text-ink-soft">
+          Presentación de {sizeLabel(product, size)}
         </p>
       )}
 
-      <div className="mt-5 flex items-center justify-between gap-3">
-        <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-          Cantidad
-        </span>
-        <div className="flex items-center gap-1 rounded-full border border-ink/15 p-1">
+      <div className="mt-6 flex items-center gap-3">
+        <span className="text-sm text-ink-soft">Cantidad</span>
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setQty((q) => Math.max(1, q - 1))}
             disabled={qty === 1}
             aria-label="Quitar uno"
-            className="w-8 h-8 rounded-full text-lg leading-none text-ink hover:bg-ink/5 disabled:opacity-30 disabled:hover:bg-transparent"
+            className="w-9 h-9 rounded-full text-xl leading-none text-ink hover:bg-ink/5 disabled:opacity-25 disabled:hover:bg-transparent"
           >
             −
           </button>
           <span
             aria-live="polite"
-            className="w-8 text-center text-sm font-semibold tabular-nums"
+            className="w-6 text-center text-base font-semibold tabular-nums"
           >
             {qty}
           </span>
           <button
             onClick={() => setQty((q) => q + 1)}
             aria-label="Agregar uno"
-            className="w-8 h-8 rounded-full text-lg leading-none text-ink hover:bg-ink/5"
+            className="w-9 h-9 rounded-full text-xl leading-none text-ink hover:bg-ink/5"
           >
             +
           </button>
@@ -113,31 +109,30 @@ export default function ProductPurchase({ product }: { product: Product }) {
 
       <button
         onClick={() => addItem(product.key, size.grams, size.price, qty)}
-        className="mt-4 w-full rounded-full bg-ink text-cream px-6 py-3.5 text-sm font-semibold hover:opacity-85 transition-opacity"
+        className="mt-6 w-full rounded-full bg-ink text-cream px-6 py-3.5 text-base font-semibold hover:opacity-85 transition-opacity"
       >
         Agregar al pedido
         {qty > 1 && ` · $${subtotal.toFixed(2)}`}
       </button>
 
-      {/* Lo que en una tienda grande va debajo del botón: cómo llega y cómo se
-          paga. Sale de la misma configuración que usa el checkout, para que no
-          se prometa acá un método que allá no existe. */}
-      <dl className="mt-5 pt-4 border-t border-ink/10 space-y-2 text-sm">
-        <div className="flex gap-2">
+      {/* Cómo llega y cómo se paga. Sale de la misma configuración que usa el
+          checkout, para que no se prometa acá un método que allá no existe. */}
+      <dl className="mt-6 pt-5 border-t border-ink/10 space-y-2 text-sm">
+        <div className="flex gap-3">
           <dt className="text-ink-soft shrink-0 w-20">Entrega</dt>
           <dd className="text-ink">{DELIVERY_METHODS.join(" · ")}</dd>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <dt className="text-ink-soft shrink-0 w-20">Pago</dt>
           <dd className="text-ink">{PAYMENT_METHODS.join(" · ")}</dd>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <dt className="text-ink-soft shrink-0 w-20">Hecho</dt>
           <dd className="text-ink">A mano, en tandas pequeñas</dd>
         </div>
       </dl>
 
-      <p className="mt-3 text-xs leading-relaxed text-ink-soft">
+      <p className="mt-4 text-sm leading-relaxed text-ink-soft">
         El pedido se confirma por WhatsApp: allí se acuerda la entrega y se
         envían los datos de pago.
       </p>

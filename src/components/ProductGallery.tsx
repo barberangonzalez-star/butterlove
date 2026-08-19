@@ -39,9 +39,13 @@ export default function ProductGallery({ product }: { product: Product }) {
               aria-label={`Ver foto ${i + 1} de ${title}`}
               onClick={() => setActive(i)}
               onMouseEnter={() => setActive(i)}
-              className={`relative w-16 h-16 sm:w-[72px] sm:h-[72px] shrink-0 rounded-2xl overflow-hidden border-2 transition-colors ${
+              className={`relative w-16 h-16 sm:w-[72px] sm:h-[72px] shrink-0 rounded-2xl overflow-hidden transition-shadow ${
                 s.cutout ? product.bgClass : "bg-surface"
-              } ${i === active ? "border-ink" : "border-ink/10 hover:border-ink/40"}`}
+              } ${
+                i === active
+                  ? "ring-2 ring-ink ring-offset-2 ring-offset-page"
+                  : "opacity-70 hover:opacity-100"
+              }`}
             >
               <Image
                 src={s.src}

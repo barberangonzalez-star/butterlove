@@ -135,16 +135,11 @@ export default async function ProductPage({
             </h1>
             <p className="mt-2 text-base text-ink-soft">{product.tagline}</p>
 
-            <div className="mt-4 flex flex-wrap gap-2">
-              {product.badges.map((b) => (
-                <span
-                  key={b}
-                  className="bg-surface text-ink text-xs font-bold uppercase tracking-wide px-3 py-1.5 rounded-full border border-ink/10"
-                >
-                  {b}
-                </span>
-              ))}
-            </div>
+            {product.badges.length > 0 && (
+              <p className="mt-3 text-sm text-ink-soft">
+                {product.badges.join(" · ")}
+              </p>
+            )}
           </header>
 
           <div className="order-2 lg:col-start-1 lg:row-start-1 lg:row-span-2">
@@ -177,7 +172,7 @@ export default async function ProductPage({
                 {details.map(([label, value]) => (
                   <div
                     key={label}
-                    className="flex gap-4 py-2 border-b border-ink/5 last:border-0"
+                    className="flex gap-4 py-1.5"
                   >
                     <dt className="w-32 shrink-0 text-ink-soft">{label}</dt>
                     <dd className="text-ink">{value}</dd>
@@ -209,19 +204,16 @@ export default async function ProductPage({
               <Link
                 key={post.slug}
                 href={`/blog/${post.slug}`}
-                className="torn-card bg-surface hover:bg-cream transition-colors p-5 flex flex-col gap-2 group"
+                className="border-t border-ink/10 pt-4 flex flex-col gap-2 group"
               >
-                <span className="text-[11px] font-bold uppercase tracking-wide text-ink-soft">
+                <span className="text-sm text-ink-soft">
                   {CATEGORY_LABEL[post.category]} · {post.readTime} de lectura
                 </span>
                 <h3 className="font-display font-700 text-lg text-ink group-hover:underline">
                   {post.title}
                 </h3>
                 <p className="text-sm text-ink-soft flex-1">{post.excerpt}</p>
-                <time
-                  dateTime={post.date}
-                  className="text-[11px] font-bold uppercase tracking-wide text-ink-soft"
-                >
+                <time dateTime={post.date} className="text-sm text-ink-soft">
                   {formatPostDateShort(post.date)}
                 </time>
               </Link>
