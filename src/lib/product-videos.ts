@@ -17,6 +17,7 @@
  */
 export const PRODUCT_VIDEOS: Record<string, string> = {
   mani: "/videos/mani.mp4",
+  almendras: "/videos/almendras.mp4",
   // "pistacho": "/videos/pistacho.mp4",
 };
 
