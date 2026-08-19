@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import { Check, X } from "lucide-react";
 import { getProductsByKeys } from "@/lib/products-data";
 import {
@@ -202,6 +203,22 @@ export default async function LandingPromoMani() {
           pena, para quien todavía no ha decidido. */}
       <PromoBuy packs={packs} />
 
+      {/* Justo después del precio: lo que se acaba de elegir, en la mesa. El
+          hueco que quedaba entre el botón y el título siguiente era espacio
+          muerto, y esta foto lo aprovecha para volver a enseñar el producto
+          cuando el cliente todavía está decidiendo. */}
+      <section className="px-3">
+        <div className="relative overflow-hidden torn-card aspect-square">
+          <Image
+            src="/hero/duo-mani-tabla.jpg"
+            alt="Dos frascos de mantequilla de maní Butter Love sobre una tabla de madera"
+            fill
+            sizes="(max-width: 640px) 100vw, 576px"
+            className="object-cover"
+          />
+        </div>
+      </section>
+
       <section className="px-4 py-14">
         <h2 className="font-display font-700 text-3xl text-ink">
           Lee la etiqueta. Te va a tomar un segundo.
@@ -343,6 +360,22 @@ export default async function LandingPromoMani() {
               <p className="mt-2 text-ink-soft leading-relaxed">{f.a}</p>
             </details>
           ))}
+        </div>
+      </section>
+
+      {/* La última imagen antes de la última pregunta. Va pegada al cierre a
+          propósito: el que llegó hasta acá ya leyó todos los argumentos, y lo
+          que falta no es un dato más sino volver a ver el frasco. Los maníes
+          sueltos alrededor cuentan solos lo que la etiqueta dice con letras. */}
+      <section className="px-3 pb-4">
+        <div className="relative overflow-hidden torn-card aspect-square">
+          <Image
+            src="/hero/duo-mani-azul.jpg"
+            alt="Dos frascos de mantequilla de maní Butter Love rodeados de maníes"
+            fill
+            sizes="(max-width: 640px) 100vw, 576px"
+            className="object-cover"
+          />
         </div>
       </section>
 
