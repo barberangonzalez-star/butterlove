@@ -1,0 +1,412 @@
+import type { Metadata } from "next";
+import Image from "next/image";
+import { Check, X } from "lucide-react";
+import { getProductsByKeys } from "@/lib/products-data";
+import {
+  WHATSAPP_LINK,
+  PAYMENT_METHODS,
+  DELIVERY_METHODS,
+  NATIONAL_COURIERS,
+} from "@/lib/config";
+import PromoBuy from "./_components/PromoBuy";
+import { buildPacks, PACK_KEYS } from "./packs";
+
+export const metadata: Metadata = {
+  title: "Promo mantequilla de maní",
+  description:
+    "Mantequilla de maní 100% natural, un solo ingrediente. Combos de 2 y 3 frascos con descuento, solo por este enlace.",
+  // La promo se reparte por anuncio y por link, no por buscador: indexarla
+  // competiría con la ficha del producto por la misma búsqueda y pondría un
+  // precio de campaña en los resultados mucho después de que la campaña
+  // terminó. `nofollow` evita además que el enlace de WhatsApp se rastree.
+  robots: {
+    index: false,
+    follow: false,
+    googleBot: { index: false, follow: false },
+  },
+};
+
+const benefits = [
+  {
+    title: "Proteína vegetal que sacia",
+    text: "Una cucharada aguanta la mañana. Es el snack que satisface por más tiempo, y el complemento fácil después de entrenar.",
+  },
+  {
+    title: "Grasas buenas para el corazón",
+    text: "Aporta grasas mayormente insaturadas, las mismas que se asocian con la salud cardiovascular cuando reemplazan grasas saturadas.",
+  },
+  {
+    title: "Vitamina E, magnesio y niacina",
+    text: "Nutrientes que participan en la producción de energía y en la salud de la piel. Están en el maní, y siguen ahí porque no le quitamos nada.",
+  },
+  {
+    title: "Fibra para la digestión",
+    text: "El maní entero, molido entero. La fibra ayuda a la digestión y a la sensación de saciedad.",
+  },
+  {
+    title: "Energía que dura",
+    text: "Sin azúcar agregada no hay subidón ni caída. La energía entra despacio y se queda.",
+  },
+  {
+    title: "Va con todo",
+    text: "Avena, tostada, batido, panqueca, manzana, o directo de la cuchara. Nadie te está viendo.",
+  },
+];
+
+const dietPoints = [
+  {
+    title: "Corta el antojo dulce",
+    text: "Dos cucharadas y el antojo de las 4 pm se apaga. Es la manera más simple de no terminar en la galleta.",
+  },
+  {
+    title: "Sin azúcar agregada",
+    text: "Cero azúcar añadida, cero jarabes. Lo dulce que sientes es del maní tostado.",
+  },
+  {
+    title: "Suma proteína a lo que ya comes",
+    text: "Una cucharada convierte un desayuno de puros carbohidratos en uno que te sostiene hasta el almuerzo.",
+  },
+  {
+    title: "Encaja en keto y low carb",
+    text: "Mayormente grasas y proteína, pocos carbohidratos. Por eso es de las pocas cremas que sobreviven a una dieta baja en carbos.",
+  },
+  {
+    title: "Pre y post entreno",
+    text: "Antes, energía que no pesa. Después, proteína para acompañar la recuperación.",
+  },
+  {
+    title: "Una porción es una cucharada",
+    text: "Es densa en calorías porque es maní puro: rinde muchísimo y con una o dos cucharadas ya cumpliste.",
+  },
+];
+
+const uses = [
+  { emoji: "🥣", text: "En la avena de la mañana" },
+  { emoji: "🍞", text: "Sobre la tostada, con banana" },
+  { emoji: "🥤", text: "En el batido pre-entreno" },
+  { emoji: "🍎", text: "Con manzana, de merienda" },
+];
+
+const steps = [
+  {
+    title: "Elige tu combo",
+    text: "1, 2 o 3 frascos. El descuento se aplica solo.",
+  },
+  {
+    title: "Confirma por WhatsApp",
+    text: "El pedido se arma solo en un mensaje. Tú solo lo envías.",
+  },
+  {
+    title: "Recíbelo",
+    text: `${DELIVERY_METHODS.join(", ")}. Pagas con ${PAYMENT_METHODS.join(", ")}.`,
+  },
+];
+
+const faqs = [
+  {
+    q: "¿Qué lleva además del maní?",
+    a: "Nada. Maní tostado y molido despacio hasta quedar cremoso. Sin azúcar, sin aceites añadidos, sin leche en polvo, sin conservantes.",
+  },
+  {
+    q: "¿Por qué se le separa el aceite?",
+    a: "Porque es maní de verdad. Las cremas industriales no se separan porque llevan aceites que las estabilizan; esta se revuelve con una cuchara y queda lista.",
+  },
+  {
+    q: "¿Cómo la guardo y cuánto dura?",
+    a: "En un lugar fresco y seco, tapada. Al no llevar conservantes, lo mejor es consumirla dentro de los tres meses. En la nevera se pone más firme y dura más.",
+  },
+  {
+    q: "¿Es vegana? ¿Tiene gluten?",
+    a: "Es vegana, y el maní no tiene gluten. Contiene maní: si eres alérgico a los frutos secos o al maní, esta no es para ti.",
+  },
+  {
+    q: "¿Hacen envíos fuera de Caracas?",
+    a: `Sí, por encomienda: ${NATIONAL_COURIERS.join(", ")}. En Caracas hay delivery por zona y punto de encuentro.`,
+  },
+  {
+    q: "¿Cómo pago?",
+    a: `${PAYMENT_METHODS.join(", ")}. Los datos te llegan por WhatsApp al confirmar el pedido.`,
+  },
+];
+
+export default async function LandingPromoMani() {
+  const products = await getProductsByKeys(PACK_KEYS);
+  const packs = buildPacks(products);
+  const unitPack = packs.find((p) => p.jars === 1);
+  // Dos maneras de ser el mejor pack, y no siempre las gana el mismo: el que
+  // deja el frasco más barato titula el precio, y el que más plata ahorra
+  // cierra la página. Los dos salen de los precios reales.
+  const bestPack = packs.reduce<(typeof packs)[number] | undefined>(
+    (best, p) => (!best || p.perJar < best.perJar ? p : best),
+    undefined,
+  );
+  const topSaver = packs.reduce<(typeof packs)[number] | undefined>(
+    (best, p) => (p.saved > (best?.saved ?? 0) ? p : best),
+    undefined,
+  );
+
+  return (
+    // El espacio de abajo es del botón flotante: sin él, tapa el cierre.
+    <div className="mx-auto max-w-xl pb-32">
+      <section className="px-3 pt-3">
+        <div className="relative overflow-hidden torn-card min-h-[560px] flex flex-col">
+          <Image
+            src="/hero/mani.png"
+            alt="Frasco de mantequilla de maní Butter Love"
+            fill
+            priority
+            sizes="(max-width: 640px) 100vw, 576px"
+            className="object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/25" />
+
+          <div className="relative flex-1 flex flex-col justify-end px-6 pb-8 pt-12">
+            <p className="text-xs font-bold uppercase tracking-widest text-white/85">
+              Precio especial por este enlace
+            </p>
+            <h1 className="font-display font-700 text-4xl sm:text-5xl text-white mt-2 drop-shadow">
+              Mantequilla de maní que solo lleva maní
+            </h1>
+            <p className="mt-3 text-white/90 leading-relaxed">
+              Tostado y molido despacio hasta quedar cremoso. Un ingrediente,
+              cero azúcar agregada, hecha a mano en tandas pequeñas.
+            </p>
+
+            {/* El precio tachado es el del frasco suelto: sólo tiene sentido
+                enseñarlo si de verdad hay un combo que lo baja. */}
+            {bestPack && (
+              <p className="mt-5 text-white font-display font-700 text-lg">
+                Desde ${bestPack.perJar.toFixed(2)} el frasco de 230g{" "}
+                {unitPack && bestPack.jars > 1 && (
+                  <span className="font-body font-400 text-sm text-white/70 line-through">
+                    ${unitPack.price.toFixed(2)}
+                  </span>
+                )}
+              </p>
+            )}
+
+            <a
+              href="#combos"
+              className="mt-5 rounded-full bg-white text-ink px-6 py-4 text-center font-bold hover:bg-cream transition-colors"
+            >
+              Ver los combos
+            </a>
+          </div>
+        </div>
+      </section>
+
+      {/* Lo que la marca promete, en cuatro palabras que se leen sin bajar. */}
+      <ul className="px-4 pt-5 flex flex-wrap justify-center gap-2 text-sm">
+        {[
+          "1 solo ingrediente",
+          "Sin azúcar agregada",
+          "Hecha a mano",
+          "100% natural",
+        ].map((chip) => (
+          <li
+            key={chip}
+            className="rounded-full bg-surface px-3.5 py-1.5 font-semibold text-ink"
+          >
+            {chip}
+          </li>
+        ))}
+      </ul>
+
+      <section className="px-4 py-14">
+        <h2 className="font-display font-700 text-3xl text-ink">
+          Lee la etiqueta. Te va a tomar un segundo.
+        </h2>
+        <p className="mt-3 text-ink-soft leading-relaxed">
+          La mayoría de las cremas de maní del supermercado tienen entre cinco y
+          nueve ingredientes. Esta tiene uno.
+        </p>
+
+        <div className="mt-6 grid grid-cols-2 gap-3">
+          {/* La lista de al lado es larga y la de acá tiene un renglón: esa
+              desproporción es el argumento, así que el aire queda a la vista
+              en vez de repartirse. */}
+          <div className="rounded-3xl bg-mani-bg p-5 flex flex-col">
+            <p className="font-display font-700 text-ink">Lleva</p>
+            <p className="mt-3 flex items-start gap-2 text-ink font-semibold">
+              <Check className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
+              Maní tostado
+            </p>
+            <p className="mt-auto pt-6 text-sm text-ink/70">
+              Y ya. Eso es todo.
+            </p>
+          </div>
+
+          <div className="rounded-3xl bg-surface p-5">
+            <p className="font-display font-700 text-ink">No lleva</p>
+            <ul className="mt-3 space-y-2 text-sm text-ink-soft">
+              {[
+                "Azúcar agregada",
+                "Aceite de palma",
+                "Leche en polvo",
+                "Conservantes",
+                "Saborizantes",
+              ].map((item) => (
+                <li key={item} className="flex items-start gap-2">
+                  <X className="w-4 h-4 shrink-0 mt-0.5" aria-hidden="true" />
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <section className="px-4 pb-14">
+        <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">
+          Beneficios
+        </p>
+        <h2 className="font-display font-700 text-3xl text-ink mt-2">
+          Por qué el maní es un clásico que nunca falla
+        </h2>
+
+        <div className="mt-6 space-y-3">
+          {benefits.map((b) => (
+            <div key={b.title} className="rounded-3xl bg-surface p-5">
+              <h3 className="font-display font-700 text-lg text-ink">
+                {b.title}
+              </h3>
+              <p className="mt-1.5 text-ink-soft leading-relaxed">{b.text}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* La dieta va en su propio panel oscuro: es el argumento que más pesa
+          en quien llega desde un anuncio, y separarlo lo hace imposible de
+          pasar por alto. */}
+      <section className="px-3 pb-14">
+        <div className="rounded-[34px] bg-dark-panel px-6 py-12 text-cream">
+          <p className="text-xs font-bold uppercase tracking-widest text-cream/60">
+            Si estás cuidando lo que comes
+          </p>
+          <h2 className="font-display font-700 text-3xl mt-2">
+            La mantequilla de maní juega a tu favor
+          </h2>
+          <p className="mt-3 text-cream/80 leading-relaxed">
+            Lo que arruina una dieta casi nunca es la comida: es el antojo a
+            media tarde. Aquí es donde una crema de un solo ingrediente hace la
+            diferencia.
+          </p>
+
+          <div className="mt-8 space-y-6">
+            {dietPoints.map((d) => (
+              <div key={d.title} className="border-l-2 border-mani-bg pl-4">
+                <h3 className="font-display font-700 text-lg">{d.title}</h3>
+                <p className="mt-1 text-cream/75 leading-relaxed">{d.text}</p>
+              </div>
+            ))}
+          </div>
+
+          <p className="mt-8 text-xs leading-relaxed text-cream/50">
+            Es un alimento, no un tratamiento: acompaña una alimentación
+            balanceada, no la reemplaza, y esto no sustituye la orientación de
+            un profesional de la salud. Contiene maní.
+          </p>
+        </div>
+      </section>
+
+      <section className="px-4 pb-14">
+        <h2 className="font-display font-700 text-3xl text-ink">
+          Cuatro maneras de acabártela
+        </h2>
+        <ul className="mt-5 grid grid-cols-2 gap-3">
+          {uses.map((u) => (
+            <li
+              key={u.text}
+              className="rounded-3xl bg-surface p-5 flex flex-col gap-2"
+            >
+              <span className="text-3xl" aria-hidden="true">
+                {u.emoji}
+              </span>
+              <span className="text-sm font-semibold text-ink leading-snug">
+                {u.text}
+              </span>
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <PromoBuy packs={packs} />
+
+      <section className="px-4 pb-14">
+        <h2 className="font-display font-700 text-3xl text-ink">Cómo pedir</h2>
+        <ol className="mt-6 space-y-4">
+          {steps.map((s, i) => (
+            <li key={s.title} className="flex gap-4">
+              <span className="shrink-0 w-9 h-9 rounded-full bg-mani-bg font-display font-700 text-ink flex items-center justify-center">
+                {i + 1}
+              </span>
+              <div>
+                <h3 className="font-display font-700 text-lg text-ink">
+                  {s.title}
+                </h3>
+                <p className="text-ink-soft leading-relaxed">{s.text}</p>
+              </div>
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      {/* `details` en vez de acordeón propio: abre sin JavaScript, el buscador
+          del teléfono encuentra el texto adentro y pesa cero. */}
+      <section className="px-4 pb-14">
+        <h2 className="font-display font-700 text-3xl text-ink">Preguntas</h2>
+        <div className="mt-5 divide-y divide-ink/10 border-y border-ink/10">
+          {faqs.map((f) => (
+            <details key={f.q} className="group py-4">
+              <summary className="flex items-center justify-between gap-4 cursor-pointer list-none font-semibold text-ink">
+                {f.q}
+                <span
+                  aria-hidden="true"
+                  className="shrink-0 text-xl leading-none text-ink-soft transition-transform group-open:rotate-45"
+                >
+                  +
+                </span>
+              </summary>
+              <p className="mt-2 text-ink-soft leading-relaxed">{f.a}</p>
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <section className="px-3 pb-10">
+        <div className="rounded-[34px] bg-mani-bg px-6 py-12 text-center">
+          <h2 className="font-display font-700 text-3xl text-ink">
+            Un frasco no dura lo que crees
+          </h2>
+          <p className="mt-3 text-ink/75 leading-relaxed">
+            {topSaver && topSaver.jars > 1
+              ? `Por eso el combo de ${topSaver.jars} te ahorra $${topSaver.saved.toFixed(2)}.`
+              : "Llévate el tuyo antes de que se acabe la tanda."}
+          </p>
+          <a
+            href="#combos"
+            className="mt-6 inline-block rounded-full bg-ink text-cream px-8 py-4 font-bold hover:opacity-85 transition-opacity"
+          >
+            Elegir mi combo
+          </a>
+          <p className="mt-5 text-sm text-ink/70">
+            ¿Dudas antes de pedir?{" "}
+            <a
+              href={WHATSAPP_LINK}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="font-semibold underline underline-offset-2"
+            >
+              Escríbenos por WhatsApp
+            </a>
+          </p>
+        </div>
+      </section>
+
+      <footer className="px-4 pb-10 text-center text-xs text-ink-soft">
+        Butter Love · Mantequillas hechas a mano · Caracas
+      </footer>
+    </div>
+  );
+}

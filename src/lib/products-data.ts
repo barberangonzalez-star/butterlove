@@ -54,6 +54,27 @@ export const getProducts = cache(async function getProducts(): Promise<
 });
 
 /**
+ * Productos pedidos por `key`, estén o no en la vitrina.
+ *
+ * Es lo que necesita una landing de promoción: vende packs que no queremos
+ * mostrar en la tienda (`inStore = false`) pero que sí son productos reales,
+ * con su precio, su stock y su nombre en el pedido de WhatsApp. Devuelve en el
+ * mismo orden en que se pidieron, y salta en silencio los que no existan —una
+ * landing sin un pack se muestra igual, sólo con menos opciones.
+ */
+export const getProductsByKeys = cache(async function getProductsByKeys(
+  keys: string[],
+): Promise<Product[]> {
+  if (keys.length === 0) return [];
+  const db = getDb();
+  const rows = await db.select().from(products).where(inArray(products.key, keys));
+  const found = await attachSizes(rows);
+  return keys
+    .map((key) => found.find((p) => p.key === key))
+    .filter((p): p is Product => p !== undefined);
+});
+
+/**
  * Solo lo que el sitemap necesita. Consulta ligera aparte para no arrastrar
  * los tamaños, y para poder exponer `updatedAt` sin meterlo en el tipo
  * `Product` que viaja al cliente. La imagen va porque el sitemap declara las

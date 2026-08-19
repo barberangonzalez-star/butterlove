@@ -35,10 +35,19 @@ export function productTitle(product: { name: string; kind: ProductKind }) {
   return isCombo(product) ? product.name : `Mantequilla de ${product.name}`;
 }
 
-/** Etiqueta de tamaño: los combos se miden en frascos, no en gramos totales. */
+/** El frasco con el que se arman todos los combos. */
+export const COMBO_JAR_GRAMS = 230;
+
+/**
+ * Etiqueta de tamaño: los combos se miden en frascos, no en gramos totales.
+ * El número de frascos sale del peso —460g son dos, 690g son tres— para que
+ * agregar un combo nuevo no obligue a tocar esto.
+ */
 export function sizeLabel(
   product: { kind: ProductKind },
   size: { grams: number },
 ) {
-  return isCombo(product) ? "2 × 230g" : `${size.grams}g`;
+  if (!isCombo(product)) return `${size.grams}g`;
+  const jars = Math.round(size.grams / COMBO_JAR_GRAMS);
+  return `${jars} × ${COMBO_JAR_GRAMS}g`;
 }
