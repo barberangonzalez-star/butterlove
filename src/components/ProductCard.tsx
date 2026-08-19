@@ -45,7 +45,7 @@ export default function ProductCard({ product }: { product: Product }) {
             src={product.image}
             alt={`${title} Butter Love ${sizeLabel(product, size)}`}
             fill
-            sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 400px"
+            sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 25vw"
             className="absolute inset-0 object-cover"
           />
         ) : (
@@ -60,7 +60,7 @@ export default function ProductCard({ product }: { product: Product }) {
                 src={product.image}
                 alt={`${title} Butter Love ${sizeLabel(product, size)}`}
                 fill
-                sizes="(max-width: 640px) 90vw, (max-width: 1024px) 45vw, 400px"
+                sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 25vw"
                 className="object-contain object-bottom drop-shadow-xl"
               />
             </div>

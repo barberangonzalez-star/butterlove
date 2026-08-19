@@ -19,7 +19,7 @@ const steps = [
 
 export default function HowToOrder() {
   return (
-    <section id="pedido" className="mx-auto max-w-6xl px-5 sm:px-8 py-16 sm:py-20">
+    <section id="pedido" className="px-3 sm:px-5 py-16 sm:py-20">
       <h2 className="font-display font-700 text-4xl sm:text-5xl text-ink mb-10">
         Cómo pedir
       </h2>
