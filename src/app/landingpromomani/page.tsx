@@ -235,15 +235,24 @@ export default async function LandingPromoMani() {
         </p>
 
         <div className="mt-6 grid grid-cols-2 gap-3">
-          {/* La lista de al lado es larga y la de acá tiene un renglón: esa
-              desproporción es el argumento, así que el aire queda a la vista
-              en vez de repartirse. */}
+          {/* La lista de al lado tiene cinco renglones y la de acá dos: esa
+              desproporción es el argumento, así que el aire que sobra queda a
+              la vista en vez de repartirse. */}
           <div className="rounded-3xl bg-mani-bg p-5 flex flex-col">
             <p className="font-display font-700 text-ink">Lleva</p>
-            <p className="mt-3 flex items-start gap-2 text-ink font-semibold">
-              <Check className="w-5 h-5 shrink-0 mt-0.5" aria-hidden="true" />
-              Maní tostado
-            </p>
+            <ul className="mt-3 space-y-2 text-sm font-semibold text-ink">
+              {["Maní premium seleccionado", "Proceso de extracción dedicado"].map(
+                (item) => (
+                  <li key={item} className="flex items-start gap-2">
+                    <Check
+                      className="w-4 h-4 shrink-0 mt-0.5"
+                      aria-hidden="true"
+                    />
+                    {item}
+                  </li>
+                ),
+              )}
+            </ul>
             <p className="mt-auto pt-6 text-sm text-ink/70">
               Y ya. Eso es todo.
             </p>
