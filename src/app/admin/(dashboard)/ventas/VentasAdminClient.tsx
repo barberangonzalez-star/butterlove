@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import Link from "next/link";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, ChevronRight } from "lucide-react";
 import SaleForm from "./SaleForm";
+import SaleDetail from "./SaleDetail";
 import { deleteSaleAction } from "./actions";
 import type { CustomerChoice } from "@/lib/customers";
 import type { AdminProduct } from "@/lib/products-data";
@@ -44,6 +45,10 @@ export default function VentasAdminClient({
   customers: CustomerChoice[];
 }) {
   const [editing, setEditing] = useState<Sale | "new" | null>(null);
+  // Una venta abierta a la vez: la lista se lee de arriba abajo, y con varias
+  // desplegadas deja de ser una lista.
+  const [openId, setOpenId] = useState<number | null>(null);
+  const toggle = (id: number) => setOpenId((cur) => (cur === id ? null : id));
 
   const totalUsd = sales.reduce((sum, s) => sum + Number(s.amountUsd), 0);
   const totalBs = sales.reduce((sum, s) => sum + Number(s.amountBs ?? 0), 0);
@@ -63,7 +68,7 @@ export default function VentasAdminClient({
         <Plus size={15} /> Registrar venta
       </button>
 
-      {/* Debajo de lg la tabla de 10 columnas no entra: cada venta va como ficha. */}
+      {/* Debajo de lg la tabla no entra: cada venta va como ficha. */}
       <div className="lg:hidden space-y-2">
         {sales.length > 0 && (
           <div className="border border-black/10 rounded-lg bg-white px-4 py-3 flex items-center justify-between gap-3">
@@ -78,7 +83,15 @@ export default function VentasAdminClient({
         )}
 
         {sales.map((s) => (
-          <div key={s.id} className="border border-black/10 rounded-lg bg-white p-4">
+          <div
+            key={s.id}
+            className="border border-black/10 rounded-lg bg-white overflow-hidden"
+          >
+            {/* Tocar la ficha la despliega; tocar el nombre se va al cliente. */}
+            <div
+              onClick={() => toggle(s.id)}
+              className="p-4 cursor-pointer active:bg-black/[0.02]"
+            >
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <ul className="space-y-0.5">
@@ -91,7 +104,15 @@ export default function VentasAdminClient({
                     </li>
                   ))}
                 </ul>
-                <p className="text-xs text-[#787774] mt-0.5">{s.saleDate}</p>
+                <p className="text-xs text-[#787774] mt-0.5 flex items-center gap-1">
+                  <ChevronRight
+                    size={12}
+                    className={`transition-transform ${
+                      openId === s.id ? "rotate-90" : ""
+                    }`}
+                  />
+                  {s.saleDate}
+                </p>
               </div>
               <div className="shrink-0 text-right">
                 <p className="font-semibold text-sm">{fmtUsd(Number(s.amountUsd))}</p>
@@ -103,7 +124,17 @@ export default function VentasAdminClient({
 
             {s.customerName && (
               <p className="text-sm mt-2 break-words">
-                {s.customerName}
+                {s.customerId ? (
+                  <Link
+                    href={`/admin/clientes/${s.customerId}`}
+                    onClick={(e) => e.stopPropagation()}
+                    className="font-medium underline underline-offset-2"
+                  >
+                    {s.customerName}
+                  </Link>
+                ) : (
+                  s.customerName
+                )}
                 {s.customerPhone && (
                   <span className="text-[#787774]"> · {s.customerPhone}</span>
                 )}
@@ -127,7 +158,11 @@ export default function VentasAdminClient({
               ))}
             </div>
 
-            <div className="flex gap-2 mt-3 pt-3 border-t border-black/5">
+            </div>
+
+            {openId === s.id && <SaleDetail sale={s} />}
+
+            <div className="flex gap-2 p-4 pt-3 border-t border-black/5">
               <button
                 onClick={() => setEditing(s)}
                 className="flex-1 flex items-center justify-center gap-1.5 rounded-md border border-black/15 py-2 text-sm font-medium hover:bg-black/5"
@@ -153,16 +188,14 @@ export default function VentasAdminClient({
 
       <div className="hidden lg:block border border-black/10 rounded-lg overflow-hidden bg-white">
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[820px] text-sm">
+        <table className="w-full min-w-[720px] text-sm">
           <thead>
             <tr className="border-b border-black/10 text-left text-xs text-[#787774] uppercase tracking-wide">
+              <th className="w-8"></th>
               <th className="px-4 py-2.5 font-medium">Fecha</th>
               <th className="px-4 py-2.5 font-medium">Cliente</th>
               <th className="px-4 py-2.5 font-medium">Productos</th>
-              <th className="px-4 py-2.5 font-medium">Cantidad</th>
-              <th className="px-4 py-2.5 font-medium">Promo</th>
               <th className="px-4 py-2.5 font-medium">Pago</th>
-              <th className="px-4 py-2.5 font-medium">Entrega</th>
               <th className="px-4 py-2.5 font-medium text-right">Monto $</th>
               <th className="px-4 py-2.5 font-medium text-right">Monto Bs.</th>
               <th className="px-4 py-2.5 font-medium w-20"></th>
@@ -170,7 +203,34 @@ export default function VentasAdminClient({
           </thead>
           <tbody>
             {sales.map((s) => (
-              <tr key={s.id} className="border-b border-black/5 last:border-0 hover:bg-black/[0.02]">
+              <Fragment key={s.id}>
+              {/* La fila entera despliega la venta. El nombre y los botones
+                  cortan el clic: cada uno hace lo suyo. */}
+              <tr
+                onClick={() => toggle(s.id)}
+                className={`border-b border-black/5 last:border-0 cursor-pointer ${
+                  openId === s.id ? "bg-black/[0.03]" : "hover:bg-black/[0.02]"
+                }`}
+              >
+                <td className="pl-3">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggle(s.id);
+                    }}
+                    aria-expanded={openId === s.id}
+                    aria-controls={`venta-${s.id}`}
+                    aria-label={`Ver detalle de la venta del ${s.saleDate}`}
+                    className="w-6 h-6 flex items-center justify-center rounded-md text-[#787774] hover:bg-black/5"
+                  >
+                    <ChevronRight
+                      size={14}
+                      className={`transition-transform ${
+                        openId === s.id ? "rotate-90" : ""
+                      }`}
+                    />
+                  </button>
+                </td>
                 <td className="px-4 py-3 whitespace-nowrap">{s.saleDate}</td>
                 <td className="px-4 py-3" title={s.customerEmail ?? undefined}>
                   {s.customerName ? (
@@ -180,7 +240,8 @@ export default function VentasAdminClient({
                       {s.customerId ? (
                         <Link
                           href={`/admin/clientes/${s.customerId}`}
-                          className="hover:underline underline-offset-2"
+                          onClick={(e) => e.stopPropagation()}
+                          className="font-medium hover:underline underline-offset-2"
                         >
                           {s.customerName}
                         </Link>
@@ -197,10 +258,16 @@ export default function VentasAdminClient({
                 </td>
                 {/* Productos y cantidades van en columnas separadas pero con
                     la misma lista: cada renglón de una casa con el de la otra. */}
+                {/* La cantidad va pegada al producto en vez de en su propia
+                    columna: eran dos listas que había que leer en paralelo, y
+                    juntas se leen de una. */}
                 <td className="px-4 py-3">
                   <ul className="space-y-0.5">
                     {s.items.map((item) => (
                       <li key={item.id} className="whitespace-nowrap">
+                        <span className="tabular-nums text-[#787774]">
+                          {item.quantity}×
+                        </span>{" "}
                         {item.productName}{" "}
                         <span className="text-[#787774]">{item.grams}g</span>
                         {item.promotionLabel && (
@@ -212,39 +279,8 @@ export default function VentasAdminClient({
                     ))}
                   </ul>
                 </td>
-                <td className="px-4 py-3">
-                  <ul className="space-y-0.5">
-                    {s.items.map((item) => (
-                      <li key={item.id} className="whitespace-nowrap tabular-nums">
-                        {item.quantity}
-                      </li>
-                    ))}
-                  </ul>
-                  {s.items.length > 1 && (
-                    <p className="mt-1 pt-1 border-t border-black/5 text-xs text-[#787774] tabular-nums">
-                      {s.items.reduce((sum, i) => sum + i.quantity, 0)} total
-                    </p>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-[#787774]">
-                  {s.items.some((i) => i.promotionLabel) ? (
-                    <ul className="space-y-0.5">
-                      {s.items.map((item) => (
-                        <li key={item.id} className="whitespace-nowrap">
-                          {item.promotionLabel ?? "—"}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    "—"
-                  )}
-                </td>
-                <td className="px-4 py-3 text-[#787774]">{s.paymentMethod ?? "—"}</td>
-                <td className="px-4 py-3 text-[#787774]">
-                  <p>{deliveryLabel(s)}</p>
-                  {s.deliveryState && (
-                    <p className="text-xs">{s.deliveryState}</p>
-                  )}
+                <td className="px-4 py-3 text-[#787774] whitespace-nowrap">
+                  {s.paymentMethod ?? "—"}
                 </td>
                 <td className="px-4 py-3 text-right font-medium">
                   {fmtUsd(Number(s.amountUsd))}
@@ -255,14 +291,20 @@ export default function VentasAdminClient({
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-1">
                     <button
-                      onClick={() => setEditing(s)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setEditing(s);
+                      }}
                       title="Editar venta"
                       className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
                     >
                       <Pencil size={14} />
                     </button>
                     <button
-                      onClick={() => handleDelete(s.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(s.id);
+                      }}
                       title="Eliminar venta"
                       className="w-7 h-7 flex items-center justify-center rounded-md hover:bg-black/5 text-[#5f5e5b]"
                     >
@@ -271,10 +313,19 @@ export default function VentasAdminClient({
                   </div>
                 </td>
               </tr>
+
+              {openId === s.id && (
+                <tr id={`venta-${s.id}`}>
+                  <td colSpan={8} className="p-0">
+                    <SaleDetail sale={s} />
+                  </td>
+                </tr>
+              )}
+              </Fragment>
             ))}
             {sales.length === 0 && (
               <tr>
-                <td colSpan={10} className="px-4 py-10 text-center text-[#787774]">
+                <td colSpan={8} className="px-4 py-10 text-center text-[#787774]">
                   No hay ventas registradas en este rango.
                 </td>
               </tr>
@@ -283,7 +334,7 @@ export default function VentasAdminClient({
           {sales.length > 0 && (
             <tfoot>
               <tr className="border-t border-black/10 font-semibold bg-black/[0.02]">
-                <td colSpan={7} className="px-4 py-3 text-right">
+                <td colSpan={5} className="px-4 py-3 text-right">
                   Total
                 </td>
                 <td className="px-4 py-3 text-right">{fmtUsd(totalUsd)}</td>
