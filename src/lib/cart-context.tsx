@@ -9,6 +9,7 @@ import {
   ReactNode,
 } from "react";
 import { FlavorKey } from "./products";
+import { trackAddToCart } from "./pixel";
 
 export interface CartItem {
   key: FlavorKey;
@@ -22,7 +23,12 @@ interface CartContextValue {
   isOpen: boolean;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (key: FlavorKey, grams: number, price: number) => void;
+  addItem: (
+    key: FlavorKey,
+    grams: number,
+    price: number,
+    qty?: number,
+  ) => void;
   removeItem: (key: FlavorKey, grams: number) => void;
   updateQty: (key: FlavorKey, grams: number, qty: number) => void;
   clearCart: () => void;
@@ -56,15 +62,24 @@ export function CartProvider({ children }: { children: ReactNode }) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  const addItem: CartContextValue["addItem"] = (key, grams, price) => {
+  // La cantidad llega desde la ficha del producto, que deja elegir cuántos
+  // frascos antes de agregar. Llamar al botón N veces también funcionaría,
+  // pero le reportaría a Meta N adiciones sueltas en vez de una sola de N.
+  const addItem: CartContextValue["addItem"] = (key, grams, price, qty = 1) => {
+    const amount = Math.max(1, Math.floor(qty));
+    // El aviso a Meta va acá y no en los botones: es el único camino para
+    // meter algo al pedido, así que ningún botón nuevo se olvida de avisar.
+    trackAddToCart({ key, grams, price, qty: amount });
     setItems((prev) => {
       const existing = prev.find((i) => i.key === key && i.grams === grams);
       if (existing) {
         return prev.map((i) =>
-          i.key === key && i.grams === grams ? { ...i, qty: i.qty + 1 } : i
+          i.key === key && i.grams === grams
+            ? { ...i, qty: i.qty + amount }
+            : i
         );
       }
-      return [...prev, { key, grams, price, qty: 1 }];
+      return [...prev, { key, grams, price, qty: amount }];
     });
     setIsOpen(true);
   };

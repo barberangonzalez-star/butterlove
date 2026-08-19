@@ -3,6 +3,14 @@ export const SITE_URL = "https://butterlove.store";
 
 export const GA_MEASUREMENT_ID = "G-LK4PXJHGH9";
 
+/**
+ * El pixel de Meta, que es lo que mide en el sitio lo que pasa después de un
+ * anuncio de Instagram o Facebook. Se saca del Administrador de eventos de
+ * Meta (Orígenes de datos > el pixel > su ID): son 15 o 16 dígitos. Vacío, el
+ * pixel no se carga y el sitio queda exactamente como estaba.
+ */
+export const META_PIXEL_ID = "";
+
 // Perfiles oficiales del negocio. Google los usa (vía `sameAs`) para conectar
 // el sitio con las redes y reforzar que se trata de la misma marca.
 // Agrega aquí las URLs reales de Instagram, Facebook, TikTok, etc.
