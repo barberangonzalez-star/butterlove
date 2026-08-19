@@ -109,16 +109,20 @@ export default function ProductCard({ product }: { product: Product }) {
       <div className="px-4 pt-3 pb-4 flex items-center justify-between gap-2">
         <Link
           href={`/productos/${product.key}`}
-          className="min-w-0 font-display font-700 text-sm lg:text-base leading-tight text-ink hover:underline"
+          className="min-w-0 font-display font-700 text-base lg:text-[17px] leading-tight text-ink hover:underline"
         >
           {title}{" "}
-          <span className="whitespace-nowrap">${size.price.toFixed(2)}</span>
+          {/* El precio va un punto más chico que el nombre: manda el nombre,
+              y con los dos al mismo cuerpo el renglón no alcanza. */}
+          <span className="whitespace-nowrap text-sm lg:text-base">
+            ${size.price.toFixed(2)}
+          </span>
         </Link>
         {/* En el teléfono el botón va más chico para que el nombre más largo
             ("Dúo Pistacho + Almendras $38.00") siga cabiendo en el renglón. */}
         <button
           onClick={() => addItem(product.key, size.grams, size.price)}
-          className="shrink-0 rounded-full bg-ink text-cream px-3 py-1.5 text-xs lg:px-4 lg:py-2 lg:text-sm font-semibold hover:opacity-85 transition-opacity"
+          className="shrink-0 rounded-full bg-ink text-cream px-3 py-1.5 text-xs font-semibold hover:opacity-85 transition-opacity"
         >
           Agregar
         </button>
