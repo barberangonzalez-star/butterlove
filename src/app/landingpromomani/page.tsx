@@ -148,51 +148,61 @@ export default async function LandingPromoMani() {
   return (
     // El espacio de abajo es del botón flotante: sin él, tapa el cierre.
     <div className="mx-auto max-w-xl pb-32">
+      {/* La foto va sola: nada de texto encima. El titular y la oferta van
+          justo debajo, sobre fondo propio, para que ni la letra compita con
+          el frasco ni el frasco se lea peor por el degradado. */}
       <section className="px-3 pt-3">
-        <div className="relative overflow-hidden torn-card min-h-[560px] flex flex-col">
+        <div className="relative overflow-hidden torn-card aspect-[4/5] sm:aspect-[16/11]">
           <Image
-            src="/hero/mani.png"
-            alt="Frasco de mantequilla de maní Butter Love"
+            src="/hero/duo-mani-mesa.jpg"
+            alt="Frascos de mantequilla de maní Butter Love"
             fill
             priority
             sizes="(max-width: 640px) 100vw, 576px"
             className="object-cover"
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-black/25" />
-
-          <div className="relative flex-1 flex flex-col justify-end px-6 pb-8 pt-12">
-            <p className="text-xs font-bold uppercase tracking-widest text-white/85">
-              Precio especial por este enlace
-            </p>
-            <h1 className="font-display font-700 text-4xl sm:text-5xl text-white mt-2 drop-shadow">
-              Mantequilla de maní que solo lleva maní
-            </h1>
-            <p className="mt-3 text-white/90 leading-relaxed">
-              Tostado y molido despacio hasta quedar cremoso. Un ingrediente,
-              cero azúcar agregada, hecha a mano en tandas pequeñas.
-            </p>
-
-            {/* El precio tachado es el del frasco suelto: sólo tiene sentido
-                enseñarlo si de verdad hay un combo que lo baja. */}
-            {bestPack && (
-              <p className="mt-5 text-white font-display font-700 text-lg">
-                Desde ${bestPack.perJar.toFixed(2)} el frasco de 230g{" "}
-                {unitPack && bestPack.jars > 1 && (
-                  <span className="font-body font-400 text-sm text-white/70 line-through">
-                    ${unitPack.price.toFixed(2)}
-                  </span>
-                )}
-              </p>
-            )}
-
-            <a
-              href="#combos"
-              className="mt-5 rounded-full bg-white text-ink px-6 py-4 text-center font-bold hover:bg-cream transition-colors"
-            >
-              Ver los combos
-            </a>
-          </div>
         </div>
+      </section>
+
+      {/* La oferta arranca aquí, no después de los beneficios: precio,
+          ahorro y llamado a la acción van en el primer scroll. */}
+      <section className="px-4 pt-7">
+        <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">
+          Precio especial por este enlace
+        </p>
+        <h1 className="font-display font-700 text-4xl sm:text-5xl text-ink mt-2">
+          Mantequilla de maní que solo lleva maní
+        </h1>
+        <p className="mt-3 text-ink-soft leading-relaxed">
+          Tostado y molido despacio hasta quedar cremoso. Un ingrediente, cero
+          azúcar agregada, hecha a mano en tandas pequeñas.
+        </p>
+
+        {/* El precio tachado es el del frasco suelto: sólo tiene sentido
+            enseñarlo si de verdad hay un combo que lo baja. */}
+        {bestPack && (
+          <p className="mt-4 text-ink font-display font-700 text-lg">
+            Desde ${bestPack.perJar.toFixed(2)} el frasco de 230g{" "}
+            {unitPack && bestPack.jars > 1 && (
+              <span className="font-body font-400 text-sm text-ink-soft line-through">
+                ${unitPack.price.toFixed(2)}
+              </span>
+            )}
+          </p>
+        )}
+        {topSaver && topSaver.jars > 1 && (
+          <p className="mt-1 text-sm font-semibold text-ink-soft">
+            Llévate {topSaver.jars} y ahorra ${topSaver.saved.toFixed(2)} frente
+            a comprarlos sueltos.
+          </p>
+        )}
+
+        <a
+          href="#combos"
+          className="mt-5 block rounded-full bg-ink text-cream px-6 py-4 text-center font-bold hover:opacity-85 transition-opacity"
+        >
+          Ver combos y precios
+        </a>
       </section>
 
       {/* Lo que la marca promete, en cuatro palabras que se leen sin bajar. */}
@@ -211,6 +221,11 @@ export default async function LandingPromoMani() {
           </li>
         ))}
       </ul>
+
+      {/* Los combos, arriba del todo: la oferta se cierra antes de pedirle a
+          nadie que siga leyendo. Lo que sigue es la prueba de por qué vale la
+          pena, para quien todavía no ha decidido. */}
+      <PromoBuy packs={packs} />
 
       <section className="px-4 py-14">
         <h2 className="font-display font-700 text-3xl text-ink">
@@ -330,8 +345,6 @@ export default async function LandingPromoMani() {
           ))}
         </ul>
       </section>
-
-      <PromoBuy packs={packs} />
 
       <section className="px-4 pb-14">
         <h2 className="font-display font-700 text-3xl text-ink">Cómo pedir</h2>
