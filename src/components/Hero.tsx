@@ -5,12 +5,26 @@ import Image from "next/image";
 import { useProducts } from "@/lib/products-context";
 import { isCombo } from "@/lib/products";
 
+/** El combo que anuncia el banner de maní, y el envase con el que se arma. */
+const PROMO_KEY = "duo-mani";
+const PROMO_JARS = 2;
+const PROMO_GRAMS = 460;
+
 export default function Hero() {
+  const catalog = useProducts();
   // El banner rota entre sabores: los combos no tienen foto hero propia y su
   // nombre no encaja en el titular, así que se quedan fuera del selector.
-  const products = useProducts().filter((p) => !isCombo(p));
+  const products = catalog.filter((p) => !isCombo(p));
   const [active, setActive] = useState<string>(products[0]?.key ?? "");
   const product = products.find((p) => p.key === active);
+
+  // El precio del combo sale del catálogo y no escrito a mano en el titular.
+  // Estuvo en $10 mucho después de subir a $12.99, porque cambiarlo en el
+  // panel no tocaba esta línea: el banner prometía un precio que el carrito
+  // ya no hacía. Así el titular no puede desfasarse de lo que se cobra.
+  const promoPrice = catalog
+    .find((p) => p.key === PROMO_KEY)
+    ?.sizes.find((s) => s.grams === PROMO_GRAMS)?.price;
 
   if (!product) return null;
 
@@ -33,13 +47,18 @@ export default function Hero() {
 
         <div className="relative flex-1 flex flex-col justify-end px-6 sm:px-10 pb-8 pt-10">
           <p className="text-xs font-bold uppercase tracking-widest text-white/80 mb-2">
-            {active === "mani" ? "Tiempo limitado" : "Untado real, 100% natural"}
+            {active === "mani" && promoPrice
+              ? "Tiempo limitado"
+              : "Untado real, 100% natural"}
           </p>
 
           <h1 className="font-display font-700 text-3xl sm:text-5xl text-white mb-6 max-w-lg drop-shadow">
-            {active === "mani" ? (
+            {/* Sin precio no hay promo que anunciar: si el combo sale de la
+                vitrina, el maní se titula como los demás sabores en vez de
+                prometer un descuento que ya no existe. */}
+            {active === "mani" && promoPrice ? (
               <>
-                Promo 2 × 10
+                Promo {PROMO_JARS} × {promoPrice.toFixed(2)}$
                 <br />
                 Mantequilla de maní
               </>
