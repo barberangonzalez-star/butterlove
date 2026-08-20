@@ -254,8 +254,14 @@ export const CARACAS_ZONES: CaracasZone[] = [
   { name: "Valle Abajo", municipality: "Libertador" },
 ];
 
-// Encomiendas al interior del país.
-export const NATIONAL_COURIERS = ["MRW", "Zoom", "Tealca"];
+/**
+ * Encomiendas al interior del país.
+ *
+ * La lista se usa en dos sitios y por eso vive acá: el checkout la ofrece para
+ * que el cliente elija por cuál empresa quiere recibir, y las preguntas de la
+ * tienda y de la landing la nombran. Agregar una empresa es agregarla acá.
+ */
+export const NATIONAL_COURIERS = ["MRW", "Zoom", "Domesa", "Tealca"];
 
 export const VENEZUELA_STATES = [
   "Amazonas",

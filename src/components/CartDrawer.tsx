@@ -12,11 +12,43 @@ import {
   PAGO_MOVIL,
   BINANCE,
   DELIVERY_ZONES,
+  NATIONAL_COURIERS,
 } from "@/lib/config";
 
 type Step = "cart" | "info" | "payment" | "summary";
 
-type DeliveryMethod = "pickup" | "delivery";
+type DeliveryMethod = "pickup" | "delivery" | "nacional";
+
+/**
+ * Las tres maneras de recibir, con la línea que las distingue.
+ *
+ * Van en una lista de arriba abajo y no en botones de una fila: "Envío
+ * nacional" no cabe en un tercio del ancho de la gaveta sin partirse, y la
+ * diferencia entre las tres no está en el nombre sino en lo que cuestan y en
+ * quién las lleva. Esa es la duda que el cliente trae, así que se contesta
+ * antes de que elija y no después.
+ */
+const DELIVERY_OPTIONS: {
+  value: DeliveryMethod;
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: "delivery",
+    label: "Delivery en Caracas",
+    hint: "Te lo llevamos. El costo depende de tu zona.",
+  },
+  {
+    value: "pickup",
+    label: "Pickup",
+    hint: "Nos encontramos en un punto acordado. Sin costo.",
+  },
+  {
+    value: "nacional",
+    label: "Envío nacional",
+    hint: `Por encomienda: ${NATIONAL_COURIERS.join(", ")}. El flete lo pagas al retirar.`,
+  },
+];
 
 const METHODS_REQUIRING_PROOF = ["Pago Móvil", "Binance"];
 
@@ -72,6 +104,9 @@ function buildWhatsAppMessage({
   name,
   phone,
   address,
+  courier,
+  idCard,
+  agency,
   paymentMethod,
   paymentConfirmed,
   bsTotal,
@@ -86,6 +121,9 @@ function buildWhatsAppMessage({
   name: string;
   phone: string;
   address: string;
+  courier: string;
+  idCard: string;
+  agency: string;
   paymentMethod: string;
   paymentConfirmed: boolean;
   bsTotal: number | null;
@@ -114,8 +152,10 @@ function buildWhatsAppMessage({
       : "¡Hola Butter Love! 👋 Quiero hacer este pedido:";
 
   const isDelivery = deliveryMethod === "delivery";
+  const isNacional = deliveryMethod === "nacional";
 
-  // Con pickup no hay costo extra, así que el desglose solo estorba.
+  // Con pickup y con encomienda no hay costo extra, así que el desglose solo
+  // estorba: el flete nacional lo cobra la empresa al retirar, no nosotros.
   const totalLines = isDelivery
     ? [
         `Subtotal: $${subtotal.toFixed(2)}`,
@@ -123,6 +163,30 @@ function buildWhatsAppMessage({
         `Total: $${total.toFixed(2)}`,
       ]
     : [`Total: $${total.toFixed(2)}`];
+
+  // Los datos de la encomienda van juntos y rotulados uno por línea: es lo que
+  // hay que copiar tal cual en el formulario de la empresa, y buscarlo suelto
+  // entre el resto del pedido es donde se cometen los errores de despacho.
+  if (isNacional) {
+    return [
+      greeting,
+      "",
+      ...lines,
+      "",
+      ...totalLines,
+      "",
+      ...paymentLines,
+      "",
+      `Entrega: Envío nacional — ${courier}`,
+      "Flete: por cobrar en destino",
+      "",
+      "DATOS DE QUIEN RECIBE",
+      `Nombre completo: ${name}`,
+      `Cédula: ${idCard}`,
+      `Celular: ${phone}`,
+      `Agencia: ${agency}`,
+    ].join("\n");
+  }
 
   const deliveryLines = isDelivery
     ? [
@@ -166,6 +230,12 @@ export default function CartDrawer() {
   const [deliveryMethod, setDeliveryMethod] =
     useState<DeliveryMethod>("delivery");
   const [zoneName, setZoneName] = useState("");
+  // Los de la encomienda viven aparte y no reusan `address`: si compartieran
+  // campo, cambiar de opción para comparar precios dejaría la dirección de la
+  // casa metida donde va la agencia.
+  const [courier, setCourier] = useState(NATIONAL_COURIERS[0] ?? "");
+  const [idCard, setIdCard] = useState("");
+  const [agency, setAgency] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<string | null>(null);
   const [paymentConfirmed, setPaymentConfirmed] = useState(false);
 
@@ -182,14 +252,22 @@ export default function CartDrawer() {
   };
 
   const isDelivery = deliveryMethod === "delivery";
+  const isNacional = deliveryMethod === "nacional";
   const zone = DELIVERY_ZONES.find((z) => z.name === zoneName) ?? null;
   const deliveryCost = isDelivery && zone ? zone.price : 0;
   const grandTotal = totalPrice + deliveryCost;
 
   const bsTotal = bcvRate ? grandTotal * bcvRate : null;
-  const infoComplete = Boolean(
-    name.trim() && phone.trim() && address.trim() && (!isDelivery || zone)
-  );
+  // Cada manera de recibir pide lo suyo: la encomienda no necesita dirección
+  // de casa pero sí cédula y agencia, y sin esos dos datos la empresa no
+  // despacha. Pedirlos acá evita el ida y vuelta por WhatsApp.
+  const infoComplete = isNacional
+    ? Boolean(
+        name.trim() && phone.trim() && idCard.trim() && agency.trim() && courier
+      )
+    : Boolean(
+        name.trim() && phone.trim() && address.trim() && (!isDelivery || zone)
+      );
   const requiresProof =
     paymentMethod !== null && METHODS_REQUIRING_PROOF.includes(paymentMethod);
   const canConfirmPayment = Boolean(
@@ -207,6 +285,9 @@ export default function CartDrawer() {
     name,
     phone,
     address,
+    courier,
+    idCard,
+    agency,
     paymentMethod: paymentMethod ?? "",
     paymentConfirmed,
     bsTotal,
@@ -316,26 +397,34 @@ export default function CartDrawer() {
                 <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
                   ¿Cómo lo recibes?
                 </span>
-                <div className="mt-1.5 grid grid-cols-2 gap-2">
-                  {(
-                    [
-                      { value: "delivery", label: "Delivery" },
-                      { value: "pickup", label: "Pickup" },
-                    ] as { value: DeliveryMethod; label: string }[]
-                  ).map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setDeliveryMethod(option.value)}
-                      className={`rounded-xl border px-4 py-3 text-sm font-semibold transition-colors ${
-                        deliveryMethod === option.value
-                          ? "bg-ink text-cream border-ink"
-                          : "bg-surface border-ink/15 text-ink hover:border-ink/40"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
+                <div className="mt-1.5 space-y-2">
+                  {DELIVERY_OPTIONS.map((option) => {
+                    const selected = deliveryMethod === option.value;
+                    return (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => setDeliveryMethod(option.value)}
+                        aria-pressed={selected}
+                        className={`w-full rounded-xl border px-4 py-3 text-left transition-colors ${
+                          selected
+                            ? "bg-ink text-cream border-ink"
+                            : "bg-surface border-ink/15 text-ink hover:border-ink/40"
+                        }`}
+                      >
+                        <span className="block text-sm font-semibold">
+                          {option.label}
+                        </span>
+                        <span
+                          className={`block text-xs mt-0.5 ${
+                            selected ? "text-cream/70" : "text-ink-soft"
+                          }`}
+                        >
+                          {option.hint}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -364,46 +453,126 @@ export default function CartDrawer() {
                 </label>
               )}
 
+              {isNacional && (
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                    Empresa de encomienda
+                  </span>
+                  <select
+                    value={courier}
+                    onChange={(e) => setCourier(e.target.value)}
+                    className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40"
+                  >
+                    {NATIONAL_COURIERS.map((c) => (
+                      <option key={c} value={c}>
+                        {c}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="mt-1.5 block text-xs text-ink-soft">
+                    El flete no va en este total: lo pagas en la agencia al
+                    retirar el paquete.
+                  </span>
+                </label>
+              )}
+
+              {/* Con encomienda, el que compra y el que recibe muchas veces no
+                  son la misma persona, y la empresa despacha contra los datos
+                  del que retira. El rótulo lo dice para que nadie ponga los
+                  suyos por costumbre. */}
+              {isNacional && (
+                <p className="pt-1 text-xs font-bold uppercase tracking-wide text-ink">
+                  Datos de quien recibe
+                </p>
+              )}
+
               <label className="block">
                 <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                  Nombre
+                  {isNacional ? "Nombre completo" : "Nombre"}
                 </span>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   type="text"
-                  placeholder="Tu nombre completo"
+                  autoComplete="name"
+                  placeholder={
+                    isNacional
+                      ? "Como aparece en la cédula"
+                      : "Tu nombre completo"
+                  }
                   className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
               </label>
+
+              {isNacional && (
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                    Cédula
+                  </span>
+                  <input
+                    value={idCard}
+                    onChange={(e) => setIdCard(e.target.value)}
+                    type="text"
+                    inputMode="numeric"
+                    placeholder="V-12345678"
+                    className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40"
+                  />
+                  <span className="mt-1.5 block text-xs text-ink-soft">
+                    La empresa la pide para entregar el paquete.
+                  </span>
+                </label>
+              )}
+
               <label className="block">
                 <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                  Teléfono
+                  {isNacional ? "Celular" : "Teléfono"}
                 </span>
                 <input
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   type="tel"
+                  inputMode="tel"
+                  autoComplete="tel"
                   placeholder="04XX-XXXXXXX"
                   className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40"
                 />
               </label>
-              <label className="block">
-                <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
-                  {isDelivery ? "Dirección de entrega" : "Punto de encuentro"}
-                </span>
-                <textarea
-                  value={address}
-                  onChange={(e) => setAddress(e.target.value)}
-                  rows={3}
-                  placeholder={
-                    isDelivery
-                      ? "Calle, edificio o quinta, piso/apto y punto de referencia..."
-                      : "¿Dónde te queda cómodo encontrarnos?"
-                  }
-                  className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40 resize-none"
-                />
-              </label>
+
+              {isNacional ? (
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                    Agencia de destino
+                  </span>
+                  <textarea
+                    value={agency}
+                    onChange={(e) => setAgency(e.target.value)}
+                    rows={3}
+                    placeholder={`Ciudad, estado y agencia de ${courier} donde vas a retirar. Ej: Maracaibo, Zulia — agencia Bella Vista.`}
+                    className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40 resize-none"
+                  />
+                  <span className="mt-1.5 block text-xs text-ink-soft">
+                    Si no sabes cuál te queda cerca, escribe tu ciudad y la
+                    buscamos contigo por WhatsApp.
+                  </span>
+                </label>
+              ) : (
+                <label className="block">
+                  <span className="text-xs font-bold uppercase tracking-wide text-ink-soft">
+                    {isDelivery ? "Dirección de entrega" : "Punto de encuentro"}
+                  </span>
+                  <textarea
+                    value={address}
+                    onChange={(e) => setAddress(e.target.value)}
+                    rows={3}
+                    placeholder={
+                      isDelivery
+                        ? "Calle, edificio o quinta, piso/apto y punto de referencia..."
+                        : "¿Dónde te queda cómodo encontrarnos?"
+                    }
+                    className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40 resize-none"
+                  />
+                </label>
+              )}
 
               {isDelivery && (
                 <div className="rounded-xl bg-surface border border-ink/10 px-4 py-3 text-sm">
@@ -585,22 +754,32 @@ export default function CartDrawer() {
                   Entrega
                 </p>
                 <p>
-                  {isDelivery
-                    ? `Delivery — ${zone?.name}`
-                    : "Pickup / punto de encuentro"}
+                  {isNacional
+                    ? `Envío nacional — ${courier}`
+                    : isDelivery
+                      ? `Delivery — ${zone?.name}`
+                      : "Pickup / punto de encuentro"}
                 </p>
-                <p className="text-ink-soft">{address}</p>
+                <p className="text-ink-soft">
+                  {isNacional ? agency : address}
+                </p>
                 {isDelivery && (
                   <p className="text-ink-soft mt-1">
                     📍 Recuerda enviarnos tu ubicación GPS por WhatsApp.
                   </p>
                 )}
+                {isNacional && (
+                  <p className="text-ink-soft mt-1">
+                    El flete lo pagas en la agencia al retirar.
+                  </p>
+                )}
               </div>
               <div>
                 <p className="text-xs font-bold uppercase tracking-wide text-ink-soft mb-1">
-                  Datos
+                  {isNacional ? "Quien recibe" : "Datos"}
                 </p>
                 <p>{name}</p>
+                {isNacional && <p className="text-ink-soft">CI {idCard}</p>}
                 <p>{phone}</p>
               </div>
               <div>
