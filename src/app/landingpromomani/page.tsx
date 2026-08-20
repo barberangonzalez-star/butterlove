@@ -116,15 +116,21 @@ export default async function LandingPromoMani() {
   return (
     // El espacio de abajo es del botón flotante: sin él, tapa el cierre.
     <div className="mx-auto max-w-xl pb-32">
-      {/* El anuncio, tal cual se reparte: la pieza ya trae el nombre de la
-          promo y el "ahorra hasta 15%", así que quien llega desde el aviso
-          reconoce de una que cayó donde debía. Va en 4:5 —su proporción
-          real— para que no se recorte ninguna letra. */}
+      {/* Abre con la pieza del precio: dice el antes y el después del frasco
+          en números grandes, que es lo primero que alguien quiere saber cuando
+          llega desde un anuncio de descuento. Va en 4:5 —su proporción real—
+          para que no se recorte ninguna letra.
+
+          Ojo al mantenerla: los números de la imagen están escritos a mano
+          adentro y los de la página salen de la base de datos. Hoy coinciden
+          —$5.66 el frasco llevando tres, contra $6.99 suelto—, pero si cambia
+          un precio en el panel la página se actualiza sola y la imagen no.
+          Cualquier cambio de precio obliga a rehacer esta pieza. */}
       <section className="px-3 pt-3">
         <div className="relative overflow-hidden torn-card aspect-[4/5]">
           <Image
-            src="/hero/promo-mani.jpg"
-            alt="Promo mantequilla de maní Butter Love: ahorra hasta 15% en tu compra"
+            src="/hero/promo-mani-precio.jpg"
+            alt="20% de descuento en mantequilla de maní Butter Love: antes $7, ahora $5.66 el frasco por la compra de tres unidades"
             fill
             priority
             sizes="(max-width: 640px) 100vw, 576px"
@@ -287,15 +293,18 @@ export default async function LandingPromoMani() {
         </p>
       </section>
 
-      {/* La foto corta la página justo donde termina el argumento y empieza el
-          uso diario. Los maníes sueltos alrededor cuentan solos lo que la
-          etiqueta dice con letras, y de paso quien venía bajando por texto
-          seguido se encuentra algo que mirar antes del último tramo. */}
+      {/* La segunda pieza de la campaña, donde termina el argumento y empieza
+          el uso diario: quien bajó leyendo se reencuentra con la promo justo
+          antes del último tramo, sin tener que volver arriba a recordarla.
+
+          Va en 4:5, su proporción, y sin `priority`: está muy por debajo del
+          pliegue y cargarla de urgencia le quitaría ancho de banda a la de
+          arriba, que sí es lo primero que se ve. */}
       <section className="px-3 pb-14">
-        <div className="relative overflow-hidden torn-card aspect-square">
+        <div className="relative overflow-hidden torn-card aspect-[4/5]">
           <Image
-            src="/hero/duo-mani-azul.jpg"
-            alt="Dos frascos de mantequilla de maní Butter Love rodeados de maníes"
+            src="/hero/promo-mani-20.jpg"
+            alt="Promo mantequilla de maní Butter Love: ahorra hasta 20% en tu compra"
             fill
             sizes="(max-width: 640px) 100vw, 576px"
             className="object-cover"
