@@ -8,7 +8,7 @@ import {
   DELIVERY_METHODS,
   NATIONAL_COURIERS,
 } from "@/lib/config";
-import HeroVideo from "./_components/HeroVideo";
+import PromoVideo from "./_components/PromoVideo";
 import PromoBuy from "./_components/PromoBuy";
 import { buildPacks, PACK_KEYS } from "./packs";
 
@@ -106,14 +106,8 @@ const faqs = [
 export default async function LandingPromoMani() {
   const products = await getProductsByKeys(PACK_KEYS);
   const packs = buildPacks(products);
-  const unitPack = packs.find((p) => p.jars === 1);
-  // Dos maneras de ser el mejor pack, y no siempre las gana el mismo: el que
-  // deja el frasco más barato titula el precio, y el que más plata ahorra
-  // cierra la página. Los dos salen de los precios reales.
-  const bestPack = packs.reduce<(typeof packs)[number] | undefined>(
-    (best, p) => (!best || p.perJar < best.perJar ? p : best),
-    undefined,
-  );
+  // El pack que más plata ahorra, sacado de los precios reales: es el que
+  // firma el botón del argumento y el que cierra la página.
   const topSaver = packs.reduce<(typeof packs)[number] | undefined>(
     (best, p) => (p.saved > (best?.saved ?? 0) ? p : best),
     undefined,
@@ -122,63 +116,41 @@ export default async function LandingPromoMani() {
   return (
     // El espacio de abajo es del botón flotante: sin él, tapa el cierre.
     <div className="mx-auto max-w-xl pb-32">
-      {/* El video va solo: nada de texto encima. El titular y la oferta van
-          justo debajo, sobre fondo propio, para que ni la letra compita con el
-          frasco ni el frasco se lea peor por el degradado. En 16:9 no se
-          recorta ningún cuadro, y de paso el precio entra en la primera
-          pantalla del teléfono. */}
+      {/* El anuncio, tal cual se reparte: la pieza ya trae el nombre de la
+          promo y el "ahorra hasta 15%", así que quien llega desde el aviso
+          reconoce de una que cayó donde debía. Va en 4:5 —su proporción
+          real— para que no se recorte ninguna letra. */}
       <section className="px-3 pt-3">
-        <HeroVideo />
+        <div className="relative overflow-hidden torn-card aspect-[4/5]">
+          <Image
+            src="/hero/promo-mani.jpg"
+            alt="Promo mantequilla de maní Butter Love: ahorra hasta 15% en tu compra"
+            fill
+            priority
+            sizes="(max-width: 640px) 100vw, 576px"
+            className="object-cover"
+          />
+        </div>
       </section>
 
-      {/* La oferta arranca aquí, no después de los beneficios: precio,
-          ahorro y llamado a la acción van en el primer scroll. */}
-      <section className="px-4 pt-7">
-        <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">
-          Precio especial por este enlace
-        </p>
-        <h1 className="font-display font-700 text-4xl sm:text-5xl text-ink mt-2">
-          Mantequilla de maní que solo lleva maní
-        </h1>
-        <p className="mt-3 text-ink-soft leading-relaxed">
-          Tostado y molido despacio hasta quedar cremoso. Un ingrediente, cero
-          azúcar agregada, hecha a mano en tandas pequeñas.
-        </p>
+      {/* La frase y el botón, y nada más. El titular, el párrafo y el precio
+          que había acá se fueron: la imagen de arriba ya los dice, y repetirlos
+          debajo era leer dos veces lo mismo antes de llegar al botón.
 
-        {/* El precio tachado es el del frasco suelto: sólo tiene sentido
-            enseñarlo si de verdad hay un combo que lo baja. */}
-        {bestPack && (
-          <p className="mt-4 text-ink font-display font-700 text-lg">
-            Desde ${bestPack.perJar.toFixed(2)} el frasco de 230g{" "}
-            {unitPack && bestPack.jars > 1 && (
-              <span className="font-body font-400 text-sm text-ink-soft line-through">
-                ${unitPack.price.toFixed(2)}
-              </span>
-            )}
-          </p>
-        )}
-        {topSaver && topSaver.jars > 1 && (
-          <p className="mt-1 text-sm font-semibold text-ink-soft">
-            Llévate {topSaver.jars} y ahorra ${topSaver.saved.toFixed(2)} frente
-            a comprarlos sueltos.
-          </p>
-        )}
+          Va de `h1` aunque sea corta. Es el único titular que queda en la
+          página, y sin él quien navega con lector de pantalla se encuentra un
+          documento que empieza sin nombre. */}
+      <section className="px-4 pt-7 text-center">
+        <h1 className="font-display font-700 text-3xl sm:text-4xl text-ink">
+          Sin azúcar 100% maní
+        </h1>
 
         <a
           href="#combos"
-          className="mt-5 block rounded-full bg-ink text-cream px-6 py-4 text-center font-bold hover:opacity-85 transition-opacity"
+          className="mt-5 block rounded-full bg-ink text-cream px-6 py-4 font-bold hover:opacity-85 transition-opacity"
         >
-          Ver combos y precios
+          Ver Combos
         </a>
-
-        {/* Las dudas que frenan una compra por anuncio —cómo pago, cómo me
-            llega— contestadas junto al botón y no doce pantallas más abajo,
-            que es donde estaban. */}
-        <p className="mt-3 text-center text-sm text-ink-soft leading-relaxed">
-          Pides por WhatsApp y pagas al confirmar con{" "}
-          {PAYMENT_METHODS.join(", ")}. Delivery en Caracas y envío a todo el
-          país.
-        </p>
       </section>
 
       {/* Lo que la marca promete, en cuatro palabras que se leen sin bajar.
@@ -209,20 +181,14 @@ export default async function LandingPromoMani() {
           pena, para quien todavía no ha decidido. */}
       <PromoBuy packs={packs} />
 
-      {/* Justo después del precio: lo que se acaba de elegir, en la mesa. El
-          hueco que quedaba entre el botón y el título siguiente era espacio
-          muerto, y esta foto lo aprovecha para volver a enseñar el producto
-          cuando el cliente todavía está decidiendo. */}
+      {/* El video, justo después del precio. Acá estaba la foto de los frascos
+          sobre la tabla, que es la misma toma con la que está armado el anuncio
+          de arriba: enseñarla otra vez a media página era repetir la portada.
+          El video sí aporta algo que ninguna foto de la página tiene, que es
+          ver la crema caer, y llega en el momento en que el cliente acaba de
+          ver el precio y todavía está decidiendo. */}
       <section className="px-3">
-        <div className="relative overflow-hidden torn-card aspect-square">
-          <Image
-            src="/hero/duo-mani-tabla.jpg"
-            alt="Dos frascos de mantequilla de maní Butter Love sobre una tabla de madera"
-            fill
-            sizes="(max-width: 640px) 100vw, 576px"
-            className="object-cover"
-          />
-        </div>
+        <PromoVideo />
       </section>
 
       <section className="px-4 py-14">
