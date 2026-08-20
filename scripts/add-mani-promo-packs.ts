@@ -1,7 +1,7 @@
 /**
  * Los packs de maní de la landing /landingpromomani.
  *
- * Sube el Dúo Maní a $12.99 y agrega el Trío Maní a $17.99. El trío nace
+ * Sube el Dúo Maní a $12.99 y agrega el Trío Maní a $16.99. El trío nace
  * fuera de la vitrina (`in_store = false`): la promo se vende sólo por el link
  * de la landing, así que no aparece en la tienda, ni en el sitemap, ni tiene
  * página pública. Existir como producto sí importa: así el pedido de WhatsApp
@@ -12,9 +12,13 @@
  * dos precios distintos para el mismo producto es la clase de detalle que un
  * cliente encuentra antes que uno.
  *
- * Los tres precios forman escalera —$6.99, $6.50 y $6.00 el frasco—: cada
+ * Los tres precios forman escalera —$6.99, $6.50 y $5.66 el frasco—: cada
  * pack tiene que dejar el frasco más barato que el anterior, o el de tres no
  * da ninguna razón para llevarlo.
+ *
+ * El precio del trío se cambia acá y no sólo en la base: la última consulta lo
+ * fija, así que un script con el número viejo revierte el cambio la próxima vez
+ * que alguien lo corra.
  *
  * Idempotente: se puede correr varias veces.
  *
@@ -39,7 +43,7 @@ const TRIO = {
   bgClass: "bg-mani-bg",
   accentHex: "#F3B94D",
   grams: 690,
-  price: "17.99",
+  price: "16.99",
   sortOrder: 8,
 };
 
