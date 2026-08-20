@@ -239,7 +239,11 @@ export default async function LandingPromoMani() {
               desproporción es el argumento, así que el aire que sobra queda a
               la vista en vez de repartirse. */}
           <div className="rounded-3xl bg-mani-bg p-5 flex flex-col">
-            <p className="font-display font-700 text-ink">Lleva</p>
+            {/* "Lo que sí" y no "Lleva": abajo hay un ingrediente y un
+                proceso, y "lleva" los cuenta a los dos como si fueran cosas
+                metidas en el frasco. Eso pelearía con el renglón de arriba,
+                que es el argumento más fuerte de la página: esta tiene uno. */}
+            <p className="font-display font-700 text-ink">Lo que sí</p>
             <ul className="mt-3 space-y-2 text-sm font-semibold text-ink">
               {["Maní premium seleccionado", "Proceso de extracción dedicado"].map(
                 (item) => (
