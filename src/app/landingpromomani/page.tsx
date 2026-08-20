@@ -407,14 +407,19 @@ export default async function LandingPromoMani() {
           Alineado a la izquierda, no centrado: los cuatro renglones arrancan
           todos en la misma vertical, que es la que sigue el ojo al bajar. */}
       <section className="px-3 pb-10">
-        <div className="rounded-[34px] bg-mani-bg p-6 sm:p-8 flex items-center gap-3 sm:gap-6">
+        {/* El margen interno de la izquierda es casi nada: el frasco arranca
+            pegado al borde y crece hacia adentro del recuadro en vez de
+            comerse la columna del texto. Así entra más grande de lo que
+            entraría respetando el margen, y al texto le queda el mismo ancho
+            que tenía con el frasco chico. */}
+        <div className="rounded-[34px] bg-mani-bg py-6 pl-2 pr-6 sm:py-8 sm:pl-3 sm:pr-8 flex items-center gap-3 sm:gap-4">
           <Image
             src="/products/mani.png"
             alt=""
             aria-hidden="true"
-            width={256}
-            height={256}
-            className="shrink-0 w-20 sm:w-32 h-auto drop-shadow-lg"
+            width={384}
+            height={384}
+            className="shrink-0 w-24 sm:w-44 h-auto drop-shadow-lg"
           />
 
           <div className="min-w-0">
@@ -432,8 +437,11 @@ export default async function LandingPromoMani() {
             >
               Elegir mi combo
             </a>
+            {/* "¿Dudas?" y no "¿Dudas antes de pedir?": las tres palabras que
+                sobran eran justo las que partían el renglón en dos y obligaban
+                a dejar el frasco chico. */}
             <p className="mt-4 text-sm text-ink/70 leading-relaxed">
-              ¿Dudas antes de pedir?{" "}
+              ¿Dudas?{" "}
               <a
                 href={WHATSAPP_LINK}
                 target="_blank"
