@@ -287,6 +287,22 @@ export default async function LandingPromoMani() {
         </p>
       </section>
 
+      {/* La foto corta la página justo donde termina el argumento y empieza el
+          uso diario. Los maníes sueltos alrededor cuentan solos lo que la
+          etiqueta dice con letras, y de paso quien venía bajando por texto
+          seguido se encuentra algo que mirar antes del último tramo. */}
+      <section className="px-3 pb-14">
+        <div className="relative overflow-hidden torn-card aspect-square">
+          <Image
+            src="/hero/duo-mani-azul.jpg"
+            alt="Dos frascos de mantequilla de maní Butter Love rodeados de maníes"
+            fill
+            sizes="(max-width: 640px) 100vw, 576px"
+            className="object-cover"
+          />
+        </div>
+      </section>
+
       {/* Cuatro maneras, sin cuatro tarjetas: el emoji ya separa un renglón
           del otro sin que haga falta pintarle un fondo detrás. */}
       <section className="px-4 pb-14">
@@ -345,22 +361,6 @@ export default async function LandingPromoMani() {
               <p className="mt-2 text-ink-soft leading-relaxed">{f.a}</p>
             </details>
           ))}
-        </div>
-      </section>
-
-      {/* La última imagen antes de la última pregunta. Va pegada al cierre a
-          propósito: el que llegó hasta acá ya leyó todos los argumentos, y lo
-          que falta no es un dato más sino volver a ver el frasco. Los maníes
-          sueltos alrededor cuentan solos lo que la etiqueta dice con letras. */}
-      <section className="px-3 pb-4">
-        <div className="relative overflow-hidden torn-card aspect-square">
-          <Image
-            src="/hero/duo-mani-azul.jpg"
-            alt="Dos frascos de mantequilla de maní Butter Love rodeados de maníes"
-            fill
-            sizes="(max-width: 640px) 100vw, 576px"
-            className="object-cover"
-          />
         </div>
       </section>
 
