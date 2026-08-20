@@ -398,33 +398,52 @@ export default async function LandingPromoMani() {
         </div>
       </section>
 
+      {/* El frasco a la izquierda y el texto alineado contra él. Es el mismo
+          recorte que usan las tarjetas de combo, y no otra foto: al venir
+          justo debajo de una fotografía de dos frascos, una tercera fotografía
+          sería la misma imagen dos veces, mientras que el recorte se lee como
+          parte del recuadro y no como una imagen aparte.
+
+          Alineado a la izquierda, no centrado: los cuatro renglones arrancan
+          todos en la misma vertical, que es la que sigue el ojo al bajar. */}
       <section className="px-3 pb-10">
-        <div className="rounded-[34px] bg-mani-bg px-6 py-12 text-center">
-          <h2 className="font-display font-700 text-3xl text-ink">
-            Un frasco no dura lo que crees
-          </h2>
-          <p className="mt-3 text-ink/75 leading-relaxed">
-            {topSaver && topSaver.jars > 1
-              ? `Por eso el combo de ${topSaver.jars} te ahorra $${topSaver.saved.toFixed(2)}.`
-              : "Llévate el tuyo antes de que se acabe la tanda."}
-          </p>
-          <a
-            href="#combos"
-            className="mt-6 inline-block rounded-full bg-ink text-cream px-8 py-4 font-bold hover:opacity-85 transition-opacity"
-          >
-            Elegir mi combo
-          </a>
-          <p className="mt-5 text-sm text-ink/70">
-            ¿Dudas antes de pedir?{" "}
+        <div className="rounded-[34px] bg-mani-bg p-6 sm:p-8 flex items-center gap-3 sm:gap-6">
+          <Image
+            src="/products/mani.png"
+            alt=""
+            aria-hidden="true"
+            width={256}
+            height={256}
+            className="shrink-0 w-20 sm:w-32 h-auto drop-shadow-lg"
+          />
+
+          <div className="min-w-0">
+            <h2 className="font-display font-700 text-2xl sm:text-3xl text-ink">
+              Un frasco no dura lo que crees
+            </h2>
+            <p className="mt-2 text-sm sm:text-base text-ink/75 leading-relaxed">
+              {topSaver && topSaver.jars > 1
+                ? `Por eso el combo de ${topSaver.jars} te ahorra $${topSaver.saved.toFixed(2)}.`
+                : "Llévate el tuyo antes de que se acabe la tanda."}
+            </p>
             <a
-              href={WHATSAPP_LINK}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="font-semibold underline underline-offset-2"
+              href="#combos"
+              className="mt-5 inline-block rounded-full bg-ink text-cream px-7 py-3.5 font-bold hover:opacity-85 transition-opacity"
             >
-              Escríbenos por WhatsApp
+              Elegir mi combo
             </a>
-          </p>
+            <p className="mt-4 text-sm text-ink/70 leading-relaxed">
+              ¿Dudas antes de pedir?{" "}
+              <a
+                href={WHATSAPP_LINK}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-semibold underline underline-offset-2"
+              >
+                Escríbenos por WhatsApp
+              </a>
+            </p>
+          </div>
         </div>
       </section>
 
