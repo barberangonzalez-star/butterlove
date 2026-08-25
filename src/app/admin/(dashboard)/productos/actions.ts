@@ -28,6 +28,9 @@ function parseProductForm(formData: FormData): ProductInput {
     tagline: String(formData.get("tagline") ?? "").trim(),
     description: String(formData.get("description") ?? "").trim(),
     image: String(formData.get("image") ?? "").trim(),
+    // Igual que `inStore`: un checkbox sin marcar no viaja en el FormData, y
+    // su ausencia es "la foto trae su propio fondo".
+    imageCutout: formData.get("imageCutout") === "on",
     heroImage: String(formData.get("heroImage") ?? "").trim(),
     bgClass: String(formData.get("bgClass") ?? "").trim(),
     accentHex: String(formData.get("accentHex") ?? "").trim(),

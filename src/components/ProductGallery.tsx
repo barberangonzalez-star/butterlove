@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Product, isCombo, productTitle } from "@/lib/products";
+import { Product, productTitle } from "@/lib/products";
 
 /**
  * La galería de la ficha: miniaturas a un lado y la foto grande al centro,
@@ -15,9 +15,9 @@ export default function ProductGallery({ product }: { product: Product }) {
   const title = productTitle(product);
 
   // El recorte del frasco no trae fondo: necesita el color de la tarjeta
-  // detrás. Las fotos de combo y de ambiente traen el suyo y llenan el marco.
+  // detrás. Las fotos con su propio fondo y las de ambiente llenan el marco.
   const shots = [
-    { src: product.image, cutout: !isCombo(product) },
+    { src: product.image, cutout: product.imageCutout },
     { src: product.heroImage, cutout: false },
   ].filter((shot, i, all) => all.findIndex((s) => s.src === shot.src) === i);
 

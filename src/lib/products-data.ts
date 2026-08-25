@@ -16,6 +16,7 @@ function toProduct(row: ProductRow, sizes: SizeRow[]): Product {
     tagline: row.tagline,
     description: row.description,
     image: row.image,
+    imageCutout: row.imageCutout,
     heroImage: row.heroImage,
     bgClass: row.bgClass,
     accentHex: row.accentHex,
@@ -121,6 +122,7 @@ function toAdminProduct(row: ProductRow, sizeRows: SizeRow[]): AdminProduct {
     tagline: row.tagline,
     description: row.description,
     image: row.image,
+    imageCutout: row.imageCutout,
     heroImage: row.heroImage,
     bgClass: row.bgClass,
     accentHex: row.accentHex,
@@ -183,6 +185,7 @@ export interface ProductInput {
   tagline: string;
   description: string;
   image: string;
+  imageCutout: boolean;
   heroImage: string;
   bgClass: string;
   accentHex: string;
@@ -242,6 +245,7 @@ export async function createProduct(input: ProductInput) {
       tagline: input.tagline,
       description: input.description,
       image: input.image,
+      imageCutout: input.imageCutout,
       heroImage: input.heroImage,
       bgClass: input.bgClass,
       accentHex: input.accentHex,
@@ -265,6 +269,7 @@ export async function updateProduct(id: number, input: ProductInput) {
       tagline: input.tagline,
       description: input.description,
       image: input.image,
+      imageCutout: input.imageCutout,
       heroImage: input.heroImage,
       bgClass: input.bgClass,
       accentHex: input.accentHex,

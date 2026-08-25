@@ -22,6 +22,17 @@ export const products = pgTable("products", {
   tagline: text("tagline").notNull(),
   description: text("description").notNull(),
   image: text("image").notNull(),
+  /**
+   * Si `image` es un recorte del frasco sin fondo. Los recortes se dibujan
+   * sobre el color del sabor —flotando, con las burbujas detrás— y las fotos
+   * que traen su propio fondo llenan la tarjeta enteras.
+   *
+   * Antes esto se deducía de `kind`: los sabores sueltos eran recortes y los
+   * combos fotos. Dejó de ser cierto en cuanto un sabor suelto llegó con su
+   * foto de estudio, y una tarjeta con la foto encogida sobre el color de al
+   * lado se ve como un cuadro mal pegado.
+   */
+  imageCutout: boolean("image_cutout").notNull().default(true),
   heroImage: text("hero_image").notNull(),
   bgClass: text("bg_class").notNull(),
   accentHex: text("accent_hex").notNull(),

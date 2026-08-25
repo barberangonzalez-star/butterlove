@@ -124,6 +124,25 @@ export default function ProductForm({
             />
           </Field>
 
+          <label className="flex items-start gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              name="imageCutout"
+              defaultChecked={product?.imageCutout ?? true}
+              className="mt-0.5 shrink-0"
+            />
+            <span>
+              <span className="block text-sm font-medium">
+                La foto es un recorte sin fondo
+              </span>
+              <span className="block text-xs text-[#787774] mt-0.5">
+                El frasco recortado se dibuja flotando sobre el color del
+                sabor. Desmárcalo si la foto trae su propio fondo: entonces
+                llena la tarjeta entera, como las de los dúos.
+              </span>
+            </span>
+          </label>
+
           <Field label="Imagen hero (ruta o URL)">
             <input
               name="heroImage"

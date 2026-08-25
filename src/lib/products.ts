@@ -15,6 +15,8 @@ export interface Product {
   tagline: string;
   description: string;
   image: string;
+  /** Si `image` es un recorte sin fondo, en vez de una foto con el suyo. */
+  imageCutout: boolean;
   heroImage: string;
   bgClass: string;
   accentHex: string;

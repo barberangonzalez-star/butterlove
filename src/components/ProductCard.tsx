@@ -37,10 +37,10 @@ export default function ProductCard({ product }: { product: Product }) {
           </span>
         </div>
 
-        {/* Los sabores sueltos son recortes sin fondo, así que flotan sobre el
-            color de la tarjeta con las burbujas detrás. Las fotos de combo
-            traen su propio fondo: ahí la foto es la tarjeta. */}
-        {isCombo(product) ? (
+        {/* Los recortes sin fondo flotan sobre el color de la tarjeta, con las
+            burbujas detrás. Las fotos que traen su propio fondo —los combos, y
+            los sabores que llegan fotografiados en estudio— son la tarjeta. */}
+        {!product.imageCutout ? (
           <Image
             src={product.image}
             alt={`${title} Butter Love ${sizeLabel(product, size)}`}

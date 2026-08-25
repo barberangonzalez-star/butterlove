@@ -100,11 +100,11 @@ async function main() {
   for (const combo of combos) {
     const [row] = await sql`
       insert into products
-        (key, name, kind, tagline, description, image, hero_image, bg_class,
-         accent_hex, badges, sort_order)
+        (key, name, kind, tagline, description, image, image_cutout,
+         hero_image, bg_class, accent_hex, badges, sort_order)
       values
         (${combo.key}, ${combo.name}, 'combo', ${combo.tagline},
-         ${combo.description}, ${combo.image}, ${combo.heroImage},
+         ${combo.description}, ${combo.image}, false, ${combo.heroImage},
          ${combo.bgClass}, ${combo.accentHex},
          ${JSON.stringify(COMBO_BADGES)}::jsonb, ${combo.sortOrder})
       on conflict (key) do update set
@@ -113,6 +113,9 @@ async function main() {
         tagline = excluded.tagline,
         description = excluded.description,
         image = excluded.image,
+        -- Las fotos de los dúos traen su propio fondo y llenan la tarjeta
+        -- enteras, en vez de flotar sobre el color del sabor.
+        image_cutout = excluded.image_cutout,
         hero_image = excluded.hero_image,
         bg_class = excluded.bg_class,
         accent_hex = excluded.accent_hex,

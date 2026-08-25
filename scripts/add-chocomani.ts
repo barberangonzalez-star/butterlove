@@ -23,9 +23,11 @@ const product = {
   tagline: "Maní y cacao, sin azúcar agregada.",
   description:
     "Nuestra mantequilla de maní con cacao, molida igual de despacio: maní tostado y cacao, sin azúcar agregada.",
-  // El recorte sin fondo va en la tarjeta, sobre el color del sabor; la foto
-  // de los dos frascos es la de ambiente, y es la misma que abre el carrusel.
-  image: "/products/chocomani.png",
+  // La foto del frasco sobre el fondo azul es la del producto: llena la
+  // tarjeta entera, así que no es un recorte. La de los dos frascos es la de
+  // ambiente, y es la misma que abre el carrusel.
+  image: "/products/chocomani.jpg",
+  imageCutout: false,
   heroImage: "/hero/chocomani.jpg",
   bgClass: "bg-neutro-a-bg",
   accentHex: "#D8C9A8",
@@ -55,15 +57,18 @@ async function main() {
   // `add-combo-products.ts`. El default `true` deja los productos existentes
   // en la tienda tal como estaban.
   await sql`alter table products add column if not exists in_store boolean not null default true`;
+  // La marca de recorte la crea `migrate-image-cutout.ts`; acá se agrega por si
+  // este script corre primero en una base recién levantada.
+  await sql`alter table products add column if not exists image_cutout boolean not null default true`;
 
   const [row] = await sql`
     insert into products
-      (key, name, kind, tagline, description, image, hero_image, bg_class,
-       accent_hex, badges, in_store, sort_order)
+      (key, name, kind, tagline, description, image, image_cutout, hero_image,
+       bg_class, accent_hex, badges, in_store, sort_order)
     values
       (${product.key}, ${product.name}, 'single', ${product.tagline},
-       ${product.description}, ${product.image}, ${product.heroImage},
-       ${product.bgClass}, ${product.accentHex},
+       ${product.description}, ${product.image}, ${product.imageCutout},
+       ${product.heroImage}, ${product.bgClass}, ${product.accentHex},
        ${JSON.stringify(product.badges)}::jsonb,
        true, ${VITRINA.indexOf(product.key)})
     on conflict (key) do update set
@@ -72,6 +77,7 @@ async function main() {
       tagline = excluded.tagline,
       description = excluded.description,
       image = excluded.image,
+      image_cutout = excluded.image_cutout,
       hero_image = excluded.hero_image,
       bg_class = excluded.bg_class,
       accent_hex = excluded.accent_hex,
