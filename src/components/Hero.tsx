@@ -33,6 +33,36 @@ interface Slide {
 
 const VER_PRODUCTOS = { href: "#productos", label: "Ver productos" };
 
+/**
+ * Por dónde recortar la foto de cada sabor, que es lo que decide qué se ve
+ * cuando no cabe entera.
+ *
+ * En el teléfono la tarjeta es vertical y la foto apaisada: se le van los
+ * costados, más de la mitad del ancho. Y en estas fotos el frasco no está en
+ * el medio sino a la derecha —la izquierda es el aire donde vuela el fruto—,
+ * así que el recorte centrado se lo parte. El número es el de
+ * `object-position`: 50% es el centro y 100% arrima la foto a su borde
+ * derecho, que es donde está el producto.
+ *
+ * En pantalla ancha pasa al revés y sobra alto, así que casi todas se quedan
+ * centradas: sólo Chocomaní, que es un primer plano de los frascos parados
+ * sobre la mesa, necesita correrse hacia abajo para no perder la base.
+ *
+ * Las clases van escritas enteras y no armadas con plantillas: Tailwind sólo
+ * genera las que encuentra literales en el código, igual que pasa con los
+ * colores de `product-swatches.ts`.
+ */
+const FRAMING: Record<string, string> = {
+  mani: "object-[65%_50%] sm:object-center",
+  pistacho: "object-[80%_50%] sm:object-center",
+  almendras: "object-[80%_50%] sm:object-center",
+  merey: "object-[65%_50%] sm:object-center",
+  chocomani: "object-[78%_50%] sm:object-[50%_70%]",
+};
+
+/** Una foto sin encuadre anotado se centra, que es lo que hacía el banner. */
+const FRAMING_DEFAULT = "object-center";
+
 export default function Hero({ announcement }: { announcement?: Product }) {
   const catalog = useProducts();
   // El banner rota entre sabores: los combos no tienen foto hero propia y su
@@ -60,13 +90,7 @@ export default function Hero({ announcement }: { announcement?: Product }) {
       key: announcement.key,
       name: announcement.name,
       image: announcement.heroImage,
-      // La foto del anuncio es un primer plano de los dos frascos parados
-      // sobre la mesa, y cada pantalla le sobra por un lado distinto. En
-      // pantalla ancha sobra alto: recortada por el centro se les va la base,
-      // corrida hacia abajo entran enteros —del todo abajo ya les cortaba la
-      // tapa—. En el teléfono sobra ancho: corrida a la derecha, el frasco de
-      // adelante entra completo en vez de quedar partido.
-      imagePosition: "object-[78%_50%] sm:object-[50%_70%]",
+      imagePosition: FRAMING[announcement.key] ?? FRAMING_DEFAULT,
       alt: `Butter Love ${announcement.name} — mantequilla artesanal`,
       eyebrow: "Nuevo sabor",
       // En el teléfono el titular se queda en "Nueva Chocomaní": con el
@@ -96,7 +120,7 @@ export default function Hero({ announcement }: { announcement?: Product }) {
       key: product.key,
       name: product.name,
       image: product.heroImage,
-      imagePosition: "object-center",
+      imagePosition: FRAMING[product.key] ?? FRAMING_DEFAULT,
       alt: `Butter Love ${product.name} — mantequilla artesanal`,
       eyebrow:
         product.key === "mani" && promoPrice
@@ -117,8 +141,13 @@ export default function Hero({ announcement }: { announcement?: Product }) {
         ) : (
           <>
             Mantequilla de {product.name}
-            <br />
-            {product.tagline}
+            {/* La frase de abajo es de pantalla ancha. En el teléfono el
+                titular se iba a cuatro renglones —"Bienestar en cada
+                cucharada" ocupa dos— y terminaba tapando el frasco. */}
+            <span className="hidden sm:inline">
+              <br />
+              {product.tagline}
+            </span>
           </>
         ),
       cta: VER_PRODUCTOS,
