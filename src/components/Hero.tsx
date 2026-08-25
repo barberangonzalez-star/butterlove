@@ -1,41 +1,123 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import Image from "next/image";
 import { useProducts } from "@/lib/products-context";
-import { isCombo } from "@/lib/products";
+import { isCombo, type Product } from "@/lib/products";
+import { WHATSAPP_LINK } from "@/lib/config";
 
 /** El combo que anuncia el banner de maní, y el envase con el que se arma. */
 const PROMO_KEY = "duo-mani";
 const PROMO_JARS = 2;
 const PROMO_GRAMS = 460;
 
-export default function Hero() {
+/** Una lámina del carrusel: la foto de fondo y el texto que va encima. */
+interface Slide {
+  key: string;
+  /** Inicial del botón redondo, y su nombre para lectores de pantalla. */
+  name: string;
+  image: string;
+  alt: string;
+  eyebrow: string;
+  title: ReactNode;
+  cta: { href: string; label: string };
+}
+
+const VER_PRODUCTOS = { href: "#productos", label: "Ver productos" };
+
+export default function Hero({ announcement }: { announcement?: Product }) {
   const catalog = useProducts();
   // El banner rota entre sabores: los combos no tienen foto hero propia y su
   // nombre no encaja en el titular, así que se quedan fuera del selector.
   const products = catalog.filter((p) => !isCombo(p));
-  const [active, setActive] = useState<string>(products[0]?.key ?? "");
-  const product = products.find((p) => p.key === active);
 
-  // El precio del combo sale del catálogo y no escrito a mano en el titular.
-  // Estuvo en $10 mucho después de subir a $12.99, porque cambiarlo en el
-  // panel no tocaba esta línea: el banner prometía un precio que el carrito
-  // ya no hacía. Así el titular no puede desfasarse de lo que se cobra.
+  // Los precios salen del catálogo y no escritos a mano en el titular.
+  // El del combo estuvo en $10 mucho después de subir a $12.99, porque
+  // cambiarlo en el panel no tocaba esta línea: el banner prometía un precio
+  // que el carrito ya no hacía. Así el titular no puede desfasarse.
   const promoPrice = catalog
     .find((p) => p.key === PROMO_KEY)
     ?.sizes.find((s) => s.grams === PROMO_GRAMS)?.price;
+  const announcementPrice = announcement?.sizes.length
+    ? Math.min(...announcement.sizes.map((s) => s.price))
+    : undefined;
 
-  if (!product) return null;
+  const slides: Slide[] = [];
+
+  // El anuncio del sabor nuevo va de primero. Sin precio o sin foto no hay
+  // nada que anunciar —el "desde" quedaría vacío y el banner sin fondo—, así
+  // que en ese caso el carrusel arranca en los sabores de siempre.
+  if (announcement && announcementPrice !== undefined && announcement.heroImage) {
+    slides.push({
+      key: announcement.key,
+      name: announcement.name,
+      image: announcement.heroImage,
+      alt: `Butter Love ${announcement.name} — mantequilla artesanal`,
+      eyebrow: "Nuevo sabor",
+      title: (
+        <>
+          Nueva mantequilla de {announcement.name}
+          <br />
+          desde {announcementPrice.toFixed(2)}$
+        </>
+      ),
+      // Un producto de sólo encargo no está en la vitrina: mandarlo a
+      // #productos sería un callejón sin salida, y se pide escribiendo.
+      cta: catalog.some((p) => p.key === announcement.key)
+        ? VER_PRODUCTOS
+        : { href: WHATSAPP_LINK, label: "Pedir por WhatsApp" },
+    });
+  }
+
+  for (const product of products) {
+    // Si algún día el sabor anunciado entra a la vitrina, sigue teniendo una
+    // sola lámina: la del anuncio, que ya va de primera.
+    if (slides.some((s) => s.key === product.key)) continue;
+    slides.push({
+      key: product.key,
+      name: product.name,
+      image: product.heroImage,
+      alt: `Butter Love ${product.name} — mantequilla artesanal`,
+      eyebrow:
+        product.key === "mani" && promoPrice
+          ? "Tiempo limitado"
+          : "Untado real, 100% natural",
+      // Sin precio no hay promo que anunciar: si el combo sale de la vitrina,
+      // el maní se titula como los demás sabores en vez de prometer un
+      // descuento que ya no existe.
+      title:
+        product.key === "mani" && promoPrice ? (
+          <>
+            Promo {PROMO_JARS} × {promoPrice.toFixed(2)}$
+            <br />
+            Mantequilla de maní
+          </>
+        ) : product.key === "pistacho" || product.key === "merey" ? (
+          <>Mantequilla de {product.name}</>
+        ) : (
+          <>
+            Mantequilla de {product.name}
+            <br />
+            {product.tagline}
+          </>
+        ),
+      cta: VER_PRODUCTOS,
+    });
+  }
+
+  const [active, setActive] = useState<string>(slides[0]?.key ?? "");
+  const slide = slides.find((s) => s.key === active);
+
+  if (!slide) return null;
 
   return (
     <section id="top" className="px-3 sm:px-5 pt-4">
       <div className="relative overflow-hidden torn-card min-h-[520px] sm:min-h-[600px] flex flex-col">
         {/* Foto real del banner, generada por producto */}
         <Image
-          key={product.key}
-          src={product.heroImage}
-          alt={`Butter Love ${product.name} — mantequilla artesanal`}
+          key={slide.key}
+          src={slide.image}
+          alt={slide.alt}
           fill
           priority
           sizes="100vw"
@@ -47,56 +129,37 @@ export default function Hero() {
 
         <div className="relative flex-1 flex flex-col justify-end px-6 sm:px-10 pb-8 pt-10">
           <p className="text-xs font-bold uppercase tracking-widest text-white/80 mb-2">
-            {active === "mani" && promoPrice
-              ? "Tiempo limitado"
-              : "Untado real, 100% natural"}
+            {slide.eyebrow}
           </p>
 
           <h1 className="font-display font-700 text-3xl sm:text-5xl text-white mb-6 max-w-lg drop-shadow">
-            {/* Sin precio no hay promo que anunciar: si el combo sale de la
-                vitrina, el maní se titula como los demás sabores en vez de
-                prometer un descuento que ya no existe. */}
-            {active === "mani" && promoPrice ? (
-              <>
-                Promo {PROMO_JARS} × {promoPrice.toFixed(2)}$
-                <br />
-                Mantequilla de maní
-              </>
-            ) : active === "pistacho" || active === "merey" ? (
-              <>Mantequilla de {product.name}</>
-            ) : (
-              <>
-                Mantequilla de {product.name}
-                <br />
-                {product.tagline}
-              </>
-            )}
+            {slide.title}
           </h1>
 
           <div className="flex items-end justify-between flex-wrap gap-4">
             <div className="flex flex-wrap gap-2">
-              {products.map((p) => (
+              {slides.map((s) => (
                 <button
-                  key={p.key}
-                  onClick={() => setActive(p.key)}
+                  key={s.key}
+                  onClick={() => setActive(s.key)}
                   className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-[11px] font-bold transition-all ${
-                    active === p.key
+                    active === s.key
                       ? "bg-white text-ink border-white"
                       : "bg-black/20 text-white border-white/40 hover:border-white"
                   }`}
-                  aria-label={p.name}
-                  title={p.name}
+                  aria-label={s.name}
+                  title={s.name}
                 >
-                  {p.name[0]}
+                  {s.name[0]}
                 </button>
               ))}
             </div>
 
             <a
-              href="#productos"
+              href={slide.cta.href}
               className="rounded-full bg-white text-ink px-6 py-3 font-bold text-sm uppercase tracking-wide hover:bg-cream transition-colors"
             >
-              Ver productos
+              {slide.cta.label}
             </a>
           </div>
         </div>

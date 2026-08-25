@@ -25,6 +25,14 @@ export const WHATSAPP_NUMBER = "584142856600";
 
 export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
 
+/**
+ * El sabor que anuncia el banner de la home, por su `key` del catálogo. Se
+ * nombra aquí y no en el componente porque quien lo busca en la base de datos
+ * es la página —el producto puede estar fuera de la vitrina—. Vacío, el
+ * carrusel arranca directo en los sabores de la tienda.
+ */
+export const HERO_ANNOUNCEMENT_KEY = "chocomani";
+
 export const PAYMENT_METHODS = ["Pago Móvil", "USD en efectivo", "Binance"];
 
 /**
