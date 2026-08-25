@@ -1,9 +1,15 @@
 /**
- * Agrega Chocomaní al catálogo como producto de sólo encargo: aparece en el
- * registro de ventas y en inventario, pero no en la vitrina.
+ * Chocomaní en el catálogo y en la vitrina.
+ *
+ * Nació como producto de sólo encargo —aparecía en ventas e inventario pero no
+ * en la tienda, y por eso no tenía fotos—. Ahora se vende como cualquier otro
+ * sabor: entra a la vitrina con su recorte y su foto de ambiente, detrás de
+ * Merey y delante de los dúos.
  *
  * Idempotente: se puede correr varias veces. El producto se inserta por `key`
- * y si ya existe sólo se actualizan sus datos y precios.
+ * y si ya existe sólo se actualizan sus datos y precios. Ojo con el orden: la
+ * lista de abajo es el orden de la vitrina completo, así que re-correrlo
+ * deshace los cambios de posición hechos a mano en el panel.
  *
  *   npx dotenv -e .env.local -- npx tsx scripts/add-chocomani.ts
  */
@@ -16,16 +22,32 @@ const product = {
   name: "Chocomaní",
   tagline: "Maní y cacao, sin azúcar agregada.",
   description:
-    "Nuestra mantequilla de maní con cacao, molida igual de despacio. Disponible por encargo.",
+    "Nuestra mantequilla de maní con cacao, molida igual de despacio: maní tostado y cacao, sin azúcar agregada.",
+  // El recorte sin fondo va en la tarjeta, sobre el color del sabor; la foto
+  // de los dos frascos es la de ambiente, y es la misma que abre el carrusel.
+  image: "/products/chocomani.png",
+  heroImage: "/hero/chocomani.jpg",
   bgClass: "bg-neutro-a-bg",
   accentHex: "#D8C9A8",
   badges: ["100% natural", "Hecho a mano", "Sin azúcar agregada"],
-  sortOrder: 8,
   sizes: [
     { grams: 230, price: "8.50" },
     { grams: 350, price: "10.00" },
   ],
 };
+
+/** El orden de la vitrina: primero los sabores sueltos, después los dúos. */
+const VITRINA = [
+  "mani",
+  "pistacho",
+  "almendras",
+  "merey",
+  "chocomani",
+  "duo-mani",
+  "duo-merey-mani",
+  "duo-almendras-merey",
+  "duo-pistacho-almendras",
+];
 
 async function main() {
   // La columna separa el catálogo de la vitrina. Va aquí y no en una migración
@@ -34,27 +56,27 @@ async function main() {
   // en la tienda tal como estaban.
   await sql`alter table products add column if not exists in_store boolean not null default true`;
 
-  // Sin fotos: el producto no se muestra en la tienda, y los campos son
-  // notNull, así que van vacíos en vez de apuntar a un archivo que no existe.
   const [row] = await sql`
     insert into products
       (key, name, kind, tagline, description, image, hero_image, bg_class,
        accent_hex, badges, in_store, sort_order)
     values
       (${product.key}, ${product.name}, 'single', ${product.tagline},
-       ${product.description}, '', '', ${product.bgClass},
-       ${product.accentHex}, ${JSON.stringify(product.badges)}::jsonb,
-       false, ${product.sortOrder})
+       ${product.description}, ${product.image}, ${product.heroImage},
+       ${product.bgClass}, ${product.accentHex},
+       ${JSON.stringify(product.badges)}::jsonb,
+       true, ${VITRINA.indexOf(product.key)})
     on conflict (key) do update set
       name = excluded.name,
       kind = excluded.kind,
       tagline = excluded.tagline,
       description = excluded.description,
+      image = excluded.image,
+      hero_image = excluded.hero_image,
       bg_class = excluded.bg_class,
       accent_hex = excluded.accent_hex,
       badges = excluded.badges,
       in_store = excluded.in_store,
-      sort_order = excluded.sort_order,
       updated_at = now()
     returning id`;
 
@@ -75,7 +97,13 @@ async function main() {
     console.log(`${product.key} ${size.grams}g -> $${size.price}`);
   }
 
-  console.log("\nListo. Chocomaní queda fuera de la tienda.");
+  // El orden se escribe entero y no como "córrele uno a los combos", que
+  // aplicado dos veces los correría dos veces.
+  for (const [position, key] of VITRINA.entries()) {
+    await sql`update products set sort_order = ${position} where key = ${key}`;
+  }
+
+  console.log(`\nListo. Chocomaní va ${VITRINA.indexOf(product.key) + 1}º en la vitrina.`);
 }
 
 main();
