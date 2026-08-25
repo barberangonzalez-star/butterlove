@@ -17,6 +17,14 @@ interface Slide {
   /** Inicial del botón redondo, y su nombre para lectores de pantalla. */
   name: string;
   image: string;
+  /**
+   * Por dónde recortar la foto, que nunca cabe entera y por lados distintos
+   * según la pantalla: la ancha es más apaisada que la foto y le come arriba y
+   * abajo; el teléfono es más alto y le come los costados. Centrado —lo de
+   * siempre— parte por la mitad lo que sobre, y eso no siempre deja dentro el
+   * frasco.
+   */
+  imagePosition: string;
   alt: string;
   eyebrow: string;
   title: ReactNode;
@@ -52,11 +60,22 @@ export default function Hero({ announcement }: { announcement?: Product }) {
       key: announcement.key,
       name: announcement.name,
       image: announcement.heroImage,
+      // La foto del anuncio es un primer plano de los dos frascos parados
+      // sobre la mesa, y cada pantalla le sobra por un lado distinto. En
+      // pantalla ancha sobra alto: recortada por el centro se les va la base,
+      // corrida hacia abajo entran enteros —del todo abajo ya les cortaba la
+      // tapa—. En el teléfono sobra ancho: corrida a la derecha, el frasco de
+      // adelante entra completo en vez de quedar partido.
+      imagePosition: "object-[78%_50%] sm:object-[50%_70%]",
       alt: `Butter Love ${announcement.name} — mantequilla artesanal`,
       eyebrow: "Nuevo sabor",
+      // En el teléfono el titular se queda en "Nueva Chocomaní": con el
+      // "mantequilla de" son tres renglones que se comen el banner y le pasan
+      // por encima al frasco.
       title: (
         <>
-          Nueva mantequilla de {announcement.name}
+          Nueva <span className="hidden sm:inline">mantequilla de </span>
+          {announcement.name}
           <br />
           desde {announcementPrice.toFixed(2)}$
         </>
@@ -77,6 +96,7 @@ export default function Hero({ announcement }: { announcement?: Product }) {
       key: product.key,
       name: product.name,
       image: product.heroImage,
+      imagePosition: "object-center",
       alt: `Butter Love ${product.name} — mantequilla artesanal`,
       eyebrow:
         product.key === "mani" && promoPrice
@@ -121,22 +141,34 @@ export default function Hero({ announcement }: { announcement?: Product }) {
           fill
           priority
           sizes="100vw"
-          className="object-cover transition-opacity duration-500"
+          className={`object-cover ${slide.imagePosition} transition-opacity duration-500`}
         />
 
-        {/* leve degradado para que el texto/botones sean legibles sobre la foto */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/0 to-black/10" />
+        {/* En el teléfono el texto va arriba y los botones abajo, así que el
+            velo oscurece las dos puntas y deja el medio limpio: es donde se ve
+            el frasco. Oscurecerlo entero para que el titular leyera dejaba el
+            producto turbio, que es justo lo que el banner viene a enseñar. */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-transparent via-45% to-black/55 sm:hidden" />
 
-        <div className="relative flex-1 flex flex-col justify-end px-6 sm:px-10 pb-8 pt-10">
-          <p className="text-xs font-bold uppercase tracking-widest text-white/80 mb-2">
-            {slide.eyebrow}
-          </p>
+        {/* En pantalla ancha el texto cae a un lado del frasco, sobre pared
+            vacía: alcanza un velo suave que asiente los botones de abajo. */}
+        <div className="absolute inset-0 hidden sm:block bg-gradient-to-t from-black/45 via-black/10 via-40% to-black/10" />
 
-          <h1 className="font-display font-700 text-3xl sm:text-5xl text-white mb-6 max-w-lg drop-shadow">
-            {slide.title}
-          </h1>
+        <div className="relative flex-1 flex flex-col px-6 sm:px-10 pb-8 pt-10">
+          {/* En el teléfono el titular va arriba, sobre la pared vacía de la
+              foto; en pantalla ancha baja a su sitio de siempre, junto a los
+              botones. */}
+          <div className="sm:mt-auto">
+            <p className="text-xs font-bold uppercase tracking-widest text-white/80 mb-2">
+              {slide.eyebrow}
+            </p>
 
-          <div className="flex items-end justify-between flex-wrap gap-4">
+            <h1 className="font-display font-700 text-3xl sm:text-5xl text-white mb-6 max-w-lg drop-shadow">
+              {slide.title}
+            </h1>
+          </div>
+
+          <div className="mt-auto sm:mt-0 flex items-end justify-between flex-wrap gap-4">
             <div className="flex flex-wrap gap-2">
               {slides.map((s) => (
                 <button
