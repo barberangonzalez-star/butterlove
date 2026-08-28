@@ -12,6 +12,7 @@ import {
 } from "@/lib/sales-data";
 import { getAdminProducts, incrementProductSizeStock } from "@/lib/products-data";
 import { adjustSupplyItemQuantity } from "@/lib/inventory-data";
+import { resolveStockTargets } from "@/lib/combo-components";
 import { getRecipeConsumption, getSizeCosts } from "@/lib/costs-data";
 import { getPromotions } from "@/lib/promotions-data";
 import {
@@ -79,6 +80,24 @@ function stockLedger() {
       }
     },
   };
+}
+
+/**
+ * Anota en el ledger el movimiento de stock de una línea, repartido entre los
+ * componentes si lo vendido es un combo — un dúo no tiene frascos propios que
+ * descontar, así que la línea le pega a sus sabores.
+ */
+function addStockMovement(
+  ledger: ReturnType<typeof stockLedger>,
+  products: { id: number; key: string; kind: string }[],
+  productId: number | null,
+  grams: number,
+  quantity: number,
+  sign: 1 | -1,
+) {
+  for (const target of resolveStockTargets(products, productId, grams)) {
+    ledger.add(target.productId, target.grams, sign * target.quantity * quantity);
+  }
 }
 
 export async function saveSaleAction(formData: FormData) {
@@ -275,14 +294,14 @@ export async function saveSaleAction(formData: FormData) {
   if (existing) {
     await updateSale(existing.id, input);
     for (const item of existing.items) {
-      ledger.add(item.productId, item.grams, item.quantity);
+      addStockMovement(ledger, products, item.productId, item.grams, item.quantity, 1);
       consume(item.productId, item.grams, item.quantity, 1);
     }
   } else {
     await createSale(input);
   }
   for (const item of items) {
-    ledger.add(item.productId, item.grams, -item.quantity);
+    addStockMovement(ledger, products, item.productId, item.grams, item.quantity, -1);
     consume(item.productId, item.grams, item.quantity, -1);
   }
   await ledger.apply();
@@ -320,7 +339,7 @@ export async function deleteSaleAction(id: number) {
   const ledger = stockLedger();
   const supplies = supplyLedger();
   for (const item of existing.items) {
-    ledger.add(item.productId, item.grams, item.quantity);
+    addStockMovement(ledger, products, item.productId, item.grams, item.quantity, 1);
 
     // Los insumos vuelven al inventario con la venta: si el frasco no se
     // vendió, el frasco sigue estando.
