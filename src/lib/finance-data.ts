@@ -12,7 +12,7 @@ import { BS_PAYMENT_METHODS } from "./config";
  * mes y el detalle por producto, que casi siempre se dibujan en la misma
  * pantalla.
  */
-const getUnitCostResolver = cache(async function getUnitCostResolver() {
+export const getUnitCostResolver = cache(async function getUnitCostResolver() {
   const [products, sizeCosts] = await Promise.all([
     getAdminProducts(),
     getSizeCosts(),

@@ -200,6 +200,25 @@ export default function CustomerForm({
               className={`${inputClass} resize-none mt-1`}
             />
           </label>
+
+          {/* Marcarlo no cambia ninguna venta ya registrada: sólo hace que la
+              próxima arranque en el canal "mayor" y cotice por caja. */}
+          <label className="flex items-start gap-2.5 rounded-md border border-black/10 p-3">
+            <input
+              type="checkbox"
+              name="isReseller"
+              defaultChecked={customer?.isReseller ?? false}
+              className="mt-0.5"
+            />
+            <span>
+              <span className="block text-sm font-medium">
+                Compra al mayor
+              </span>
+              <span className="block text-xs text-[#787774] mt-0.5">
+                Al registrarle una venta, se cotiza con los precios de caja.
+              </span>
+            </span>
+          </label>
         </div>
 
         <div className="sticky bottom-0 bg-white border-t border-black/10 px-6 py-4">

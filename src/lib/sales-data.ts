@@ -2,6 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, exists, gte, inArray, lte, sql } from "drizzle-orm";
 import { getDb } from "./db";
 import { sales, saleItems } from "./db/schema";
+import type { SaleChannel } from "./config";
 
 export type SaleRow = typeof sales.$inferSelect;
 export type SaleItem = typeof saleItems.$inferSelect;
@@ -16,6 +17,8 @@ export interface SaleFilters {
   to?: string;
   productId?: number;
   customerId?: number;
+  /** Detal o mayor. Sin esto vienen los dos, que es lo que pide el listado. */
+  channel?: SaleChannel;
 }
 
 /**
@@ -54,6 +57,7 @@ export async function getSales(filters: SaleFilters = {}): Promise<Sale[]> {
   if (filters.customerId) {
     conditions.push(eq(sales.customerId, filters.customerId));
   }
+  if (filters.channel) conditions.push(eq(sales.channel, filters.channel));
   if (filters.productId) {
     // Filtrar por producto devuelve la venta completa, con todas sus líneas:
     // si el cliente se llevó maní y pistacho, filtrar por maní no debería
@@ -114,6 +118,8 @@ export interface SaleInput {
   saleDate: string;
   items: SaleItemInput[];
   amountUsd: number;
+  /** Detal o mayor: con qué precios se cotizó y dónde se cuenta. */
+  channel: SaleChannel;
   paymentMethod: string | null;
   /** La ficha del cliente. El nombre y el contacto de abajo son los de esta venta. */
   customerId: number | null;
@@ -136,6 +142,7 @@ function toRow(input: SaleInput) {
   return {
     saleDate: input.saleDate,
     amountUsd: input.amountUsd.toFixed(2),
+    channel: input.channel,
     paymentMethod: input.paymentMethod,
     customerId: input.customerId,
     customerName: input.customerName,

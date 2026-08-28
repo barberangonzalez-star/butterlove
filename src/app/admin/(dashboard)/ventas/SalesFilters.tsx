@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { AdminProduct } from "@/lib/products-data";
+import { SALE_CHANNELS } from "@/lib/config";
 
 export interface MonthOption {
   value: string;
@@ -17,6 +18,7 @@ export default function SalesFilters({
   to,
   month,
   productId,
+  channel,
   products,
   months,
 }: {
@@ -24,6 +26,7 @@ export default function SalesFilters({
   to?: string;
   month?: string;
   productId?: string;
+  channel?: string;
   products: AdminProduct[];
   months: MonthOption[];
 }) {
@@ -31,7 +34,9 @@ export default function SalesFilters({
   const [toValue, setToValue] = useState(to ?? "");
   const [monthValue, setMonthValue] = useState(month ?? "");
 
-  const hasFilters = Boolean(fromValue || toValue || monthValue || productId);
+  const hasFilters = Boolean(
+    fromValue || toValue || monthValue || productId || channel,
+  );
 
   return (
     <form
@@ -105,6 +110,23 @@ export default function SalesFilters({
           {products.map((p) => (
             <option key={p.id} value={p.id}>
               {p.name}
+            </option>
+          ))}
+        </select>
+      </label>
+      <label className="block col-span-2 sm:col-auto">
+        <span className="text-xs font-medium text-[#787774] uppercase tracking-wide">
+          Canal
+        </span>
+        <select
+          name="channel"
+          defaultValue={channel ?? ""}
+          className="mt-1 block w-full rounded-md border border-black/15 px-3 py-2 text-sm sm:py-1.5 sm:min-w-[110px]"
+        >
+          <option value="">Todos</option>
+          {SALE_CHANNELS.map((c) => (
+            <option key={c.value} value={c.value}>
+              {c.label}
             </option>
           ))}
         </select>

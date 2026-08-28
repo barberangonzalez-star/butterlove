@@ -21,6 +21,7 @@ import {
   setCustomerZone,
 } from "@/lib/customers-data";
 import { getBcvRates } from "@/lib/bcv";
+import { saleChannel } from "@/lib/config";
 
 /**
  * Acumula los movimientos de stock de una venta antes de aplicarlos.
@@ -107,6 +108,9 @@ export async function saveSaleAction(formData: FormData) {
   const id = idRaw ? Number(idRaw) : null;
   const amountUsd = Number(formData.get("amountUsd"));
   const saleDate = String(formData.get("saleDate") ?? "");
+  // Lo que no venga reconocible cuenta como detal: es el canal por defecto y
+  // el de las 40 ventas que ya estaban registradas antes de que esto existiera.
+  const channel = saleChannel(formData.get("channel"));
   const paymentMethod = String(formData.get("paymentMethod") ?? "") || null;
   const notes = String(formData.get("notes") ?? "") || null;
   const customerName = String(formData.get("customerName") ?? "").trim() || null;
@@ -248,6 +252,7 @@ export async function saveSaleAction(formData: FormData) {
     saleDate,
     items,
     amountUsd,
+    channel,
     paymentMethod,
     customerId,
     customerName,
@@ -313,6 +318,7 @@ export async function saveSaleAction(formData: FormData) {
   // El historial y los totales de cada cliente salen de sus ventas.
   revalidatePath("/admin/clientes", "layout");
   revalidatePath("/admin/finanzas");
+  revalidatePath("/admin/mayoreo");
 }
 
 export async function deleteSaleAction(id: number) {
@@ -361,4 +367,5 @@ export async function deleteSaleAction(id: number) {
   // El historial y los totales de cada cliente salen de sus ventas.
   revalidatePath("/admin/clientes", "layout");
   revalidatePath("/admin/finanzas");
+  revalidatePath("/admin/mayoreo");
 }

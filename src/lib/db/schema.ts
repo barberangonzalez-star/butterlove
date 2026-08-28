@@ -224,6 +224,12 @@ export const customers = pgTable(
     deliveryZone: text("delivery_zone"),
     address: text("address"),
     notes: text("notes"),
+    /**
+     * Si este cliente compra para revender. No decide el canal de la venta
+     * —eso lo dice `sales.channel`—: sólo hace que el formulario proponga
+     * "mayor" y cotice por caja sin que haya que acordarse cada vez.
+     */
+    isReseller: boolean("is_reseller").notNull().default(false),
     createdAt: timestamp("created_at").notNull().defaultNow(),
     updatedAt: timestamp("updated_at").notNull().defaultNow(),
   },
@@ -242,6 +248,17 @@ export const sales = pgTable(
     saleDate: date("sale_date").notNull(),
     amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
     paymentMethod: text("payment_method"),
+    /**
+     * Si se vendió al detal o al mayor. Es lo que mantiene separados dos
+     * negocios que se cuentan distinto: al mayor se cobra ~30% menos, y
+     * promediarlos dejaría la ganancia por frasco sin significado en ninguno
+     * de los dos.
+     *
+     * Va en la venta y no en el cliente porque es de *esta* transacción: el
+     * mismo cliente puede llevarse una caja para revender y, otro día, dos
+     * frascos para su casa.
+     */
+    channel: text("channel").notNull().default("detal"),
     /**
      * La ficha del cliente, si la venta se registró con una. Los tres campos
      * de abajo se siguen guardando aparte: son el nombre y el contacto con los

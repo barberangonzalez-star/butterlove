@@ -140,6 +140,7 @@ export function toCustomerChoice(customer: CustomerWithStats): CustomerChoice {
     state: customer.state,
     deliveryZone: customer.deliveryZone,
     address: customer.address,
+    isReseller: customer.isReseller,
     orders: customer.stats.orders,
     totalUsd: customer.stats.totalUsd,
     favoriteProduct: customer.stats.favoriteProduct,
@@ -175,6 +176,8 @@ export interface CustomerInput {
   deliveryZone: string | null;
   address: string | null;
   notes: string | null;
+  /** Si compra para revender: hace que la venta arranque en el canal "mayor". */
+  isReseller: boolean;
 }
 
 function toRow(input: CustomerInput) {
@@ -191,6 +194,7 @@ function toRow(input: CustomerInput) {
     deliveryZone: input.deliveryZone,
     address: input.address,
     notes: input.notes,
+    isReseller: input.isReseller,
   };
 }
 
@@ -309,6 +313,10 @@ export async function ensureCustomer(contact: {
       deliveryZone: null,
       address: null,
       notes: null,
+      // Una ficha creada al vuelo mientras se cobra nace como cliente normal.
+      // Que la venta sea al mayor no lo convierte en mayorista: eso se marca a
+      // mano, y es lo que después hace que el formulario proponga el canal.
+      isReseller: false,
     });
   }
 

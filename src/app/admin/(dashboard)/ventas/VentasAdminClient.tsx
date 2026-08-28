@@ -38,11 +38,14 @@ export default function VentasAdminClient({
   products,
   promotions,
   customers,
+  wholesalePrices,
 }: {
   sales: Sale[];
   products: AdminProduct[];
   promotions: Promotion[];
   customers: CustomerChoice[];
+  /** Precio al mayor por `productId·grams`, para cotizar al marcar el canal. */
+  wholesalePrices: Record<string, number>;
 }) {
   const [editing, setEditing] = useState<Sale | "new" | null>(null);
   // Una venta abierta a la vez: la lista se lee de arriba abajo, y con varias
@@ -353,6 +356,7 @@ export default function VentasAdminClient({
           products={products}
           promotions={promotions}
           customers={customers}
+          wholesalePrices={wholesalePrices}
           onClose={() => setEditing(null)}
         />
       )}

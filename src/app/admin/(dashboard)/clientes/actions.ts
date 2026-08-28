@@ -27,6 +27,8 @@ function readInput(formData: FormData): CustomerInput {
     deliveryZone: text(formData, "deliveryZone"),
     address: text(formData, "address"),
     notes: text(formData, "notes"),
+    // Un checkbox sin marcar no manda nada, así que su ausencia es un "no".
+    isReseller: formData.get("isReseller") !== null,
   };
 }
 

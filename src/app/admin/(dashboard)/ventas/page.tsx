@@ -2,6 +2,8 @@ import { getSaleMonths, getSales } from "@/lib/sales-data";
 import { getAdminProducts } from "@/lib/products-data";
 import { getPromotions } from "@/lib/promotions-data";
 import { getCustomers, toCustomerChoice } from "@/lib/customers-data";
+import { getWholesaleUnitPrices } from "@/lib/wholesale-data";
+import { isSaleChannel } from "@/lib/config";
 import BcvConverterWidget from "../_components/BcvConverterWidget";
 import SalesFilters, { type MonthOption } from "./SalesFilters";
 import VentasAdminClient from "./VentasAdminClient";
@@ -35,9 +37,11 @@ export default async function VentasAdminPage({
     to?: string;
     month?: string;
     productId?: string;
+    channel?: string;
   }>;
 }) {
-  const { from, to, month, productId } = await searchParams;
+  const { from, to, month, productId, channel } = await searchParams;
+  const validChannel = isSaleChannel(channel) ? channel : undefined;
 
   const validMonth = month && MONTH_RE.test(month) ? month : undefined;
   // El mes manda sobre el rango: el formulario nunca deja mandar los dos juntos.
@@ -45,17 +49,20 @@ export default async function VentasAdminPage({
     ? monthBounds(validMonth)
     : { from: from || undefined, to: to || undefined };
 
-  const [sales, products, promotions, saleMonths, customers] = await Promise.all([
-    getSales({
-      from: range.from,
-      to: range.to,
-      productId: productId ? Number(productId) : undefined,
-    }),
-    getAdminProducts(),
-    getPromotions(),
-    getSaleMonths(),
-    getCustomers(),
-  ]);
+  const [sales, products, promotions, saleMonths, customers, wholesalePrices] =
+    await Promise.all([
+      getSales({
+        from: range.from,
+        to: range.to,
+        productId: productId ? Number(productId) : undefined,
+        channel: validChannel,
+      }),
+      getAdminProducts(),
+      getPromotions(),
+      getSaleMonths(),
+      getCustomers(),
+      getWholesaleUnitPrices(),
+    ]);
 
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
@@ -81,6 +88,7 @@ export default async function VentasAdminPage({
             to={validMonth ? undefined : to}
             month={validMonth}
             productId={productId}
+            channel={validChannel}
             products={products}
             months={months}
           />
@@ -90,6 +98,7 @@ export default async function VentasAdminPage({
             products={products}
             promotions={promotions}
             customers={customers.map(toCustomerChoice)}
+            wholesalePrices={wholesalePrices}
           />
         </div>
 

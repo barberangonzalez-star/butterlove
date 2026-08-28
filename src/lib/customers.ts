@@ -78,6 +78,8 @@ export interface CustomerChoice extends CustomerLike {
   totalUsd: number;
   favoriteProduct: string | null;
   lastPurchase: string | null;
+  /** Si compra para revender. Hace que la venta arranque en el canal "mayor". */
+  isReseller: boolean;
 }
 
 /** Dónde vive, en una línea: de lo más específico a lo más general. */

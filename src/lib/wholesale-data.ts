@@ -22,6 +22,40 @@ export interface WholesaleItem extends WholesalePrice {
 }
 
 /**
+ * El precio al mayor de cada tamaño que tenga costo, indexado por
+ * `productId·grams`.
+ *
+ * Lo usa el formulario de ventas para cotizar solo cuando se marca el canal
+ * "mayor". Sale de la misma `wholesalePrice()` que la página pública: si la
+ * lista dice $58.80 la caja, la venta registrada dice lo mismo sin que nadie
+ * tenga que copiarlo a mano.
+ *
+ * Va como objeto plano y no como Map porque cruza al cliente.
+ *
+ * Los tamaños sin costo quedan fuera: no hay precio al mayor que calcular, y
+ * el formulario los deja en su precio de detal en vez de inventar uno.
+ */
+export async function getWholesaleUnitPrices(): Promise<Record<string, number>> {
+  const [products, costs] = await Promise.all([
+    getAdminProducts(),
+    getSizeCosts(),
+  ]);
+
+  const prices: Record<string, number> = {};
+  for (const product of products) {
+    for (const size of product.sizes) {
+      const cost = costs.get(size.id);
+      if (!cost?.known) continue;
+      prices[`${product.id}·${size.grams}`] = wholesalePrice(
+        size.price,
+        cost.total,
+      ).unitPrice;
+    }
+  }
+  return prices;
+}
+
+/**
  * El catálogo al mayor.
  *
  * Deja fuera lo que no se puede cotizar en serio: los combos —que son un

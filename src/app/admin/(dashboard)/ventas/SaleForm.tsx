@@ -10,6 +10,9 @@ import {
   DELIVERY_PROVIDERS,
   NATIONAL_COURIERS,
   VENEZUELA_STATES,
+  SALE_CHANNELS,
+  saleChannel,
+  type SaleChannel,
 } from "@/lib/config";
 import type { CustomerChoice } from "@/lib/customers";
 import type { AdminProduct } from "@/lib/products-data";
@@ -63,12 +66,15 @@ export default function SaleForm({
   products,
   promotions,
   customers,
+  wholesalePrices,
   onClose,
 }: {
   sale: Sale | null;
   products: AdminProduct[];
   promotions: Promotion[];
   customers: CustomerChoice[];
+  /** Precio al mayor por `productId·grams`. Los tamaños sin costo no están. */
+  wholesalePrices: Record<string, number>;
   onClose: () => void;
 }) {
   const [lines, setLines] = useState<Line[]>(() => {
@@ -94,6 +100,16 @@ export default function SaleForm({
       },
     ];
   });
+
+  /**
+   * Detal o mayor. Cambiarlo recotiza las líneas: al mayor cada frasco vale lo
+   * que dice la lista de cajas, no el precio de la tienda.
+   *
+   * Una venta que se está editando arranca en el canal con el que se registró.
+   */
+  const [channel, setChannel] = useState<SaleChannel>(() =>
+    saleChannel(sale?.channel),
+  );
 
   // An existing sale starts on its stored amount, so edits never silently
   // recalculate a total that was adjusted by hand.
@@ -126,6 +142,13 @@ export default function SaleForm({
    */
   function handlePickCustomer(customer: CustomerChoice | null) {
     if (customer?.state && !deliveryState) setDeliveryState(customer.state);
+    // Elegir a un mayorista propone su canal, pero sólo al registrar: en una
+    // venta ya guardada manda el canal con el que se cobró, aunque al cliente
+    // se le haya marcado como mayorista después.
+    if (customer?.isReseller && !sale) {
+      setChannel("mayor");
+      setAmountOverride(null);
+    }
   }
 
   /** Lo que esta venta ya tenía tomado de un producto y tamaño, antes de editarla. */
@@ -141,12 +164,24 @@ export default function SaleForm({
     return promotions.find((p) => p.id === line.promotionId);
   }
 
+  /** El precio al mayor de una línea, si ese tamaño tiene costo cargado. */
+  function wholesalePriceOf(line: Line): number | undefined {
+    return wholesalePrices[`${line.productId}·${line.grams}`];
+  }
+
   function unitPriceOf(line: Line) {
     // El combo manda: su precio es del paquete, así que se reparte entre los
     // envases que incluye para que la cantidad siga multiplicando bien.
     const promo = promoOf(line);
     if (promo?.bundlePrice && promo.bundleQuantity > 0) {
       return Number(promo.bundlePrice) / promo.bundleQuantity;
+    }
+    // Al mayor manda la lista de cajas. Un tamaño sin costo no tiene precio al
+    // mayor que calcular y se queda en el de detal: es mejor cobrar de más y
+    // corregirlo a mano que inventar un descuento sobre un costo que no se sabe.
+    if (channel === "mayor") {
+      const wholesale = wholesalePriceOf(line);
+      if (wholesale !== undefined) return wholesale;
     }
     const product = products.find((p) => p.id === line.productId);
     const size = product?.sizes.find((s) => s.grams === line.grams);
@@ -288,6 +323,50 @@ export default function SaleForm({
 
         <div className="p-6 space-y-4">
           {sale && <input type="hidden" name="id" value={sale.id} />}
+
+          {/* El canal va primero porque manda sobre todo lo de abajo: al
+              cambiarlo, las líneas se recotizan solas. */}
+          <input type="hidden" name="channel" value={channel} />
+          <div>
+            <span className={labelClass}>Canal</span>
+            <div className="mt-1 flex gap-2">
+              {SALE_CHANNELS.map((c) => (
+                <button
+                  key={c.value}
+                  type="button"
+                  onClick={() => {
+                    setChannel(c.value);
+                    // Cambiar de canal cambia todos los precios, así que suelta
+                    // el total escrito a mano: si no, se recotizan las líneas y
+                    // el total sigue diciendo lo de antes.
+                    setAmountOverride(null);
+                  }}
+                  aria-pressed={channel === c.value}
+                  className={`flex-1 rounded-md border px-3 py-2 text-sm font-medium transition-colors ${
+                    channel === c.value
+                      ? "border-[#37352f] bg-[#37352f] text-white"
+                      : "border-black/15 text-[#5f5e5b] hover:bg-black/5"
+                  }`}
+                >
+                  {c.label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-1.5 text-xs text-[#787774]">
+              {SALE_CHANNELS.find((c) => c.value === channel)?.hint}
+            </p>
+            {/* Un tamaño sin costo cargado no tiene precio al mayor, y se
+                quedaría cobrando el de detal sin avisar. */}
+            {channel === "mayor" &&
+              lines.some(
+                (line) => !promoOf(line) && wholesalePriceOf(line) === undefined,
+              ) && (
+                <p className="mt-1.5 text-xs text-[#8a6d3b]">
+                  Hay líneas sin precio al mayor (ese tamaño no tiene costo
+                  cargado en Finanzas): quedan al precio de detal.
+                </p>
+              )}
+          </div>
 
           <div className="flex items-center justify-between">
             <span className={labelClass}>Productos</span>

@@ -33,6 +33,39 @@ export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
  */
 export const HERO_ANNOUNCEMENT_KEY = "chocomani";
 
+/**
+ * Por qué canal se vendió.
+ *
+ * `detal` es el cliente final, al precio de la tienda. `mayor` es quien compra
+ * por caja para revender, ~30% más abajo. Se separan porque promediarlos
+ * dejaría la ganancia por frasco sin significado: son dos negocios con costos
+ * iguales y precios distintos.
+ */
+export type SaleChannel = "detal" | "mayor";
+
+export const SALE_CHANNELS: { value: SaleChannel; label: string; hint: string }[] =
+  [
+    {
+      value: "detal",
+      label: "Detal",
+      hint: "Cliente final, al precio de la tienda.",
+    },
+    {
+      value: "mayor",
+      label: "Mayor",
+      hint: "Compra por caja para revender. Los precios se cotizan al mayor.",
+    },
+  ];
+
+export function isSaleChannel(value: unknown): value is SaleChannel {
+  return SALE_CHANNELS.some((c) => c.value === value);
+}
+
+/** El canal, saneado. Lo que no se reconozca cuenta como detal, que es el default. */
+export function saleChannel(value: unknown): SaleChannel {
+  return isSaleChannel(value) ? value : "detal";
+}
+
 export const PAYMENT_METHODS = ["Pago Móvil", "USD en efectivo", "Binance"];
 
 /**
