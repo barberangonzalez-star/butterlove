@@ -1,7 +1,24 @@
 import "server-only";
+import { cache } from "react";
 import { getSales, type Sale } from "./sales-data";
 import { getExpenses, getReplacementRate } from "./expenses-data";
+import { getAdminProducts } from "./products-data";
+import { getSizeCosts } from "./costs-data";
+import { makeUnitCostResolver, type UnitCostResolver } from "./unit-cost";
 import { BS_PAYMENT_METHODS } from "./config";
+
+/**
+ * El catálogo y sus costos, una sola vez por request. Lo piden el reporte del
+ * mes y el detalle por producto, que casi siempre se dibujan en la misma
+ * pantalla.
+ */
+const getUnitCostResolver = cache(async function getUnitCostResolver() {
+  const [products, sizeCosts] = await Promise.all([
+    getAdminProducts(),
+    getSizeCosts(),
+  ]);
+  return makeUnitCostResolver(products, sizeCosts);
+});
 
 /** Cuánto dejó cada producto, por tamaño. */
 export interface ProductMargin {
@@ -11,8 +28,13 @@ export interface ProductMargin {
   revenue: number;
   cost: number;
   margin: number;
-  /** False si alguna venta de este producto no tenía costo conocido. */
+  /** False si a alguna venta de este producto no se le pudo poner costo. */
   costKnown: boolean;
+  /**
+   * True si parte del costo salió del catálogo de hoy y no del que se congeló
+   * al vender. Es una estimación razonable, pero no es el número histórico.
+   */
+  costEstimated: boolean;
 }
 
 export interface ExpenseTotal {
@@ -40,6 +62,8 @@ export interface MonthReport {
   cogs: number;
   /** Frascos vendidos sin costo cargado o completo: de esos no se sabe. */
   jarsWithoutCost: number;
+  /** Frascos cuyo costo se estimó con el catálogo de hoy, no con el de la venta. */
+  jarsEstimatedCost: number;
   grossMargin: number;
 
   deliveryCost: number;
@@ -74,6 +98,7 @@ export interface ProductSales {
   orders: number;
   jars: number;
   jarsWithoutCost: number;
+  jarsEstimatedCost: number;
   /** La suma de las líneas de venta, sin delivery. */
   revenue: number;
   cost: number;
@@ -84,6 +109,7 @@ export interface ProductSales {
 interface ProductTotals {
   jars: number;
   jarsWithoutCost: number;
+  jarsEstimatedCost: number;
   revenue: number;
   cogs: number;
   byProduct: ProductMargin[];
@@ -91,13 +117,26 @@ interface ProductTotals {
 
 /**
  * Recorre las líneas de un puñado de ventas y las agrupa por producto y tamaño.
- * Los frascos sin costo conocido se cuentan aparte en vez de asumirles cero:
- * un costo inventado infla la ganancia y nadie se entera.
+ *
+ * El costo de una línea se busca en dos lugares, en este orden. Primero el que
+ * se congeló al vender, que es el histórico y el que manda. Si esa venta se
+ * registró antes de que hubiera un costo cargado quedó en `null`, y entonces
+ * se cae al costo que el catálogo tiene hoy: es una estimación, pero decir
+ * "$1.97 aproximado" es más útil que un guion, y las ventas viejas dejaban la
+ * columna vacía para siempre aunque el costo ya se supiera. Los frascos que
+ * pasan por ahí se cuentan en `jarsEstimatedCost` para poder avisarlo.
+ *
+ * Lo que sigue sin saberse de ninguna de las dos maneras se cuenta aparte en
+ * vez de asumirle cero: un costo inventado infla la ganancia y nadie se entera.
  */
-function accumulateProducts(sales: Sale[]): ProductTotals {
+function accumulateProducts(
+  sales: Sale[],
+  resolveCost: UnitCostResolver,
+): ProductTotals {
   const byProduct = new Map<string, ProductMargin>();
   let jars = 0;
   let jarsWithoutCost = 0;
+  let jarsEstimatedCost = 0;
   let revenue = 0;
   let cogs = 0;
 
@@ -105,13 +144,21 @@ function accumulateProducts(sales: Sale[]): ProductTotals {
     for (const item of sale.items) {
       const quantity = item.quantity;
       const lineRevenue = Number(item.unitPriceUsd) * quantity;
-      const unitCost = item.unitCostUsd === null ? null : Number(item.unitCostUsd);
+
+      const frozen = item.unitCostUsd === null ? null : Number(item.unitCostUsd);
+      const fallback =
+        frozen === null
+          ? resolveCost(item.productId, item.grams, item.productName)
+          : null;
+      const estimated = fallback !== null && fallback.known;
+      const unitCost = frozen ?? (estimated ? fallback!.total : null);
       const cost = unitCost === null ? 0 : unitCost * quantity;
 
       jars += quantity;
       revenue += lineRevenue;
       if (unitCost === null) jarsWithoutCost += quantity;
       else cogs += cost;
+      if (estimated) jarsEstimatedCost += quantity;
 
       const key = `${item.productName}·${item.grams}`;
       const entry = byProduct.get(key);
@@ -121,6 +168,7 @@ function accumulateProducts(sales: Sale[]): ProductTotals {
         entry.cost += cost;
         entry.margin = entry.revenue - entry.cost;
         entry.costKnown &&= unitCost !== null;
+        entry.costEstimated ||= estimated;
       } else {
         byProduct.set(key, {
           productName: item.productName,
@@ -130,6 +178,7 @@ function accumulateProducts(sales: Sale[]): ProductTotals {
           cost,
           margin: lineRevenue - cost,
           costKnown: unitCost !== null,
+          costEstimated: estimated,
         });
       }
     }
@@ -138,6 +187,7 @@ function accumulateProducts(sales: Sale[]): ProductTotals {
   return {
     jars,
     jarsWithoutCost,
+    jarsEstimatedCost,
     revenue,
     cogs,
     byProduct: [...byProduct.values()].sort((a, b) => b.quantity - a.quantity),
@@ -149,8 +199,11 @@ export async function getProductSales(
   from: string,
   to: string,
 ): Promise<ProductSales> {
-  const sales = await getSales({ from, to });
-  const totals = accumulateProducts(sales);
+  const [sales, resolveCost] = await Promise.all([
+    getSales({ from, to }),
+    getUnitCostResolver(),
+  ]);
+  const totals = accumulateProducts(sales, resolveCost);
 
   return {
     from,
@@ -158,6 +211,7 @@ export async function getProductSales(
     orders: sales.length,
     jars: totals.jars,
     jarsWithoutCost: totals.jarsWithoutCost,
+    jarsEstimatedCost: totals.jarsEstimatedCost,
     revenue: totals.revenue,
     cost: totals.cogs,
     margin: totals.revenue - totals.cogs,
@@ -187,10 +241,11 @@ export function monthBounds(month: string) {
 export async function getMonthReport(month: string): Promise<MonthReport> {
   const { from, to } = monthBounds(month);
 
-  const [sales, expenses, replacementRate] = await Promise.all([
+  const [sales, expenses, replacementRate, resolveCost] = await Promise.all([
     getSales({ from, to }),
     getExpenses(from, to),
     getReplacementRate(month),
+    getUnitCostResolver(),
   ]);
 
   let grossRevenue = 0;
@@ -216,7 +271,8 @@ export async function getMonthReport(month: string): Promise<MonthReport> {
     }
   }
 
-  const { jars, jarsWithoutCost, cogs } = accumulateProducts(sales);
+  const { jars, jarsWithoutCost, jarsEstimatedCost, cogs } =
+    accumulateProducts(sales, resolveCost);
 
   const byCategory = new Map<string, ExpenseTotal>();
   let operatingExpenses = 0;
@@ -266,6 +322,7 @@ export async function getMonthReport(month: string): Promise<MonthReport> {
     productRevenue,
     cogs,
     jarsWithoutCost,
+    jarsEstimatedCost,
     grossMargin,
     deliveryCost,
     deliveryResult,

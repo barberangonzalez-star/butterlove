@@ -141,6 +141,15 @@ export default async function FinanzasPage({
         </p>
       )}
 
+      {report.jarsEstimatedCost > 0 && (
+        <p className="rounded-lg border border-black/10 bg-[#f7f6f3] px-4 py-3 text-sm text-[#787774] mb-6">
+          {report.jarsEstimatedCost} de los {report.jars} frascos de este mes se
+          vendieron antes de que su costo estuviera cargado. Para no dejar la
+          ganancia en blanco se les aplicó el costo que tienen hoy, así que ese
+          pedazo del cálculo es una estimación.
+        </p>
+      )}
+
       <div className="grid lg:grid-cols-[1.3fr_1fr] gap-6 items-start">
         <div className="space-y-6 min-w-0">
           <Card title="De dónde sale la ganancia">
@@ -233,7 +242,24 @@ export default async function FinanzasPage({
                           {fmtUsd(row.revenue)}
                         </td>
                         <td className="px-4 py-2.5 text-right tabular-nums text-[#787774]">
-                          {row.costKnown ? fmtUsd(row.cost) : "—"}
+                          {row.costKnown ? (
+                            <span
+                              className={
+                                row.costEstimated
+                                  ? "underline decoration-dotted underline-offset-2"
+                                  : undefined
+                              }
+                              title={
+                                row.costEstimated
+                                  ? "Estimado con el costo de hoy: esa venta se registró antes de cargarlo"
+                                  : undefined
+                              }
+                            >
+                              {fmtUsd(row.cost)}
+                            </span>
+                          ) : (
+                            "—"
+                          )}
                         </td>
                         <td
                           className={`px-4 py-2.5 text-right tabular-nums font-medium ${
@@ -255,6 +281,14 @@ export default async function FinanzasPage({
             <p className="text-xs text-[#787774] mt-3">
               &quot;Vendido&quot; suma el precio de cada línea. Si ajustaste el
               monto de una venta a mano, el total puede diferir.
+              {sold.jarsEstimatedCost > 0 && (
+                <>
+                  {" "}
+                  Los costos <span className="underline decoration-dotted underline-offset-2">subrayados</span>{" "}
+                  son estimados con el costo de hoy: esas ventas se registraron
+                  antes de cargarlo.
+                </>
+              )}
             </p>
           </Card>
 
