@@ -7,8 +7,12 @@ import { marginPercent } from "@/lib/costs";
 import type { SizeCost } from "@/lib/costs-data";
 import type { AdminProduct } from "@/lib/products-data";
 
+// Sin ancho fijo a propósito: cada campo pone el suyo (flex-1, w-24…). Un
+// `w-full` acá adentro compite con esos anchos por la misma propiedad CSS y,
+// como cae después en la hoja de Tailwind, gana siempre — el campo de ancho
+// fijo se estira al 100% y aplasta al de al lado.
 const inputClass =
-  "w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-[#37352f]";
+  "rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-[#37352f]";
 
 /**
  * Lo que lleva casi cualquier frasco. Se cargan como líneas vacías al abrir un

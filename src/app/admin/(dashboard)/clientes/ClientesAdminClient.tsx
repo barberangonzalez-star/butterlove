@@ -94,7 +94,10 @@ export default function ClientesAdminClient({
           value={sort}
           onChange={(e) => setSort(e.target.value as SortKey)}
           aria-label="Ordenar clientes"
-          className={`${inputClass} w-auto`}
+          // No se reusa `inputClass`: trae `w-full`, que en la hoja de
+          // Tailwind cae después de `w-auto` y por eso le gana — el select
+          // terminaría ocupando toda la fila en vez de ajustarse a su texto.
+          className="rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-[#37352f] w-auto"
         >
           {(Object.keys(SORT_LABELS) as SortKey[]).map((key) => (
             <option key={key} value={key}>

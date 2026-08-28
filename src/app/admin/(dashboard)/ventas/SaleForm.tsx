@@ -421,7 +421,11 @@ export default function SaleForm({
                             quantity: Number(e.target.value) || 1,
                           })
                         }
-                        className={`${inputClass} w-20`}
+                        // No se reusa `inputClass`: trae `w-full`, que en la
+                        // hoja de Tailwind cae después de `w-20` y por eso le
+                        // gana — el campo terminaría estirado al ancho de la
+                        // fila en vez de quedar chico.
+                        className="rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-[#37352f] w-20"
                       />
                     </div>
                   </div>

@@ -7,8 +7,12 @@ import type { SizeRecipe } from "@/lib/costs-data";
 import type { SupplyItem } from "@/lib/inventory-data";
 import type { AdminProduct } from "@/lib/products-data";
 
+// Sin ancho fijo a propósito: cada campo pone el suyo (flex-1, w-24…). Un
+// `w-full` acá adentro compite con esos anchos por la misma propiedad CSS y,
+// como cae después en la hoja de Tailwind, gana siempre — el campo de ancho
+// fijo se estira al 100% y aplasta al de al lado.
 const inputClass =
-  "w-full rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-[#37352f]";
+  "rounded-md border border-black/15 px-3 py-2 text-sm outline-none focus:border-[#37352f]";
 
 interface Line {
   key: number;
@@ -153,53 +157,57 @@ export default function RecipeForm({
             >
               <h3 className="font-medium text-sm mb-3">{size.grams}g</h3>
 
-              <div className="space-y-2">
+              <div className="divide-y divide-black/5">
                 {size.lines.map((line) => {
                   const supply = supplies.find(
                     (s) => s.id === line.supplyItemId,
                   );
 
                   return (
-                    <div key={line.key} className="flex items-center gap-2">
-                      <select
-                        value={line.supplyItemId}
-                        onChange={(e) =>
-                          updateLine(size, line.key, {
-                            supplyItemId: Number(e.target.value),
-                          })
-                        }
-                        className={`${inputClass} flex-1 min-w-0`}
-                      >
-                        {supplies.map((s) => (
-                          <option key={s.id} value={s.id}>
-                            {s.name}
-                          </option>
-                        ))}
-                      </select>
-                      <input
-                        type="number"
-                        step="0.001"
-                        min="0"
-                        value={line.quantity}
-                        onChange={(e) =>
-                          updateLine(size, line.key, {
-                            quantity: e.target.value,
-                          })
-                        }
-                        aria-label="Cuánto lleva"
-                        className={`${inputClass} w-24 shrink-0 text-right tabular-nums`}
-                      />
-                      <span className="w-14 shrink-0 text-xs text-[#787774] truncate">
-                        {supply?.unit ?? ""}
-                      </span>
-                      <button
-                        type="button"
-                        onClick={() => removeLine(size, line.key)}
-                        aria-label="Quitar insumo"
-                        className="shrink-0 w-8 h-8 flex items-center justify-center rounded-md text-[#787774] hover:bg-black/5 hover:text-red-700"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                    <div key={line.key} className="py-2.5 first:pt-0 last:pb-0 space-y-2">
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={line.supplyItemId}
+                          onChange={(e) =>
+                            updateLine(size, line.key, {
+                              supplyItemId: Number(e.target.value),
+                            })
+                          }
+                          className={`${inputClass} flex-1 min-w-0`}
+                        >
+                          {supplies.map((s) => (
+                            <option key={s.id} value={s.id}>
+                              {s.name}
+                            </option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => removeLine(size, line.key)}
+                          aria-label="Quitar insumo"
+                          className="shrink-0 w-8 h-8 flex items-center justify-center rounded-md text-[#787774] hover:bg-black/5 hover:text-red-700"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="number"
+                          step="0.001"
+                          min="0"
+                          value={line.quantity}
+                          onChange={(e) =>
+                            updateLine(size, line.key, {
+                              quantity: e.target.value,
+                            })
+                          }
+                          aria-label="Cuánto lleva"
+                          className={`${inputClass} w-24 shrink-0 text-right tabular-nums`}
+                        />
+                        <span className="text-xs text-[#787774]">
+                          {supply?.unit ?? ""}
+                        </span>
+                      </div>
                     </div>
                   );
                 })}
