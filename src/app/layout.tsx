@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
 import { Fredoka, DM_Sans } from "next/font/google";
 import "./globals.css";
-import { SITE_URL, GA_MEASUREMENT_ID } from "@/lib/config";
+import { SITE_URL } from "@/lib/config";
 import { SITE_NAME, SITE_DESCRIPTION } from "@/lib/seo";
-import GoogleAnalytics from "@/components/GoogleAnalytics";
 
 const fredoka = Fredoka({
   variable: "--font-fredoka",
@@ -80,8 +79,12 @@ export default function RootLayout({
       lang="es"
       className={`${fredoka.variable} ${dmSans.variable} h-full antialiased`}
     >
+      {/* Sin analítica: Google Analytics va en los layouts de las páginas
+          públicas y no acá, por lo mismo que el pixel de Meta. En /admin no hay
+          clientes, sólo nosotros entrando veinte veces al día, y esas visitas
+          suman sesiones que inflan el denominador de la tasa de conversión y
+          llenan el informe de páginas con rutas del panel. */}
       <body className="min-h-full flex flex-col bg-page text-ink font-body">
-        <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />
         {children}
       </body>
     </html>

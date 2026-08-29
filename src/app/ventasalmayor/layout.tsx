@@ -1,6 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
-import { WHATSAPP_LINK } from "@/lib/config";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
+import { WHATSAPP_LINK, GA_MEASUREMENT_ID } from "@/lib/config";
 
 /**
  * La página al mayor va fuera del grupo `(site)`, igual que la landing de
@@ -19,6 +20,11 @@ export default function VentasAlMayorLayout({
 }) {
   return (
     <div className="min-h-full flex flex-col bg-page">
+      {/* Sí lleva Analytics —es una página pública y saber cuánta gente la
+          abre es la mitad de para qué existe— pero no el pixel de Meta: no se
+          anuncia, y meter a los mayoristas en los públicos de una campaña
+          dirigida a quien compra un frasco sólo desafina la segmentación. */}
+      <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />
       <header className="border-b border-ink/10">
         <div className="max-w-6xl mx-auto px-4 h-16 flex items-center justify-between gap-4">
           {/* El de la barra, no el del pie: el del pie es la versión clara,

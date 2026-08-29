@@ -8,8 +8,9 @@ import FloatingNav from "@/components/FloatingNav";
 import ChatWidget from "@/components/ChatWidget";
 import JsonLd from "@/components/JsonLd";
 import MetaPixel from "@/components/MetaPixel";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { organizationSchema, websiteSchema } from "@/lib/seo";
-import { META_PIXEL_ID } from "@/lib/config";
+import { META_PIXEL_ID, GA_MEASUREMENT_ID } from "@/lib/config";
 
 export default async function SiteLayout({
   children,
@@ -26,6 +27,7 @@ export default async function SiteLayout({
         <JsonLd data={organizationSchema()} />
         <JsonLd data={websiteSchema()} />
         <MetaPixel pixelId={META_PIXEL_ID} />
+        <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />
         <Navbar />
         <main className="flex-1">{children}</main>
         <Footer />

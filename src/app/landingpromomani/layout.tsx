@@ -3,7 +3,8 @@ import { ProductsProvider } from "@/lib/products-context";
 import { getProductsByKeys } from "@/lib/products-data";
 import CartDrawer from "@/components/CartDrawer";
 import MetaPixel from "@/components/MetaPixel";
-import { META_PIXEL_ID } from "@/lib/config";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
+import { META_PIXEL_ID, GA_MEASUREMENT_ID } from "@/lib/config";
 import { PACK_KEYS } from "./packs";
 
 /**
@@ -26,6 +27,7 @@ export default async function LandingPromoManiLayout({
     <ProductsProvider products={products}>
       <CartProvider>
         <MetaPixel pixelId={META_PIXEL_ID} />
+        <GoogleAnalytics measurementId={GA_MEASUREMENT_ID} />
         <main className="flex-1">{children}</main>
         <CartDrawer />
       </CartProvider>
