@@ -13,7 +13,7 @@ export const GA_MEASUREMENT_ID = "G-LK4PXJHGH9";
  * Meta (Orígenes de datos > el pixel > su ID): son 15 o 16 dígitos. Vacío, el
  * pixel no se carga y el sitio queda exactamente como estaba.
  */
-export const META_PIXEL_ID = "";
+export const META_PIXEL_ID = "2911739589218863";
 
 // Perfiles oficiales del negocio. Google los usa (vía `sameAs`) para conectar
 // el sitio con las redes y reforzar que se trata de la misma marca.

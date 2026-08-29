@@ -5,7 +5,11 @@ import Image from "next/image";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { useProducts } from "@/lib/products-context";
 import { Product, productTitle, sizeLabel } from "@/lib/products";
-import { trackInitiateCheckout } from "@/lib/pixel";
+import {
+  trackCheckoutStep,
+  trackInitiateCheckout,
+  type CheckoutStep,
+} from "@/lib/pixel";
 import {
   WHATSAPP_NUMBER,
   PAYMENT_METHODS,
@@ -256,6 +260,17 @@ export default function CartDrawer() {
   const zone = DELIVERY_ZONES.find((z) => z.name === zoneName) ?? null;
   const deliveryCost = isDelivery && zone ? zone.price : 0;
   const grandTotal = totalPrice + deliveryCost;
+
+  /**
+   * Avanzar al siguiente paso, avisándole a GA4 y a Meta. Los botones de
+   * "Atrás" siguen llamando a `setStep` pelado: volver sobre un paso ya hecho
+   * no es progreso, y contarlo inflaría el embudo con gente que sólo estaba
+   * corrigiendo un dato.
+   */
+  const goToStep = (next: CheckoutStep) => {
+    trackCheckoutStep(next, items, grandTotal);
+    setStep(next);
+  };
 
   const bsTotal = bcvRate ? grandTotal * bcvRate : null;
   // Cada manera de recibir pide lo suyo: la encomienda no necesita dirección
@@ -849,7 +864,7 @@ export default function CartDrawer() {
 
             {step === "cart" && (
               <button
-                onClick={() => setStep("info")}
+                onClick={() => goToStep("info")}
                 className="w-full rounded-full bg-ink text-cream font-semibold py-3 hover:opacity-90 transition-opacity"
               >
                 Continuar
@@ -865,7 +880,7 @@ export default function CartDrawer() {
                   Atrás
                 </button>
                 <button
-                  onClick={() => setStep("payment")}
+                  onClick={() => goToStep("payment")}
                   disabled={!infoComplete}
                   className="flex-1 rounded-full bg-ink text-cream font-semibold py-3 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 >
@@ -883,7 +898,7 @@ export default function CartDrawer() {
                   Atrás
                 </button>
                 <button
-                  onClick={() => setStep("summary")}
+                  onClick={() => goToStep("summary")}
                   disabled={!canConfirmPayment}
                   className="flex-1 rounded-full bg-ink text-cream font-semibold py-3 hover:opacity-90 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
                 >
