@@ -1,5 +1,9 @@
 // Configuración general de la tienda.
-export const SITE_URL = "https://butterlove.store";
+// Con www, porque es el dominio principal en Vercel: el apex responde 308 hacia
+// www. Si aquí se declara el apex, cada URL del sitemap y cada canonical apunta
+// a una redirección, y Search Console las reporta como "página con redirección"
+// o "URL enviada no seleccionada como canónica".
+export const SITE_URL = "https://www.butterlove.store";
 
 export const GA_MEASUREMENT_ID = "G-LK4PXJHGH9";
 
