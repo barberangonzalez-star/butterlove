@@ -1,5 +1,10 @@
-import { Clock, MessageCircle } from "lucide-react";
+import Link from "next/link";
+import { Clock, MessageCircle, UserCheck, UserPlus } from "lucide-react";
 import { formatPhone, whatsappLink } from "@/lib/customers";
+import {
+  matchOrderCustomer,
+  type OrderCustomerMatch,
+} from "@/lib/customers-data";
 import type { PendingOrder } from "@/lib/pending-orders-data";
 import PendingOrderActions from "./PendingOrderActions";
 
@@ -20,6 +25,30 @@ function whenLabel(date: Date) {
   });
 }
 
+/**
+ * Hace cuánto fue la última compra, en la unidad que se entiende de un vistazo.
+ * La fecha viene como "YYYY-MM-DD"; cualquier otra cosa devuelve null y
+ * simplemente no se muestra, en vez de dibujar "hace NaN días".
+ */
+function hace(date: string | null) {
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return null;
+
+  const [year, month, day] = date.split("-").map(Number);
+  const then = Date.UTC(year, month - 1, day);
+  const now = new Date();
+  const today = Date.UTC(now.getFullYear(), now.getMonth(), now.getDate());
+  const days = Math.round((today - then) / 86_400_000);
+
+  if (days < 0) return null;
+  if (days === 0) return "hoy";
+  if (days === 1) return "ayer";
+  if (days < 30) return `hace ${days} días`;
+  const months = Math.round(days / 30);
+  if (months < 12) return `hace ${months} ${months === 1 ? "mes" : "meses"}`;
+  const years = Math.floor(days / 365);
+  return `hace ${years} ${years === 1 ? "año" : "años"}`;
+}
+
 function entrega(order: PendingOrder) {
   if (order.deliveryMethod === "Envío nacional") {
     return `Envío nacional · ${order.courier ?? "—"}${
@@ -33,6 +62,46 @@ function entrega(order: PendingOrder) {
 }
 
 /**
+ * Si el pedido es de alguien que ya está en la libreta, y con qué historial.
+ *
+ * Se muestra antes de confirmar porque es lo que decide si la venta se suma al
+ * historial de una ficha existente o abre una nueva. Cuando alguien conocido
+ * escribe su nombre distinto —"Maria R." en vez de "María Rodríguez"— acá se
+ * ve venir la ficha duplicada, que de otro modo sólo se descubre semanas
+ * después con el historial partido en dos.
+ */
+function CustomerBadge({ match }: { match: OrderCustomerMatch | null }) {
+  if (!match) {
+    return (
+      <span className="inline-flex items-center gap-1 text-[11px] bg-black/5 text-[#5f5e5b] px-2 py-0.5 rounded-full">
+        <UserPlus size={11} />
+        Cliente nuevo · se le crea la ficha al confirmar
+      </span>
+    );
+  }
+
+  const last = hace(match.lastPurchase);
+  const detail = [
+    `${match.orders} compra${match.orders === 1 ? "" : "s"}`,
+    last,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  return (
+    <Link
+      href={`/admin/clientes/${match.id}`}
+      className="inline-flex items-center gap-1 text-[11px] bg-[#1f7a4d]/10 text-[#1f7a4d] px-2 py-0.5 rounded-full hover:bg-[#1f7a4d]/15 transition-colors"
+    >
+      <UserCheck size={11} />
+      {/* El nombre es el de la ficha, no el del pedido: cuando difieren, esa
+          diferencia es justo lo que hay que ver. */}
+      {match.name} · {detail}
+    </Link>
+  );
+}
+
+/**
  * Los pedidos que entraron por la tienda y todavía no son ventas.
  *
  * Va arriba de todo y con su propio color: es lo único de la página que pide
@@ -40,12 +109,20 @@ function entrega(order: PendingOrder) {
  * Mientras esté acá no cuenta en ningún total: ni en el del mes, ni en
  * Finanzas, ni en el historial del cliente.
  */
-export default function PendingOrdersPanel({
+export default async function PendingOrdersPanel({
   orders,
 }: {
   orders: PendingOrder[];
 }) {
   if (orders.length === 0) return null;
+
+  // Los pendientes son dos o tres, así que buscar la ficha de cada uno en
+  // paralelo sale más barato que cargar la libreta entera para cruzarla acá.
+  const matches = await Promise.all(
+    orders.map((order) =>
+      matchOrderCustomer(order.customerName, order.customerPhone),
+    ),
+  );
 
   return (
     <section className="mb-6">
@@ -65,7 +142,7 @@ export default function PendingOrdersPanel({
       </p>
 
       <div className="space-y-2">
-        {orders.map((order) => {
+        {orders.map((order, i) => {
           const wa = whatsappLink(order.customerPhone);
           const amount = fmtUsd(Number(order.amountUsd));
           const fee = order.deliveryFeeUsd ? Number(order.deliveryFeeUsd) : 0;
@@ -78,8 +155,8 @@ export default function PendingOrdersPanel({
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <ul className="space-y-0.5">
-                    {order.items.map((item, i) => (
-                      <li key={`${item.key}-${item.grams}-${i}`} className="text-sm">
+                    {order.items.map((item, j) => (
+                      <li key={`${item.key}-${item.grams}-${j}`} className="text-sm">
                         <span className="font-medium">{item.name}</span>{" "}
                         <span className="text-[#787774]">
                           × {item.quantity}
@@ -134,6 +211,7 @@ export default function PendingOrdersPanel({
               </div>
 
               <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                <CustomerBadge match={matches[i]} />
                 {order.paymentMethod && (
                   <span className="text-[11px] bg-black/5 text-[#5f5e5b] px-2 py-0.5 rounded-full">
                     {order.paymentMethod}

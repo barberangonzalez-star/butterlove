@@ -338,3 +338,39 @@ export async function ensureCustomer(contact: {
 
   return existing.id;
 }
+
+/** La ficha que le tocaría a un pedido de la tienda, con lo que ya lleva comprado. */
+export interface OrderCustomerMatch {
+  id: number;
+  name: string;
+  orders: number;
+  totalUsd: number;
+  lastPurchase: string | null;
+}
+
+/**
+ * A qué cliente conocido corresponde un pedido pendiente, si es que a alguno.
+ *
+ * Usa el mismo `findCustomer` que `ensureCustomer`, y eso es lo importante: lo
+ * que el panel muestra antes de confirmar es exactamente lo que va a pasar al
+ * confirmar. Con dos búsquedas distintas el aviso podría decir "cliente nuevo"
+ * y terminar enganchando la venta a una ficha vieja, o al revés.
+ *
+ * Devuelve null cuando no hay match — ahí la ficha se crea al confirmar.
+ */
+export async function matchOrderCustomer(
+  name: string | null,
+  phone: string | null,
+): Promise<OrderCustomerMatch | null> {
+  const existing = await findCustomer(name, phone);
+  if (!existing) return null;
+
+  const stats = (await loadStats(existing.id)).get(existing.id) ?? EMPTY_STATS;
+  return {
+    id: existing.id,
+    name: existing.name,
+    orders: stats.orders,
+    totalUsd: stats.totalUsd,
+    lastPurchase: stats.lastPurchase,
+  };
+}
