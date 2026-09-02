@@ -6,7 +6,7 @@
 // cachean los assets inmutables de Next y la pantalla de "sin conexión".
 //
 // Sube CACHE_VERSION para invalidar todo lo cacheado en el próximo deploy.
-const CACHE_VERSION = "v1";
+const CACHE_VERSION = "v2";
 const CACHE_NAME = `bl-admin-${CACHE_VERSION}`;
 
 const OFFLINE_URL = "/admin-offline.html";
@@ -95,4 +95,58 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Todo lo demás (RSC, API, imágenes de productos) pasa sin tocar la caché.
+});
+
+// El aviso de que entró un pedido por la tienda. Lo manda el servidor con
+// `web-push` y llega aunque el panel esté cerrado: es la única forma de
+// enterarse de una venta sin tener la app abierta.
+self.addEventListener("push", (event) => {
+  let data = {};
+  try {
+    data = event.data ? event.data.json() : {};
+  } catch {
+    // Un payload que no es JSON no puede tumbar la notificación: se muestra
+    // genérica y quien la reciba entra a ver.
+  }
+
+  const title = data.title || "Butter Love";
+
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: data.body || "Entró un pedido nuevo.",
+      icon: "/icons/admin-192.png",
+      badge: "/icons/admin-192.png",
+      // Cada pedido trae su propio tag, así que dos seguidos son dos avisos y
+      // no uno que se come al anterior.
+      tag: data.tag,
+      data: { url: data.url || "/admin/ventas" },
+      // Que no se descarte sola: un pedido esperando es algo que hay que
+      // atender, no un aviso de paso.
+      requireInteraction: true,
+    })
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const url = (event.notification.data && event.notification.data.url) || "/admin/ventas";
+
+  event.waitUntil(
+    (async () => {
+      // Si el panel ya está abierto se reusa esa ventana: abrir una segunda
+      // deja al teléfono con dos copias de la misma app.
+      const windows = await self.clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
+      });
+      for (const client of windows) {
+        if (client.url.includes("/admin")) {
+          await client.focus();
+          if ("navigate" in client) await client.navigate(url);
+          return;
+        }
+      }
+      await self.clients.openWindow(url);
+    })()
+  );
 });

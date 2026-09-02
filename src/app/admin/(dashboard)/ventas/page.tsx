@@ -1,4 +1,5 @@
 import { getSaleMonths, getSales } from "@/lib/sales-data";
+import { getPendingOrders } from "@/lib/pending-orders-data";
 import { getAdminProducts } from "@/lib/products-data";
 import { getPromotions } from "@/lib/promotions-data";
 import { getCustomers, toCustomerChoice } from "@/lib/customers-data";
@@ -7,6 +8,7 @@ import { isSaleChannel } from "@/lib/config";
 import BcvConverterWidget from "../_components/BcvConverterWidget";
 import SalesFilters, { type MonthOption } from "./SalesFilters";
 import VentasAdminClient from "./VentasAdminClient";
+import PendingOrdersPanel from "./PendingOrdersPanel";
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 
@@ -49,20 +51,30 @@ export default async function VentasAdminPage({
     ? monthBounds(validMonth)
     : { from: from || undefined, to: to || undefined };
 
-  const [sales, products, promotions, saleMonths, customers, wholesalePrices] =
-    await Promise.all([
-      getSales({
-        from: range.from,
-        to: range.to,
-        productId: productId ? Number(productId) : undefined,
-        channel: validChannel,
-      }),
-      getAdminProducts(),
-      getPromotions(),
-      getSaleMonths(),
-      getCustomers(),
-      getWholesaleUnitPrices(),
-    ]);
+  const [
+    sales,
+    products,
+    promotions,
+    saleMonths,
+    customers,
+    wholesalePrices,
+    pendingOrders,
+  ] = await Promise.all([
+    getSales({
+      from: range.from,
+      to: range.to,
+      productId: productId ? Number(productId) : undefined,
+      channel: validChannel,
+    }),
+    getAdminProducts(),
+    getPromotions(),
+    getSaleMonths(),
+    getCustomers(),
+    getWholesaleUnitPrices(),
+    // Los pendientes no pasan por los filtros: son los que hay ahora, y
+    // esconderlos porque el filtro apunta a otro mes sería perderlos de vista.
+    getPendingOrders(),
+  ]);
 
   const now = new Date();
   const currentMonth = `${now.getFullYear()}-${pad(now.getMonth() + 1)}`;
@@ -83,6 +95,8 @@ export default async function VentasAdminPage({
           a la tabla el ancho que necesita y la obligaría a scroll horizontal. */}
       <div className="grid 2xl:grid-cols-[1fr_260px] gap-6 items-start">
         <div className="min-w-0">
+          <PendingOrdersPanel orders={pendingOrders} />
+
           <SalesFilters
             from={validMonth ? undefined : from}
             to={validMonth ? undefined : to}

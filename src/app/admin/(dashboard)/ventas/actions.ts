@@ -10,9 +10,12 @@ import {
   type SaleInput,
   type SaleItemInput,
 } from "@/lib/sales-data";
-import { getAdminProducts, incrementProductSizeStock } from "@/lib/products-data";
-import { adjustSupplyItemQuantity } from "@/lib/inventory-data";
-import { resolveStockTargets } from "@/lib/combo-components";
+import { getAdminProducts } from "@/lib/products-data";
+import {
+  addStockMovement,
+  stockLedger,
+  supplyLedger,
+} from "@/lib/sale-inventory";
 import { getRecipeConsumption, getSizeCosts } from "@/lib/costs-data";
 import { getPromotions } from "@/lib/promotions-data";
 import {
@@ -22,84 +25,6 @@ import {
 } from "@/lib/customers-data";
 import { getBcvRates } from "@/lib/bcv";
 import { saleChannel } from "@/lib/config";
-
-/**
- * Acumula los movimientos de stock de una venta antes de aplicarlos.
- *
- * Al editar hay que devolver lo que la versión anterior había tomado y luego
- * tomar lo nuevo. Si ambas coinciden el delta queda en cero y no se toca la
- * base; y dos líneas del mismo producto y tamaño se suman en un solo update.
- */
-/**
- * Acumula lo que la venta consume de insumos: un frasco de maní 230g se lleva
- * un frasco, una tapa, una etiqueta y 250 g de maní crudo.
- *
- * Se aplica con la receta de hoy, también al revertir una venta vieja. Si la
- * receta cambió entremedio la devolución no es exacta — igual que el stock de
- * producto, que se repone con las cantidades actuales.
- */
-function supplyLedger() {
-  const deltas = new Map<number, number>();
-
-  return {
-    add(supplyItemId: number, delta: number) {
-      deltas.set(supplyItemId, (deltas.get(supplyItemId) ?? 0) + delta);
-    },
-    async apply() {
-      for (const [supplyItemId, delta] of deltas) {
-        // El inventario de insumos lleva enteros: los decimales se acumulan
-        // primero y se redondean una sola vez, al final.
-        const rounded = Math.round(delta);
-        if (rounded !== 0) {
-          await adjustSupplyItemQuantity(supplyItemId, rounded);
-        }
-      }
-    },
-  };
-}
-
-function stockLedger() {
-  const deltas = new Map<
-    string,
-    { productId: number; grams: number; delta: number }
-  >();
-
-  return {
-    add(productId: number | null, grams: number, delta: number) {
-      // Un producto borrado del catálogo ya no tiene stock que ajustar.
-      if (!productId) return;
-      const key = `${productId}:${grams}`;
-      const current = deltas.get(key);
-      if (current) current.delta += delta;
-      else deltas.set(key, { productId, grams, delta });
-    },
-    async apply() {
-      for (const { productId, grams, delta } of deltas.values()) {
-        if (delta !== 0) {
-          await incrementProductSizeStock(productId, grams, delta);
-        }
-      }
-    },
-  };
-}
-
-/**
- * Anota en el ledger el movimiento de stock de una línea, repartido entre los
- * componentes si lo vendido es un combo — un dúo no tiene frascos propios que
- * descontar, así que la línea le pega a sus sabores.
- */
-function addStockMovement(
-  ledger: ReturnType<typeof stockLedger>,
-  products: { id: number; key: string; kind: string }[],
-  productId: number | null,
-  grams: number,
-  quantity: number,
-  sign: 1 | -1,
-) {
-  for (const target of resolveStockTargets(products, productId, grams)) {
-    ledger.add(target.productId, target.grams, sign * target.quantity * quantity);
-  }
-}
 
 export async function saveSaleAction(formData: FormData) {
   await verifySession();

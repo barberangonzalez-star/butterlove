@@ -330,3 +330,87 @@ export const saleItems = pgTable(
   },
   (table) => [index("sale_items_sale_id_idx").on(table.saleId)],
 );
+
+/**
+ * Una línea de un pedido web, congelada como se cotizó al momento de pedirlo.
+ *
+ * Va en JSON y no en su propia tabla porque un pendiente es efímero: vive
+ * horas, hasta que se confirma —y ahí sí nace como venta con sus `saleItems`—
+ * o se borra. Una tabla aparte con su FK sería el mismo dato dos veces.
+ */
+export interface PendingOrderItem {
+  /**
+   * El producto se guarda por `key` y no por id: el pedido se confirma contra
+   * el catálogo del momento de confirmarlo, que es de donde salen el id, el
+   * stock y el costo. Guardar el id sería anotar dos veces lo mismo.
+   */
+  key: string;
+  /** El nombre de cara al cliente, ya con su prefijo: "Mantequilla de Maní". */
+  name: string;
+  grams: number;
+  quantity: number;
+  unitPriceUsd: number;
+}
+
+/**
+ * Los pedidos que entraron por la tienda y todavía no son ventas.
+ *
+ * Cuando alguien termina el checkout y toca "Confirmar pedido por WhatsApp",
+ * lo que llenó cae acá. No es una venta: nadie ha pagado todavía, y contarla
+ * como tal inflaría las ventas del mes con pedidos que nunca se concretaron.
+ *
+ * Por eso vive en su propia tabla y no como un estado dentro de `sales`: así
+ * ninguna de las consultas que ya existen —Finanzas, Mayoreo, el historial del
+ * cliente, el stock— tiene que acordarse de filtrarla. Un pendiente no existe
+ * para el negocio hasta que se aprieta "Confirmar", y ahí se convierte en una
+ * venta de verdad y esta fila desaparece.
+ */
+export const pendingOrders = pgTable("pending_orders", {
+  id: serial("id").primaryKey(),
+  items: jsonb("items").$type<PendingOrderItem[]>().notNull().default([]),
+  /** Lo que suman los productos, sin el delivery. */
+  subtotalUsd: numeric("subtotal_usd", { precision: 10, scale: 2 }).notNull(),
+  deliveryFeeUsd: numeric("delivery_fee_usd", { precision: 10, scale: 2 }),
+  amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
+  customerName: text("customer_name"),
+  customerPhone: text("customer_phone"),
+  paymentMethod: text("payment_method"),
+  /**
+   * Si marcó que ya pagó y va a mandar el comprobante. Es lo que dice el
+   * cliente, no lo que se verificó: justamente por eso hay que confirmar.
+   */
+  paymentClaimed: boolean("payment_claimed").notNull().default(false),
+  /** "Pickup", "Delivery" o "Envío nacional", igual que en `sales`. */
+  deliveryMethod: text("delivery_method"),
+  /** La zona de Caracas del delivery, que es la que fija la tarifa. */
+  deliveryZone: text("delivery_zone"),
+  /** La dirección del delivery, o el punto acordado del pickup. */
+  address: text("address"),
+  /** La empresa de encomienda del envío nacional: MRW, Zoom, Domesa, Tealca. */
+  courier: text("courier"),
+  /** Cédula y agencia: sin esos dos datos la encomienda no despacha. */
+  idCard: text("id_card"),
+  agency: text("agency"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * A qué teléfonos avisarle cuando entra un pedido.
+ *
+ * Cada navegador que activa las notificaciones deja acá su suscripción: una
+ * URL que apunta al servicio de push del fabricante (Google, Apple, Mozilla) y
+ * las dos llaves con las que se cifra el mensaje. El endpoint es la identidad,
+ * así que reactivar en el mismo teléfono actualiza la fila en vez de duplicarla.
+ *
+ * Se borran solas: cuando el servicio responde 404 o 410 la suscripción ya no
+ * existe —desinstalaron la app, revocaron el permiso— y se elimina.
+ */
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: serial("id").primaryKey(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  /** Para reconocer cuál teléfono es al mirar la lista. */
+  userAgent: text("user_agent"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});

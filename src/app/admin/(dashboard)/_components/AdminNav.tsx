@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { logout } from "../actions";
 import InstallPrompt from "../../_pwa/InstallPrompt";
+import PushToggle from "../../_pwa/PushToggle";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -30,7 +31,14 @@ const NAV_ITEMS = [
   { href: "/admin/promociones", label: "Promociones", icon: Tag },
 ];
 
-function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
+function NavLinks({
+  onNavigate,
+  pendingCount,
+}: {
+  onNavigate?: () => void;
+  /** Pedidos de la tienda esperando confirmación. */
+  pendingCount: number;
+}) {
   const pathname = usePathname();
 
   return (
@@ -55,6 +63,12 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
           >
             <Icon size={16} strokeWidth={2} />
             {label}
+            {/* El contador sólo cuelga de Ventas, que es donde se atienden. */}
+            {href === "/admin/ventas" && pendingCount > 0 && (
+              <span className="ml-auto min-w-5 text-center text-[11px] font-medium bg-[#b4700a] text-white rounded-full px-1.5 py-0.5">
+                {pendingCount}
+              </span>
+            )}
           </Link>
         );
       })}
@@ -65,6 +79,7 @@ function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
 function NavFooter() {
   return (
     <div className="px-3 pb-4">
+      <PushToggle />
       <InstallPrompt />
       <form action={logout}>
         <button
@@ -79,7 +94,7 @@ function NavFooter() {
   );
 }
 
-export default function AdminNav() {
+export default function AdminNav({ pendingCount }: { pendingCount: number }) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -121,7 +136,7 @@ export default function AdminNav() {
                 <X size={18} />
               </button>
             </div>
-            <NavLinks onNavigate={() => setOpen(false)} />
+            <NavLinks onNavigate={() => setOpen(false)} pendingCount={pendingCount} />
             <NavFooter />
           </div>
         </div>
@@ -131,7 +146,7 @@ export default function AdminNav() {
         <div className="px-5 h-16 flex items-center border-b border-black/10">
           <span className="font-semibold text-sm">🧈 Butter Love Admin</span>
         </div>
-        <NavLinks />
+        <NavLinks pendingCount={pendingCount} />
         <NavFooter />
       </aside>
     </>

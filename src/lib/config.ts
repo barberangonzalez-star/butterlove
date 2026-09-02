@@ -30,6 +30,21 @@ export const WHATSAPP_NUMBER = "584142856600";
 export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
 
 /**
+ * La llave pública VAPID con la que el panel se suscribe a las notificaciones.
+ *
+ * Va acá y no en una variable de entorno a propósito: es pública por diseño
+ * —viaja en el navegador de todas formas— y en `NEXT_PUBLIC_` sería una
+ * variable más que configurar en Vercel, con el detalle de que si falta, el
+ * botón de activar notificaciones falla en silencio. La privada, que es la que
+ * firma, sí vive en el entorno como `VAPID_PRIVATE_KEY`.
+ *
+ * Las dos son un par: cambiar ésta obliga a cambiar la otra, y deja sin efecto
+ * todas las suscripciones ya guardadas.
+ */
+export const VAPID_PUBLIC_KEY =
+  "BDPh0rk4MZoaZHxGDpChx0XGuK92se1OqrzZDz4nyO9uCB2Bus470SM-VQj2DWpdyp6p2sZFPUr3gxWOGIzvlYY";
+
+/**
  * El sabor que anuncia el banner de la home, por su `key` del catálogo. Se
  * nombra aquí y no en el componente porque quien lo busca en la base de datos
  * es la página —el producto puede estar fuera de la vitrina—. Vacío, el

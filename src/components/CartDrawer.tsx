@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { useProducts } from "@/lib/products-context";
@@ -310,6 +310,56 @@ export default function CartDrawer() {
   const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
     message
   )}`;
+
+  /**
+   * Lo último que se mandó, para no registrar el mismo pedido dos veces.
+   *
+   * WhatsApp abre en otra pestaña y ésta se queda como está: es normal que el
+   * cliente vuelva y toque el botón otra vez, y sin esto quien está del otro
+   * lado vería dos pedidos idénticos y no sabría si son dos o uno repetido.
+   * Cambiar cualquier dato cambia la firma, así que corregir el pedido y
+   * volver a enviarlo sí registra el nuevo.
+   */
+  const lastSent = useRef<string | null>(null);
+
+  /**
+   * Deja el pedido en el panel, marcado como pendiente.
+   *
+   * Se dispara junto con el botón de WhatsApp porque es el único instante en
+   * que se sabe que el cliente llenó todo y va camino a escribir. Falla en
+   * silencio a propósito: el pedido de verdad es la conversación, y una caída
+   * de red no puede impedir que se abra.
+   */
+  const registerPendingOrder = () => {
+    const payload = JSON.stringify({
+      items: items.map((i) => ({ key: i.key, grams: i.grams, qty: i.qty })),
+      name,
+      phone,
+      deliveryMethod,
+      zone: zone?.name ?? "",
+      address,
+      courier,
+      idCard,
+      agency,
+      paymentMethod,
+      paymentClaimed: requiresProof && paymentConfirmed,
+    });
+
+    if (lastSent.current === payload) return;
+    lastSent.current = payload;
+
+    fetch("/api/pedidos", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: payload,
+      // El click navega a WhatsApp: sin esto el navegador puede cortar la
+      // petición a medio camino.
+      keepalive: true,
+    }).catch(() => {
+      // Si no salió, que el próximo intento pueda repetirlo.
+      lastSent.current = null;
+    });
+  };
 
   return (
     <>
@@ -911,7 +961,10 @@ export default function CartDrawer() {
               <div className="space-y-2">
                 <a
                   href={waLink}
-                  onClick={() => trackInitiateCheckout(items, grandTotal)}
+                  onClick={() => {
+                    trackInitiateCheckout(items, grandTotal);
+                    registerPendingOrder();
+                  }}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center justify-center gap-2 w-full rounded-full bg-[#25D366] text-white font-semibold py-3 hover:opacity-90 transition-opacity"
