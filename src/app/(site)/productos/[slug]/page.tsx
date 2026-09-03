@@ -5,7 +5,7 @@ import { Check } from "lucide-react";
 import { getProducts, getProduct } from "@/lib/products-data";
 import { isCombo, productTitle, sizeLabel } from "@/lib/products";
 import { comboContents, productShots } from "@/lib/product-media";
-import { posts, CATEGORY_LABEL, formatPostDateShort } from "@/lib/posts";
+import { posts } from "@/lib/posts";
 import ProductGallery from "@/components/ProductGallery";
 import ProductPurchase from "@/components/ProductPurchase";
 import RelatedProducts from "@/components/RelatedProducts";
@@ -227,33 +227,32 @@ export default async function ProductPage({
 
       <RelatedProducts currentKey={product.key} />
 
-      {/* El blog ya enlaza al producto; esto cierra el camino de vuelta, para
-          que Google recorra ambas secciones en lugar de tratarlas por separado. */}
+      {/* El blog ya enlaza al producto; estos enlaces cierran el camino de
+          vuelta, para que Google recorra ambas secciones en lugar de tratarlas
+          por separado.
+
+          Son enlaces pelados y no las tarjetas que eran antes —con resumen,
+          fecha, categoría y minutos de lectura— porque acá abajo eso no era
+          información útil: es una ficha de producto, y lo último que se leía
+          antes del pie era el resumen de un artículo. Quien quiera leer, entra;
+          el resto ya decidió arriba. */}
       {productPosts.length > 0 && (
         <section className="mx-auto max-w-7xl px-5 sm:px-8 pb-12 sm:pb-16">
-          <h2 className="font-display font-700 text-2xl text-ink mb-5">
-            Del blog: mantequilla de {product.name}
+          <h2 className="text-sm text-ink-soft mb-2">
+            Sobre la mantequilla de {product.name}, en el blog
           </h2>
-          <div className="grid sm:grid-cols-2 gap-5">
+          <ul className="flex flex-col gap-1.5">
             {productPosts.map((post) => (
-              <Link
-                key={post.slug}
-                href={`/blog/${post.slug}`}
-                className="border-t border-ink/10 pt-4 flex flex-col gap-2 group"
-              >
-                <span className="text-sm text-ink-soft">
-                  {CATEGORY_LABEL[post.category]} · {post.readTime} de lectura
-                </span>
-                <h3 className="font-display font-700 text-lg text-ink group-hover:underline">
+              <li key={post.slug}>
+                <Link
+                  href={`/blog/${post.slug}`}
+                  className="text-base text-ink underline decoration-ink/25 underline-offset-4 hover:decoration-ink"
+                >
                   {post.title}
-                </h3>
-                <p className="text-sm text-ink-soft flex-1">{post.excerpt}</p>
-                <time dateTime={post.date} className="text-sm text-ink-soft">
-                  {formatPostDateShort(post.date)}
-                </time>
-              </Link>
+                </Link>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       )}
 
