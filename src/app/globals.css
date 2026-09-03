@@ -51,6 +51,19 @@ body {
   scrollbar-width: thin;
 }
 
+/* Los carruseles se arrastran con el dedo y traen sus propios controles
+   —miniaturas, flechas, el contador—, así que la barra del navegador debajo
+   sólo suma un renglón gris. Va acá y no como clase suelta de Tailwind porque
+   la regla de arriba está fuera de las capas de Tailwind y le gana a
+   cualquier utilidad, por más específica que sea. */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 .torn-card {
   border-radius: 34px 40px 30px 44px;
 }

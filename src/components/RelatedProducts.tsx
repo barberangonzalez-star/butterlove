@@ -33,7 +33,7 @@ export default async function RelatedProducts({
 
       {/* Fila que se arrastra con el dedo en el teléfono y se ve completa en
           pantalla grande, como el carrusel de recomendados de una tienda. */}
-      <ul className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-5 px-5 sm:mx-0 sm:px-0">
+      <ul className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-5 px-5 sm:mx-0 sm:px-0 no-scrollbar">
         {suggestions.map((p) => {
           const title = productTitle(p);
           const from = Math.min(...p.sizes.map((s) => s.price));

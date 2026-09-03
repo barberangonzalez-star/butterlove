@@ -14,6 +14,15 @@
  * Los videos que salen del teléfono guardan el índice al final del archivo, y
  * eso obliga al navegador a bajarlo entero antes de poder mostrar el primer
  * cuadro. `-c copy` no recomprime: sólo mueve el índice al principio.
+ *
+ * Y saca el póster del propio video, con el mismo nombre y `-poster.jpg`:
+ *
+ *     ffmpeg -ss 0.4 -i public/videos/x.mp4 -frames:v 1 -q:v 4 \
+ *       public/videos/x-poster.jpg
+ *
+ * La galería no descarga el video hasta que alguien llega a esa diapositiva,
+ * así que hasta entonces lo único que se ve es el póster. Sin él, el hueco
+ * queda negro.
  */
 export const PRODUCT_VIDEOS: Record<string, string> = {
   mani: "/videos/mani.mp4",
@@ -22,14 +31,16 @@ export const PRODUCT_VIDEOS: Record<string, string> = {
   merey: "/videos/merey.mp4",
 };
 
-/**
- * Mientras un producto no tenga video, la ficha reserva el espacio con la misma
- * proporción 16:9 y avisa que viene en camino. Así el día que llegue el archivo
- * no se mueve nada de sitio. Poner esto en `false` esconde el aviso y deja la
- * sección fuera de las fichas que todavía no tienen video.
- */
-export const SHOW_VIDEO_PLACEHOLDER = true;
-
 export function productVideo(key: string): string | undefined {
   return PRODUCT_VIDEOS[key];
+}
+
+/**
+ * El primer cuadro del video, guardado al lado con el mismo nombre. Se deduce
+ * en vez de listarlo aparte: son dos archivos que se dejan juntos y una lista
+ * más sería una lista más que se olvida de actualizar.
+ */
+export function productVideoPoster(key: string): string | undefined {
+  const src = PRODUCT_VIDEOS[key];
+  return src?.replace(/\.mp4$/, "-poster.jpg");
 }

@@ -32,6 +32,38 @@ export const COMBO_COMPONENTS: Record<string, ComboComponent[]> = {
   "trio-mani": [{ productKey: "mani", grams: 230, quantity: 3 }],
 };
 
+/**
+ * Cuánto se ahorra comprando el combo en vez de sus frascos por separado.
+ *
+ * Es el único argumento que tiene un combo, y hasta ahora la ficha no lo
+ * decía: el precio de los frascos sueltos está en otra página. Se calcula con
+ * los precios de hoy y no con un número escrito a mano, para que subir el
+ * precio de un sabor no deje una promesa vieja colgada en la ficha del dúo.
+ *
+ * Devuelve 0 si falta algún componente en el catálogo o si el combo no sale
+ * más barato —el dúo de pistacho y almendras hoy cuesta lo mismo que los dos
+ * frascos—: en ese caso no hay nada que presumir.
+ */
+export function comboSavings(
+  product: { key: string; kind: string; sizes: { grams: number; price: number }[] },
+  catalog: { key: string; sizes: { grams: number; price: number }[] }[],
+): number {
+  const components = COMBO_COMPONENTS[product.key];
+  const combo = product.sizes[0];
+  if (!components || !combo) return 0;
+
+  let apart = 0;
+  for (const component of components) {
+    const jar = catalog.find((p) => p.key === component.productKey);
+    const size = jar?.sizes.find((s) => s.grams === component.grams);
+    if (!size) return 0;
+    apart += size.price * component.quantity;
+  }
+
+  const saved = apart - combo.price;
+  return saved > 0.01 ? saved : 0;
+}
+
 export interface StockTarget {
   productId: number;
   grams: number;

@@ -1,12 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { Check } from "lucide-react";
 import { getProducts, getProduct } from "@/lib/products-data";
 import { isCombo, productTitle, sizeLabel } from "@/lib/products";
+import { comboContents, productShots } from "@/lib/product-media";
 import { posts, CATEGORY_LABEL, formatPostDateShort } from "@/lib/posts";
 import ProductGallery from "@/components/ProductGallery";
 import ProductPurchase from "@/components/ProductPurchase";
-import ProductVideo from "@/components/ProductVideo";
 import RelatedProducts from "@/components/RelatedProducts";
 import JsonLd from "@/components/JsonLd";
 import {
@@ -73,6 +74,12 @@ export default async function ProductPage({
   const title = productTitle(product);
   const productPosts = posts.filter((p) => p.productKey === product.key);
 
+  // La vitrina completa: de ahí salen los frascos que arma un combo, tanto
+  // para la galería como para el renglón que dice qué trae adentro.
+  const catalog = await getProducts();
+  const shots = productShots(product, catalog);
+  const contents = comboContents(product, catalog);
+
   const details: [string, string][] = [
     ["Marca", SITE_NAME],
     ["Categoría", "Mantequilla de frutos secos"],
@@ -81,6 +88,12 @@ export default async function ProductPage({
       product.sizes.map((s) => sizeLabel(product, s)).join(" · "),
     ],
     ["Tipo", isCombo(product) ? "Combo de frascos" : "Sabor suelto"],
+    ...(contents.length > 0
+      ? ([["Incluye", contents.map((c) => c.label).join(" + ")]] as [
+          string,
+          string,
+        ][])
+      : []),
   ];
 
   return (
@@ -135,15 +148,43 @@ export default async function ProductPage({
             </h1>
             <p className="mt-2 text-base text-ink-soft">{product.tagline}</p>
 
-            {product.badges.length > 0 && (
-              <p className="mt-3 text-sm text-ink-soft">
-                {product.badges.join(" · ")}
+            {contents.length > 0 && (
+              <p className="mt-2 text-base text-ink">
+                Incluye {contents.map((c) => c.label).join(" + ")}
               </p>
+            )}
+
+            {/* Lo que antes era un renglón gris con puntos en el medio. Son
+                las tres razones por las que alguien compra esto y ahora se
+                cuentan como tres, no como una frase larga.
+
+                En el teléfono van en un solo renglón que se corre con el dedo:
+                envueltas en dos filas empujaban la foto media pantalla hacia
+                abajo, y lo primero que tiene que verse de un producto es el
+                producto. */}
+            {product.badges.length > 0 && (
+              <ul className="mt-4 flex gap-2 overflow-x-auto -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap no-scrollbar">
+                {product.badges.map((badge) => (
+                  <li
+                    key={badge}
+                    className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-surface px-3 py-1.5 text-sm text-ink"
+                  >
+                    <Check
+                      className="w-3.5 h-3.5 text-ink-soft"
+                      aria-hidden="true"
+                    />
+                    {badge}
+                  </li>
+                ))}
+              </ul>
             )}
           </header>
 
-          <div className="order-2 lg:col-start-1 lg:row-start-1 lg:row-span-2">
-            <ProductGallery product={product} />
+          {/* Entre el teléfono y el escritorio la página sigue siendo de una
+              sola columna, y sin tope la foto cuadrada se comía una pantalla
+              de tablet entera. Desde `lg` manda la columna de la cuadrícula. */}
+          <div className="order-2 sm:max-w-[520px] lg:max-w-none lg:col-start-1 lg:row-start-1 lg:row-span-2">
+            <ProductGallery shots={shots} title={title} />
           </div>
 
           <aside className="order-3 lg:col-start-3 lg:row-start-1 lg:row-span-2 lg:sticky lg:top-6">
@@ -184,12 +225,6 @@ export default async function ProductPage({
         </div>
       </section>
 
-      <ProductVideo
-        productKey={product.key}
-        title={title}
-        poster={product.heroImage}
-      />
-
       <RelatedProducts currentKey={product.key} />
 
       {/* El blog ya enlaza al producto; esto cierra el camino de vuelta, para
@@ -221,6 +256,7 @@ export default async function ProductPage({
           </div>
         </section>
       )}
+
     </>
   );
 }
