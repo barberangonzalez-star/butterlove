@@ -69,6 +69,7 @@ export default function CotizadorClient({
   );
 
   const [qty, setQty] = useState<Record<string, number>>({});
+  const [priceOverride, setPriceOverride] = useState<Record<string, number>>({});
   const [delivery, setDelivery] = useState<DeliveryChoice>("");
   const [copied, setCopied] = useState(false);
   const bcvRate = useBcvRate();
@@ -76,17 +77,33 @@ export default function CotizadorClient({
   const setRowQty = (id: string, value: number) => {
     const next = Math.max(0, Math.min(99, value));
     setQty((prev) => ({ ...prev, [id]: next }));
+    // Sin unidades en el pedido no hay precio que recordar: la próxima vez
+    // que se agregue arranca de nuevo en el precio de catálogo.
+    if (next === 0) {
+      setPriceOverride((prev) => {
+        if (!(id in prev)) return prev;
+        const next = { ...prev };
+        delete next[id];
+        return next;
+      });
+    }
+  };
+
+  const setRowPrice = (id: string, value: number) => {
+    setPriceOverride((prev) => ({ ...prev, [id]: Math.max(0, value) }));
   };
 
   const reset = () => {
     setQty({});
+    setPriceOverride({});
     setDelivery("");
   };
 
   const { selected, subtotal, delivery_, total, quoteText } = useMemo(() => {
+    const price = (r: Row) => priceOverride[r.id] ?? r.price;
     const selected = rows.filter((r) => (qty[r.id] ?? 0) > 0);
     const subtotal = selected.reduce(
-      (sum, r) => sum + r.price * (qty[r.id] ?? 0),
+      (sum, r) => sum + price(r) * (qty[r.id] ?? 0),
       0,
     );
     const delivery_ = deliveryInfo(delivery);
@@ -98,7 +115,7 @@ export default function CotizadorClient({
 
     const lines = selected.map((r) => {
       const q = qty[r.id] ?? 0;
-      const lineTotal = r.price * q;
+      const lineTotal = price(r) * q;
       const bs = bcvRate ? ` (Bs. ${fmtBs(lineTotal * bcvRate)})` : "";
       return `• ${r.label} ${r.size} x${q}: ${fmtUsd(lineTotal)}${bs}`;
     });
@@ -122,7 +139,7 @@ export default function CotizadorClient({
     }
 
     return { selected, subtotal, delivery_, total, quoteText: out.join("\n") };
-  }, [rows, qty, delivery, bcvRate]);
+  }, [rows, qty, priceOverride, delivery, bcvRate]);
 
   const hasItems = selected.length > 0;
 
@@ -138,6 +155,8 @@ export default function CotizadorClient({
       <div className="border border-black/10 rounded-lg bg-white divide-y divide-black/5">
         {rows.map((r) => {
           const q = qty[r.id] ?? 0;
+          const price = priceOverride[r.id] ?? r.price;
+          const discounted = price !== r.price;
           return (
             <div
               key={r.id}
@@ -146,10 +165,38 @@ export default function CotizadorClient({
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{r.label}</p>
                 <p className="text-xs text-[#787774]">
-                  {r.size} · {fmtUsd(r.price)}
-                  {bcvRate && ` · Bs. ${fmtBs(r.price * bcvRate)}`}
+                  {r.size}
+                  {discounted && (
+                    <span className="line-through mr-1">
+                      {" "}
+                      {fmtUsd(r.price)}
+                    </span>
+                  )}
+                  {bcvRate && ` · Bs. ${fmtBs(price * bcvRate)}`}
                 </p>
               </div>
+              {q > 0 ? (
+                <div className="flex items-center gap-1 shrink-0">
+                  <span className="text-sm text-[#787774]">$</span>
+                  <input
+                    type="number"
+                    min={0}
+                    step={0.01}
+                    value={price}
+                    onChange={(e) => setRowPrice(r.id, Number(e.target.value))}
+                    aria-label={`Precio de ${r.label}`}
+                    className={`w-16 rounded-md border px-1.5 py-1.5 text-sm text-right outline-none focus:border-[#37352f] ${
+                      discounted
+                        ? "border-[#b4700a] text-[#b4700a] font-medium"
+                        : "border-black/15"
+                    }`}
+                  />
+                </div>
+              ) : (
+                <span className="text-xs text-[#787774] shrink-0">
+                  {fmtUsd(r.price)}
+                </span>
+              )}
               <div className="flex items-center gap-1 shrink-0">
                 <button
                   type="button"
