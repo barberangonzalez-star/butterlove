@@ -25,7 +25,7 @@ export const SOCIAL_LINKS: string[] = [];
 export const BUSINESS_LOCALITY = "";
 
 // Cambia el número de WhatsApp por el número real del negocio (formato: código país + número, sin '+' ni espacios).
-export const WHATSAPP_NUMBER = "584142856600";
+export const WHATSAPP_NUMBER = "584149626107";
 
 export const WHATSAPP_LINK = `https://wa.me/${WHATSAPP_NUMBER}`;
 
