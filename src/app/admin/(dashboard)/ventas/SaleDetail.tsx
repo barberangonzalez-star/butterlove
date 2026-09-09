@@ -131,6 +131,15 @@ export default function SaleDetail({ sale }: { sale: Sale }) {
       </div>
 
       <dl className="text-sm">
+        <Campo label="N.º de venta">
+          <span className="tabular-nums">#{sale.id}</span>
+          {sale.monthlyNumber !== null && (
+            <span className="text-[#787774]">
+              {" "}
+              · {sale.monthlyNumber}.ª del mes
+            </span>
+          )}
+        </Campo>
         <Campo label="Fecha">{sale.saleDate}</Campo>
         <Campo label="Pago">{sale.paymentMethod ?? "—"}</Campo>
         <Campo label="Entrega">{entrega || "—"}</Campo>

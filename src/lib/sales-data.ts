@@ -175,6 +175,24 @@ function toItemRows(saleId: number, items: SaleItemInput[]) {
   }));
 }
 
+/**
+ * El siguiente número libre del mes al que pertenece esa fecha.
+ *
+ * Lo resuelve la base dentro de la misma sentencia que escribe la venta, y no
+ * una consulta aparte, para que dos registros seguidos no se lleven el mismo
+ * número. Cuenta desde el máximo puesto y no desde la cantidad de ventas: si
+ * se borró la última del mes, la próxima sigue de largo en vez de repetir un
+ * número ya usado.
+ */
+function nextMonthlyNumber(saleDate: string) {
+  const month = saleDate.slice(0, 7);
+  return sql<number>`(
+    select coalesce(max(${sales.monthlyNumber}), 0) + 1
+    from ${sales}
+    where to_char(${sales.saleDate}, 'YYYY-MM') = ${month}
+  )`;
+}
+
 export async function getSaleById(id: number): Promise<Sale | undefined> {
   const db = getDb();
   const [row] = await db.select().from(sales).where(eq(sales.id, id)).limit(1);
@@ -187,7 +205,7 @@ export async function createSale(input: SaleInput) {
   const db = getDb();
   const [row] = await db
     .insert(sales)
-    .values(toRow(input))
+    .values({ ...toRow(input), monthlyNumber: nextMonthlyNumber(input.saleDate) })
     .returning({ id: sales.id });
 
   try {
@@ -204,10 +222,30 @@ export async function createSale(input: SaleInput) {
 
 export async function updateSale(id: number, input: SaleInput) {
   const db = getDb();
+
+  // `toRow` no toca el número, así que editar una venta se lo respeta. La
+  // excepción es corregirle la fecha a otro mes: ahí el número viejo era de un
+  // mes al que ya no pertenece y le toca uno del nuevo. El que deja atrás no se
+  // reparte de nuevo, igual que el de una venta borrada.
+  const [current] = await db
+    .select({ saleDate: sales.saleDate, monthlyNumber: sales.monthlyNumber })
+    .from(sales)
+    .where(eq(sales.id, id))
+    .limit(1);
+
+  const renumber =
+    current &&
+    (current.monthlyNumber === null ||
+      current.saleDate.slice(0, 7) !== input.saleDate.slice(0, 7));
+
+  const row = renumber
+    ? { ...toRow(input), monthlyNumber: nextMonthlyNumber(input.saleDate) }
+    : toRow(input);
+
   // Las líneas se reemplazan enteras: es más simple que reconciliar altas,
   // bajas y cambios, y `batch` hace que los tres pasos sean atómicos.
   await db.batch([
-    db.update(sales).set(toRow(input)).where(eq(sales.id, id)),
+    db.update(sales).set(row).where(eq(sales.id, id)),
     db.delete(saleItems).where(eq(saleItems.saleId, id)),
     db.insert(saleItems).values(toItemRows(id, input.items)),
   ]);
