@@ -8,15 +8,37 @@
  * para atrás.
  */
 
-export type PeriodKind = "dia" | "semana" | "mes" | "anio" | "rango";
+export type PeriodKind =
+  | "dia"
+  | "semana"
+  | "mes"
+  | "trimestre"
+  | "semestre"
+  | "anio"
+  | "rango";
 
 export const PERIOD_KINDS: { value: PeriodKind; label: string }[] = [
   { value: "dia", label: "Día" },
   { value: "semana", label: "Semana" },
   { value: "mes", label: "Mes" },
+  { value: "trimestre", label: "Trimestre" },
+  { value: "semestre", label: "Semestre" },
   { value: "anio", label: "Año" },
   { value: "rango", label: "Rango" },
 ];
+
+/**
+ * Cuántos meses agrupa cada lente que se mide en meses. El trimestre y el
+ * semestre son de calendario, como el mes y el año: el trimestre en curso va de
+ * julio a septiembre, no "los últimos noventa días". Así el período de al lado
+ * es el trimestre anterior completo y dos fechas del mismo trimestre dan el
+ * mismo rango, que es lo que mantiene la URL estable.
+ */
+const MONTH_SPAN: Partial<Record<PeriodKind, number>> = {
+  mes: 1,
+  trimestre: 3,
+  semestre: 6,
+};
 
 export interface Period {
   kind: PeriodKind;
@@ -81,6 +103,11 @@ function label(kind: PeriodKind, from: string, to: string): string {
   if (kind === "mes") {
     return fmt(from, { month: "long", year: "numeric" });
   }
+  if (kind === "trimestre" || kind === "semestre") {
+    // Los meses que cubre dicen más que "3.er trimestre": el chip activo ya
+    // nombra el lente, así que el rótulo se gasta en lo que el lente no dice.
+    return `${fmt(from, { month: "short" })} – ${fmt(to, { month: "short", year: "numeric" })}`;
+  }
   return from.slice(0, 4);
 }
 
@@ -117,9 +144,13 @@ export function resolvePeriod(
     const offset = (date.getUTCDay() + 6) % 7;
     from = addDays(date, -offset);
     to = addDays(from, 6);
-  } else if (kind === "mes") {
-    from = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth(), 1));
-    to = new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0));
+  } else if (MONTH_SPAN[kind]) {
+    const span = MONTH_SPAN[kind]!;
+    // El primer mes del bloque: con span 3, agosto (mes 7) cae en el bloque que
+    // arranca en julio (mes 6).
+    const first = Math.floor(date.getUTCMonth() / span) * span;
+    from = new Date(Date.UTC(date.getUTCFullYear(), first, 1));
+    to = new Date(Date.UTC(date.getUTCFullYear(), first + span, 0));
   } else {
     from = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
     to = new Date(Date.UTC(date.getUTCFullYear(), 11, 31));
@@ -147,8 +178,11 @@ export function shiftPeriod(period: Period, delta: number): Period {
 
   if (period.kind === "dia") next = addDays(start, delta);
   else if (period.kind === "semana") next = addDays(start, delta * 7);
-  else if (period.kind === "mes") {
-    next = new Date(Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + delta, 1));
+  else if (MONTH_SPAN[period.kind]) {
+    const span = MONTH_SPAN[period.kind]!;
+    next = new Date(
+      Date.UTC(start.getUTCFullYear(), start.getUTCMonth() + delta * span, 1),
+    );
   } else {
     next = new Date(Date.UTC(start.getUTCFullYear() + delta, 0, 1));
   }

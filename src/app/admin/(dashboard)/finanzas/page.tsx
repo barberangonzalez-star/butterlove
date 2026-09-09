@@ -13,7 +13,7 @@ import {
   type PeriodKind,
 } from "@/lib/period";
 import MonthPicker, { type MonthOption } from "./MonthPicker";
-import PeriodPicker from "./PeriodPicker";
+import PeriodPicker from "../_components/PeriodPicker";
 import ExpensesPanel from "./ExpensesPanel";
 import CostsPanel from "./CostsPanel";
 import RateField from "./RateField";
@@ -193,7 +193,12 @@ export default async function FinanzasPage({
           <Card
             id="ventas-por-producto"
             title="Ventas por producto"
-            action={<PeriodPicker period={period} month={month} />}
+            action={<PeriodPicker
+                period={period}
+                base="/admin/finanzas"
+                params={{ month }}
+                hash="#ventas-por-producto"
+              />}
           >
             <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm mb-3 pb-3 border-b border-black/5">
               <Figure label="Pedidos" value={String(sold.orders)} />

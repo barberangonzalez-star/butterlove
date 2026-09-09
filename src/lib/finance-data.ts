@@ -240,19 +240,49 @@ export function monthBounds(month: string) {
  */
 export async function getMonthReport(month: string): Promise<MonthReport> {
   const { from, to } = monthBounds(month);
+  return getRangeReport(from, to, month);
+}
 
-  const [sales, expenses, replacementRate, resolveCost] = await Promise.all([
+/**
+ * El mismo reporte, pero de cualquier rango: un día, una semana, un trimestre.
+ *
+ * La única cuenta que no se deja cortar por fechas arbitrarias es la pérdida
+ * por tasa, porque la tasa de reposición se anota por mes. Se resuelve mes a
+ * mes y se suma: un trimestre pesa las tres tasas que le tocan en vez de
+ * inventar una sola. Si a ningún mes del rango se le anotó tasa, queda en null
+ * igual que antes —no hay dato, y estimarlo sería peor que no decir nada.
+ */
+export async function getRangeReport(
+  from: string,
+  to: string,
+  month = from.slice(0, 7),
+): Promise<MonthReport> {
+  const [sales, expenses, resolveCost] = await Promise.all([
     getSales({ from, to }),
     getExpenses(from, to),
-    getReplacementRate(month),
     getUnitCostResolver(),
   ]);
+
+  // Los meses que el rango toca de verdad, según las ventas que trajo: pedir la
+  // tasa de un mes sin ventas en bolívares no aportaría nada a la cuenta.
+  const months = [...new Set(sales.map((s) => s.saleDate.slice(0, 7)))].sort();
+  const rates = new Map<string, number | null>(
+    await Promise.all(
+      months.map(
+        async (m) => [m, await getReplacementRate(m)] as [string, number | null],
+      ),
+    ),
+  );
+  // La que se muestra como "la tasa" sólo tiene sentido cuando el rango vive en
+  // un mes solo; en un trimestre son varias y ninguna lo representa.
+  const replacementRate = months.length === 1 ? (rates.get(months[0]) ?? null) : null;
 
   let grossRevenue = 0;
   let deliveryCharged = 0;
   let deliveryCost = 0;
   let bsRevenueUsd = 0;
   let bsAmount = 0;
+  const bsByMonth = new Map<string, { usd: number; bs: number }>();
 
   // La cabecera de la venta y sus líneas responden cosas distintas: el monto
   // cobrado y el delivery viven arriba, lo que se despachó vive abajo.
@@ -268,6 +298,12 @@ export async function getMonthReport(month: string): Promise<MonthReport> {
     ) {
       bsRevenueUsd += Number(sale.amountUsd);
       bsAmount += Number(sale.amountBs);
+
+      const key = sale.saleDate.slice(0, 7);
+      const entry = bsByMonth.get(key) ?? { usd: 0, bs: 0 };
+      entry.usd += Number(sale.amountUsd);
+      entry.bs += Number(sale.amountBs);
+      bsByMonth.set(key, entry);
     }
   }
 
@@ -308,10 +344,12 @@ export async function getMonthReport(month: string): Promise<MonthReport> {
 
   // Lo cobrado en Bs se convirtió a tasa BCV; reponer esos dólares cuesta la
   // tasa real. La diferencia es plata que se fue sin aparecer en ninguna venta.
-  const rateLoss =
-    replacementRate && replacementRate > 0
-      ? bsRevenueUsd - bsAmount / replacementRate
-      : null;
+  let rateLoss: number | null = null;
+  for (const [key, { usd, bs }] of bsByMonth) {
+    const rate = rates.get(key);
+    if (!rate || rate <= 0) continue;
+    rateLoss = (rateLoss ?? 0) + (usd - bs / rate);
+  }
 
   return {
     month,

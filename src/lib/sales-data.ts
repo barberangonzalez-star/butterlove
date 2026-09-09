@@ -220,12 +220,10 @@ export async function deleteSale(id: number) {
   return deleted;
 }
 
-export async function getMonthSummary(monthStart: string, monthEnd: string) {
+/** Lo grueso de un rango: cuánto entró, cuántos pedidos y qué se vendió más. */
+export async function getRangeSummary(from: string, to: string) {
   const db = getDb();
-  const inMonth = and(
-    gte(sales.saleDate, monthStart),
-    lte(sales.saleDate, monthEnd),
-  );
+  const inRange = and(gte(sales.saleDate, from), lte(sales.saleDate, to));
 
   const [row] = await db
     .select({
@@ -234,7 +232,7 @@ export async function getMonthSummary(monthStart: string, monthEnd: string) {
       count: sql<number>`count(*)`,
     })
     .from(sales)
-    .where(inMonth);
+    .where(inRange);
 
   // El más vendido se cuenta por frascos sobre las líneas, así que una venta
   // con tres productos aporta a los tres.
@@ -245,7 +243,7 @@ export async function getMonthSummary(monthStart: string, monthEnd: string) {
     })
     .from(saleItems)
     .innerJoin(sales, eq(saleItems.saleId, sales.id))
-    .where(inMonth)
+    .where(inRange)
     .groupBy(saleItems.productName)
     .orderBy(desc(sql`sum(${saleItems.quantity})`))
     .limit(1);

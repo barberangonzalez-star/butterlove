@@ -6,25 +6,38 @@ const dateInputClass =
   "rounded-md border border-black/15 px-2 py-1 text-xs text-[#37352f] outline-none focus:border-[#37352f]";
 
 /**
- * Elegir con qué lente se miran las ventas: un día, una semana, un mes, un año,
- * o el rango que haga falta.
+ * Elegir con qué lente se miran los números: un día, una semana, un mes, un
+ * trimestre, un semestre, un año, o el rango que haga falta.
  *
  * Son enlaces y un formulario GET, sin JavaScript propio: el período queda en la
  * URL, se puede compartir y el botón de atrás del navegador hace lo que se
  * espera.
+ *
+ * Lo usan el dashboard y finanzas, que guardan cosas distintas en la URL: `base`
+ * dice a qué página vuelve y `params` lo que hay que arrastrar sin tocar —el mes
+ * del reporte, en finanzas—.
  */
 export default function PeriodPicker({
   period,
-  month,
+  base,
+  params = {},
+  hash = "",
 }: {
   period: Period;
-  /** El mes del reporte, que se conserva al cambiar de período. */
-  month: string;
+  /** La ruta a la que apuntan los enlaces, sin query. */
+  base: string;
+  /** Lo demás que vive en la URL de esa página y no debe perderse. */
+  params?: Record<string, string>;
+  /** Ancla opcional, para volver a la sección que se estaba mirando. */
+  hash?: string;
 }) {
-  const href = (next: Period) =>
-    `/admin/finanzas?month=${month}&vista=${next.kind}&fecha=${next.anchor}` +
-    (next.kind === "rango" ? `&hasta=${next.to}` : "") +
-    "#ventas-por-producto";
+  const href = (next: Period) => {
+    const query = new URLSearchParams(params);
+    query.set("vista", next.kind);
+    query.set("fecha", next.anchor);
+    if (next.kind === "rango") query.set("hasta", next.to);
+    return `${base}?${query}${hash}`;
+  };
 
   const previous = shiftPeriod(period, -1);
   const next = shiftPeriod(period, 1);
@@ -33,7 +46,7 @@ export default function PeriodPicker({
   return (
     <div className="flex flex-col items-start gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <div className="flex rounded-md border border-black/15 overflow-hidden">
+        <div className="flex flex-wrap rounded-md border border-black/15 overflow-hidden">
           {PERIOD_KINDS.map((option) => {
             const active = option.value === period.kind;
             return (
@@ -84,11 +97,10 @@ export default function PeriodPicker({
 
       {/* Ir a una fecha sin pasar por las flechas. En rango son las dos puntas;
           en los demás lentes, cualquier día del período que se quiere ver. */}
-      <form
-        action="/admin/finanzas"
-        className="flex flex-wrap items-center gap-1.5"
-      >
-        <input type="hidden" name="month" value={month} />
+      <form action={base} className="flex flex-wrap items-center gap-1.5">
+        {Object.entries(params).map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
         <input type="hidden" name="vista" value={period.kind} />
         <label className="text-xs text-[#787774]">
           {isRange ? "Desde" : "Ir a"}
