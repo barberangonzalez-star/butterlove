@@ -132,7 +132,9 @@ export default function SaleDetail({ sale }: { sale: Sale }) {
 
       <dl className="text-sm">
         <Campo label="N.º de venta">
-          <span className="tabular-nums">#{sale.id}</span>
+          <span className="tabular-nums">
+            {sale.saleNumber === null ? "—" : `#${sale.saleNumber}`}
+          </span>
           {sale.monthlyNumber !== null && (
             <span className="text-[#787774]">
               {" "}

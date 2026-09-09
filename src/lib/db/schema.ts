@@ -247,14 +247,22 @@ export const sales = pgTable(
     id: serial("id").primaryKey(),
     saleDate: date("sale_date").notNull(),
     /**
+     * El número con el que se nombra la venta: la primera es la 1, la que
+     * sigue la 2, y así de corrido. Es el que se ve en pantalla y con el que
+     * se habla de una venta.
+     *
+     * Va aparte de `id` porque `id` es de la fila, no de la venta: se gasta
+     * también en las que nunca llegaron a existir —un registro que falló a
+     * mitad y se limpió—, y por eso salta. Este se reparte al escribir la
+     * venta y no se vuelve a tocar.
+     */
+    saleNumber: integer("sale_number"),
+    /**
      * Qué número de venta es dentro de su mes: la primera de septiembre es la
      * 1, la siguiente la 2. Se asigna al registrarla y no se vuelve a tocar,
      * así que borrar una del medio deja el hueco en vez de correr a las demás
      * —el número de una venta no debería cambiar después de dicho—. Para saber
      * cuántas van de verdad está el contador del dashboard, que sí cuenta.
-     *
-     * El identificador de por vida sigue siendo `id`, que nunca se repite ni
-     * se reinicia; éste es el que se lee de un vistazo junto a la fecha.
      */
     monthlyNumber: integer("monthly_number"),
     amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),

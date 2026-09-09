@@ -115,7 +115,7 @@ export default function VentasAdminClient({
                     }`}
                   />
                   <span className="tabular-nums font-medium text-[#5f5e5b]">
-                    #{s.id}
+                    {s.saleNumber === null ? "—" : `#${s.saleNumber}`}
                   </span>
                   {s.monthlyNumber !== null && (
                     <span className="tabular-nums">
@@ -232,7 +232,11 @@ export default function VentasAdminClient({
                     }}
                     aria-expanded={openId === s.id}
                     aria-controls={`venta-${s.id}`}
-                    aria-label={`Ver detalle de la venta #${s.id}`}
+                    aria-label={
+                      s.saleNumber === null
+                        ? `Ver detalle de la venta del ${s.saleDate}`
+                        : `Ver detalle de la venta #${s.saleNumber}`
+                    }
                     className="w-6 h-6 flex items-center justify-center rounded-md text-[#787774] hover:bg-black/5"
                   >
                     <ChevronRight
@@ -243,10 +247,12 @@ export default function VentasAdminClient({
                     />
                   </button>
                 </td>
-                {/* El `#` identifica la venta de por vida; el de abajo dice en
+                {/* El `#` nombra la venta de por vida; el de abajo dice en
                     qué puesto del mes entró. */}
                 <td className="px-4 py-3 whitespace-nowrap">
-                  <span className="font-medium tabular-nums">#{s.id}</span>
+                  <span className="font-medium tabular-nums">
+                    {s.saleNumber === null ? "—" : `#${s.saleNumber}`}
+                  </span>
                   {s.monthlyNumber !== null && (
                     <span className="block text-xs text-[#787774] tabular-nums">
                       {s.monthlyNumber}.ª del mes

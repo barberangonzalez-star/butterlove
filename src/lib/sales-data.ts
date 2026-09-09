@@ -176,6 +176,18 @@ function toItemRows(saleId: number, items: SaleItemInput[]) {
 }
 
 /**
+ * El siguiente número de venta libre.
+ *
+ * Igual que el del mes, lo resuelve la base en la misma sentencia que escribe
+ * la venta y cuenta desde el máximo repartido, no desde la cantidad de ventas.
+ */
+function nextSaleNumber() {
+  return sql<number>`(
+    select coalesce(max(${sales.saleNumber}), 0) + 1 from ${sales}
+  )`;
+}
+
+/**
  * El siguiente número libre del mes al que pertenece esa fecha.
  *
  * Lo resuelve la base dentro de la misma sentencia que escribe la venta, y no
@@ -205,7 +217,11 @@ export async function createSale(input: SaleInput) {
   const db = getDb();
   const [row] = await db
     .insert(sales)
-    .values({ ...toRow(input), monthlyNumber: nextMonthlyNumber(input.saleDate) })
+    .values({
+      ...toRow(input),
+      saleNumber: nextSaleNumber(),
+      monthlyNumber: nextMonthlyNumber(input.saleDate),
+    })
     .returning({ id: sales.id });
 
   try {
@@ -223,12 +239,18 @@ export async function createSale(input: SaleInput) {
 export async function updateSale(id: number, input: SaleInput) {
   const db = getDb();
 
-  // `toRow` no toca el número, así que editar una venta se lo respeta. La
-  // excepción es corregirle la fecha a otro mes: ahí el número viejo era de un
-  // mes al que ya no pertenece y le toca uno del nuevo. El que deja atrás no se
-  // reparte de nuevo, igual que el de una venta borrada.
+  // `toRow` no toca los números, así que editar una venta se los respeta. El
+  // de la venta no cambia nunca; sólo se le pone a la que quedó sin él. El del
+  // mes tiene una excepción: corregirle la fecha a otro mes deja el número
+  // viejo siendo de un mes al que la venta ya no pertenece, y le toca uno del
+  // nuevo. El que deja atrás no se reparte de nuevo, igual que el de una venta
+  // borrada.
   const [current] = await db
-    .select({ saleDate: sales.saleDate, monthlyNumber: sales.monthlyNumber })
+    .select({
+      saleDate: sales.saleDate,
+      saleNumber: sales.saleNumber,
+      monthlyNumber: sales.monthlyNumber,
+    })
     .from(sales)
     .where(eq(sales.id, id))
     .limit(1);
@@ -238,9 +260,13 @@ export async function updateSale(id: number, input: SaleInput) {
     (current.monthlyNumber === null ||
       current.saleDate.slice(0, 7) !== input.saleDate.slice(0, 7));
 
-  const row = renumber
-    ? { ...toRow(input), monthlyNumber: nextMonthlyNumber(input.saleDate) }
-    : toRow(input);
+  const row = {
+    ...toRow(input),
+    ...(current && current.saleNumber === null
+      ? { saleNumber: nextSaleNumber() }
+      : null),
+    ...(renumber ? { monthlyNumber: nextMonthlyNumber(input.saleDate) } : null),
+  };
 
   // Las líneas se reemplazan enteras: es más simple que reconciliar altas,
   // bajas y cambios, y `batch` hace que los tres pasos sean atómicos.
