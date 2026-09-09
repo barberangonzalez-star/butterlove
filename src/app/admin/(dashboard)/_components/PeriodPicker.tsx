@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { PERIOD_KINDS, shiftPeriod, type Period } from "@/lib/period";
+import { PERIOD_KINDS, shiftPeriod, today, type Period } from "@/lib/period";
 
 const dateInputClass =
   "rounded-md border border-black/15 px-2 py-1 text-xs text-[#37352f] outline-none focus:border-[#37352f]";
@@ -43,6 +43,18 @@ export default function PeriodPicker({
   const next = shiftPeriod(period, 1);
   const isRange = period.kind === "rango";
 
+  /**
+   * Dónde cae el lente nuevo al cambiarlo.
+   *
+   * Si lo que se está mirando incluye hoy, se ancla en hoy: viniendo del mes en
+   * curso, "Día" es hoy y no el primero del mes, que es lo que uno espera de un
+   * panel que abre en el presente. Mirando un mes pasado no hay "hoy" adentro,
+   * así que se conserva el ancla y "Día" es el primer día de ese mes; de un día
+   * de agosto se sigue pasando a la semana que lo contiene.
+   */
+  const now = today();
+  const anchor = period.from <= now && now <= period.to ? now : period.from;
+
   return (
     <div className="flex flex-col items-start gap-2">
       <div className="flex flex-wrap items-center gap-2">
@@ -52,13 +64,13 @@ export default function PeriodPicker({
             return (
               <Link
                 key={option.value}
-                // El ancla se conserva al cambiar de lente: de un día se pasa a
-                // la semana que lo contiene, no a la semana de hoy. Y al pasar a
-                // rango, el rango empieza siendo lo que se estaba mirando.
+                // El rango a medida es la excepción: hereda el período entero
+                // que se estaba mirando, para ajustarle las puntas. Anclarlo en
+                // hoy lo dejaría empezando a mitad de lo que se venía viendo.
                 href={href(
                   option.value === "rango"
                     ? { ...period, kind: "rango", anchor: period.from }
-                    : { ...period, kind: option.value },
+                    : { ...period, kind: option.value, anchor },
                 )}
                 aria-current={active ? "page" : undefined}
                 className={`px-2.5 py-1.5 text-xs font-medium transition-colors ${
