@@ -189,3 +189,59 @@ export function shiftPeriod(period: Period, delta: number): Period {
 
   return resolvePeriod(period.kind, iso(next));
 }
+
+/** El rango contra el que se compara un período, y cómo se llama. */
+export interface Comparison {
+  from: string;
+  to: string;
+  /** Cómo se nombra el período anterior entero: "agosto de 2026". */
+  label: string;
+  /**
+   * Si hubo que recortarlo. Un período en curso lleva menos días encima que el
+   * anterior completo, y comparar ocho días de septiembre contra los treinta y
+   * uno de agosto daría una caída que no ocurrió.
+   */
+  partial: boolean;
+  /** Días que abarca la comparación, para poder decirlo en pantalla. */
+  days: number;
+}
+
+/** Días que van de una fecha a otra, contando las dos puntas. */
+function dayCount(from: string, to: string): number {
+  return Math.round((parse(to).getTime() - parse(from).getTime()) / 86_400_000) + 1;
+}
+
+/**
+ * Contra qué se mide el período que se está viendo: el de al lado, recortado al
+ * mismo tramo si el actual todavía no termina.
+ *
+ * Mirando septiembre un día 8, la comparación son los primeros 8 días de
+ * agosto y no agosto entero. El último día del período cuenta como completo:
+ * recortar ahí sobraría, y el rótulo quedaría diciendo una obviedad.
+ */
+export function comparisonPeriod(period: Period): Comparison {
+  const previous = shiftPeriod(period, -1);
+  const now = today();
+
+  if (!(period.from <= now && now < period.to)) {
+    return {
+      from: previous.from,
+      to: previous.to,
+      label: previous.label,
+      partial: false,
+      days: dayCount(previous.from, previous.to),
+    };
+  }
+
+  const elapsed = dayCount(period.from, now);
+  const cut = iso(addDays(parse(previous.from), elapsed - 1));
+  // Febrero es más corto que enero: el tramo no puede pasarse del período.
+  const to = cut > previous.to ? previous.to : cut;
+  return {
+    from: previous.from,
+    to,
+    label: previous.label,
+    partial: true,
+    days: dayCount(previous.from, to),
+  };
+}
