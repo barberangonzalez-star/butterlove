@@ -411,11 +411,30 @@ export function expenseKind(category: string): ExpenseKind {
   );
 }
 
-export const PAGO_MOVIL = {
-  bank: "Mercantil",
-  phone: "0414-2856600",
-  id: "23656193",
-};
+export interface PagoMovilAccount {
+  bank: string;
+  phone: string;
+  id: string;
+}
+
+/**
+ * Las cuentas de Pago Móvil por las que se puede cobrar. La tienda cobra
+ * siempre por `PAGO_MOVIL`; el cotizador deja elegir cuál de estas va en la
+ * cotización, según por dónde se quiera recibir ese pago.
+ */
+export const PAGO_MOVIL_ACCOUNTS: PagoMovilAccount[] = [
+  { bank: "Banco de Venezuela", phone: "0414-2856600", id: "23656193" },
+  { bank: "Mercantil", phone: "0414-2856600", id: "23656193" },
+  { bank: "Banesco", phone: "0414-3002945", id: "22496231" },
+];
+
+/**
+ * La cuenta que muestra la tienda al pagar, y con la que arranca el cotizador.
+ * Es la del QR que está publicado, así que cambiarla es cambiar esa imagen.
+ */
+export const PAGO_MOVIL: PagoMovilAccount =
+  PAGO_MOVIL_ACCOUNTS.find((a) => a.bank === "Mercantil") ??
+  PAGO_MOVIL_ACCOUNTS[0];
 
 export const BINANCE = {
   email: "albert6215@gmail.com",

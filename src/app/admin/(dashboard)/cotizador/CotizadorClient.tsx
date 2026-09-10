@@ -4,7 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { Check, Copy, Minus, Plus, RotateCcw } from "lucide-react";
 import { productTitle, sizeLabel } from "@/lib/products";
 import type { AdminProduct } from "@/lib/products-data";
-import { DELIVERY_ZONES } from "@/lib/config";
+import {
+  CARACAS_MUNICIPALITIES,
+  CARACAS_ZONES,
+  PAGO_MOVIL,
+  PAGO_MOVIL_ACCOUNTS,
+  deliveryPriceForZone,
+} from "@/lib/config";
 
 type Row = {
   id: string;
@@ -14,6 +20,9 @@ type Row = {
 };
 
 type DeliveryChoice = "" | "pickup" | "nacional" | string;
+
+/** La cuenta con la que arranca el cotizador: la misma que cobra la tienda. */
+const DEFAULT_ACCOUNT = PAGO_MOVIL.bank;
 
 const fmtUsd = (n: number) => `$${n.toFixed(2)}`;
 const fmtBs = (n: number) =>
@@ -41,13 +50,30 @@ function useBcvRate() {
   return rate;
 }
 
-/** Etiqueta y costo de la opción de entrega elegida. `null` de costo es "a coordinar". */
-function deliveryInfo(choice: DeliveryChoice): { label: string; price: number | null } | null {
-  if (!choice) return null;
-  if (choice === "pickup") return { label: "Retiro en tienda", price: 0 };
-  if (choice === "nacional") return { label: "Envío nacional", price: null };
-  const zone = DELIVERY_ZONES.find((z) => z.name === choice);
-  return zone ? { label: zone.name, price: zone.price } : null;
+/** Cómo se nombra la opción de entrega elegida en la cotización. */
+function deliveryLabel(choice: DeliveryChoice) {
+  if (choice === "pickup") return "Retiro en tienda";
+  if (choice === "nacional") return "Envío nacional";
+  return choice;
+}
+
+/**
+ * La tarifa publicada de la opción de entrega, o `null` si no tiene.
+ *
+ * Se ofrecen todas las zonas de Caracas y la lista de precios sólo cubre unas
+ * cuantas: las demás arrancan sin monto, para escribirlo a mano.
+ */
+function deliveryTariff(choice: DeliveryChoice): number | null {
+  if (choice === "pickup") return 0;
+  if (!choice || choice === "nacional") return null;
+  return deliveryPriceForZone(choice);
+}
+
+/** El monto escrito a mano, o `null` si el campo quedó vacío o ilegible. */
+function parseFee(value: string): number | null {
+  if (value.trim() === "") return null;
+  const n = Number(value);
+  return Number.isFinite(n) ? Math.max(0, n) : null;
 }
 
 export default function CotizadorClient({
@@ -71,6 +97,9 @@ export default function CotizadorClient({
   const [qty, setQty] = useState<Record<string, number>>({});
   const [priceOverride, setPriceOverride] = useState<Record<string, number>>({});
   const [delivery, setDelivery] = useState<DeliveryChoice>("");
+  // El monto del delivery se guarda como texto: vacío es "a coordinar", no cero.
+  const [deliveryFee, setDeliveryFee] = useState("");
+  const [account, setAccount] = useState(DEFAULT_ACCOUNT);
   const [copied, setCopied] = useState(false);
   const bcvRate = useBcvRate();
 
@@ -93,10 +122,19 @@ export default function CotizadorClient({
     setPriceOverride((prev) => ({ ...prev, [id]: Math.max(0, value) }));
   };
 
+  /** Al cambiar de entrega el monto vuelve a la tarifa de la zona, si tiene. */
+  const chooseDelivery = (choice: DeliveryChoice) => {
+    setDelivery(choice);
+    const tariff = deliveryTariff(choice);
+    setDeliveryFee(tariff === null ? "" : String(tariff));
+  };
+
   const reset = () => {
     setQty({});
     setPriceOverride({});
     setDelivery("");
+    setDeliveryFee("");
+    setAccount(DEFAULT_ACCOUNT);
   };
 
   const { selected, subtotal, delivery_, total, quoteText } = useMemo(() => {
@@ -106,7 +144,9 @@ export default function CotizadorClient({
       (sum, r) => sum + price(r) * (qty[r.id] ?? 0),
       0,
     );
-    const delivery_ = deliveryInfo(delivery);
+    const delivery_ = delivery
+      ? { label: deliveryLabel(delivery), price: parseFee(deliveryFee) }
+      : null;
     const total = subtotal + (delivery_?.price ?? 0);
 
     if (selected.length === 0) {
@@ -122,11 +162,19 @@ export default function CotizadorClient({
 
     const out = ["🧈 Cotización Butter Love", "", ...lines];
 
-    if (delivery_ && delivery_.price !== null) {
-      const bs = bcvRate ? ` (Bs. ${fmtBs(delivery_.price * bcvRate)})` : "";
-      out.push("", `Delivery (${delivery_.label}): ${fmtUsd(delivery_.price)}${bs}`);
-    } else if (delivery_) {
-      out.push("", `${delivery_.label}: a coordinar`);
+    if (delivery_) {
+      // El retiro y el envío nacional se nombran solos; una zona va rotulada
+      // como delivery, para que se lea a qué corresponde el monto.
+      const label =
+        delivery === "pickup" || delivery === "nacional"
+          ? delivery_.label
+          : `Delivery (${delivery_.label})`;
+      if (delivery_.price === null) {
+        out.push("", `${label}: a coordinar`);
+      } else {
+        const bs = bcvRate ? ` (Bs. ${fmtBs(delivery_.price * bcvRate)})` : "";
+        out.push("", `${label}: ${fmtUsd(delivery_.price)}${bs}`);
+      }
     } else {
       out.push("");
     }
@@ -138,10 +186,17 @@ export default function CotizadorClient({
       out.push("", `Tasa BCV: Bs. ${fmtBs(bcvRate)}`);
     }
 
+    const bank = PAGO_MOVIL_ACCOUNTS.find((a) => a.bank === account);
+    if (bank) {
+      out.push("", "💳 Pago Móvil", bank.bank, `CI ${bank.id}`, bank.phone);
+    }
+
     return { selected, subtotal, delivery_, total, quoteText: out.join("\n") };
-  }, [rows, qty, priceOverride, delivery, bcvRate]);
+  }, [rows, qty, priceOverride, delivery, deliveryFee, account, bcvRate]);
 
   const hasItems = selected.length > 0;
+  const tariff = deliveryTariff(delivery);
+  const customFee = delivery_ !== null && delivery_.price !== tariff;
 
   const copy = async () => {
     if (!quoteText) return;
@@ -224,22 +279,91 @@ export default function CotizadorClient({
 
       <div className="lg:sticky lg:top-8 border border-black/10 rounded-lg bg-white p-4 space-y-4">
         <div>
-          <label className="block text-xs font-medium text-[#787774] mb-1.5">
+          <label
+            htmlFor="entrega"
+            className="block text-xs font-medium text-[#787774] mb-1.5"
+          >
             Entrega
           </label>
           <select
+            id="entrega"
             value={delivery}
-            onChange={(e) => setDelivery(e.target.value)}
+            onChange={(e) => chooseDelivery(e.target.value)}
             className="w-full rounded-md border border-black/15 px-2.5 py-2 text-sm outline-none focus:border-[#37352f] bg-white"
           >
             <option value="">Sin especificar</option>
             <option value="pickup">Retiro en tienda</option>
-            {DELIVERY_ZONES.map((z) => (
-              <option key={z.name} value={z.name}>
-                {z.name} — {fmtUsd(z.price)}
-              </option>
+            {CARACAS_MUNICIPALITIES.map((municipality) => (
+              <optgroup key={municipality} label={municipality}>
+                {CARACAS_ZONES.filter(
+                  (z) => z.municipality === municipality,
+                ).map((z) => {
+                  const price = deliveryPriceForZone(z.name);
+                  return (
+                    <option key={z.name} value={z.name}>
+                      {z.name}
+                      {price !== null ? ` — ${fmtUsd(price)}` : ""}
+                    </option>
+                  );
+                })}
+              </optgroup>
             ))}
             <option value="nacional">Envío nacional (a coordinar)</option>
+          </select>
+        </div>
+
+        {delivery && delivery !== "pickup" && (
+          <div>
+            <label
+              htmlFor="monto-delivery"
+              className="block text-xs font-medium text-[#787774] mb-1.5"
+            >
+              Monto del delivery
+            </label>
+            <div className="flex items-center gap-1.5">
+              <span className="text-sm text-[#787774]">$</span>
+              <input
+                id="monto-delivery"
+                type="number"
+                min={0}
+                step={0.01}
+                value={deliveryFee}
+                onChange={(e) => setDeliveryFee(e.target.value)}
+                placeholder="a coordinar"
+                className={`flex-1 min-w-0 rounded-md border px-2.5 py-2 text-sm outline-none focus:border-[#37352f] ${
+                  customFee
+                    ? "border-[#b4700a] text-[#b4700a] font-medium"
+                    : "border-black/15"
+                }`}
+              />
+            </div>
+            {customFee && tariff !== null && (
+              <p className="text-xs text-[#787774] mt-1">
+                Tarifa de la zona: {fmtUsd(tariff)}
+              </p>
+            )}
+          </div>
+        )}
+
+        <div>
+          <label
+            htmlFor="cuenta"
+            className="block text-xs font-medium text-[#787774] mb-1.5"
+          >
+            Cuenta para cobrar
+          </label>
+          <select
+            id="cuenta"
+            value={account}
+            onChange={(e) => setAccount(e.target.value)}
+            className="w-full rounded-md border border-black/15 px-2.5 py-2 text-sm outline-none focus:border-[#37352f] bg-white"
+          >
+            <option value="">Sin especificar</option>
+            {PAGO_MOVIL_ACCOUNTS.map((a) => (
+              <option key={a.bank} value={a.bank}>
+                {a.bank} — {a.phone}
+              </option>
+            ))}
           </select>
         </div>
 
