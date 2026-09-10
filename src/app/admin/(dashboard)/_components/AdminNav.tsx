@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Package,
   Boxes,
+  Banknote,
   Calculator,
   Receipt,
   Tag,
@@ -29,6 +30,7 @@ const NAV_ITEMS = [
   { href: "/admin/cotizador", label: "Cotizador", icon: Calculator },
   { href: "/admin/mayoreo", label: "Mayoreo", icon: Truck },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
+  { href: "/admin/gastos", label: "Gastos", icon: Banknote },
   { href: "/admin/finanzas", label: "Finanzas", icon: Wallet },
   { href: "/admin/promociones", label: "Promociones", icon: Tag },
 ];

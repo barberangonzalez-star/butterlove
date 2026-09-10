@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Plus, Pencil, Trash2, X } from "lucide-react";
-import { saveExpenseAction, deleteExpenseAction } from "./actions";
+import Link from "next/link";
+import { saveExpenseAction, deleteExpenseAction } from "../gastos/actions";
 import {
   EXPENSE_CATEGORIES,
   EXPENSE_KINDS,
@@ -188,12 +189,22 @@ export default function ExpensesPanel({
         <p className="text-xs font-medium text-[#787774] uppercase tracking-wide">
           Gastos del mes
         </p>
-        <button
-          onClick={() => setEditing("new")}
-          className="flex items-center gap-1.5 rounded-md bg-[#37352f] text-white text-xs font-medium px-2.5 py-1.5 hover:opacity-90"
-        >
-          <Plus size={13} /> Registrar
-        </button>
+        <div className="flex items-center gap-2">
+          {/* La sección de Gastos es la tabla para cargar varios de corrido;
+              acá se anota el que aparece mirando el reporte. */}
+          <Link
+            href="/admin/gastos"
+            className="text-xs text-[#5f5e5b] underline underline-offset-2 hover:text-[#37352f]"
+          >
+            Ver tabla
+          </Link>
+          <button
+            onClick={() => setEditing("new")}
+            className="flex items-center gap-1.5 rounded-md bg-[#37352f] text-white text-xs font-medium px-2.5 py-1.5 hover:opacity-90"
+          >
+            <Plus size={13} /> Registrar
+          </button>
+        </div>
       </div>
 
       <ul className="divide-y divide-black/5">

@@ -59,6 +59,15 @@ export async function updateExpense(id: number, input: ExpenseInput) {
   await db.update(expenses).set(toRow(input)).where(eq(expenses.id, id));
 }
 
+/**
+ * Cambia sólo si el gasto resta de la ganancia, sin tocar el resto de la fila.
+ * Es el botón de la tabla de gastos: se corrige de un clic, sin abrir nada.
+ */
+export async function setExpenseKind(id: number, kind: ExpenseKind) {
+  const db = getDb();
+  await db.update(expenses).set({ kind }).where(eq(expenses.id, id));
+}
+
 export async function deleteExpense(id: number) {
   const db = getDb();
   await db.delete(expenses).where(eq(expenses.id, id));
