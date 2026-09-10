@@ -41,10 +41,36 @@
   --font-body: var(--font-dmsans);
 }
 
+html {
+  /* Safari en el iPhone agranda solo el texto al girar a horizontal, y deja la
+     página con dos tamaños de letra distintos. */
+  -webkit-text-size-adjust: 100%;
+}
+
 body {
   background: var(--page);
   color: var(--ink);
   font-family: var(--font-body), sans-serif;
+}
+
+/* Pantallas que se tocan: teléfono y tablet, incluido el iPad grande, que tiene
+   más de 1024px de ancho y aun así se usa con el dedo. Por eso van por tipo de
+   puntero y no por ancho. */
+@media (pointer: coarse) {
+  /* Debajo de 16px, Safari hace zoom al enfocar un campo y deja la página
+     desencuadrada: cada formulario del panel obligaba a volver a alejarla. */
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  /* Los botones de sólo icono —editar, borrar, sumar, cerrar— se dibujan de 28
+     o 32px, que con el dedo se fallan. Con el ratón siguen igual de chicos. */
+  button:has(> svg:only-child) {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+  }
 }
 
 * {

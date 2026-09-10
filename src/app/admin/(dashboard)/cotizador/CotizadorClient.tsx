@@ -206,18 +206,23 @@ export default function CotizadorClient({
   };
 
   return (
-    <div className="grid lg:grid-cols-[1fr_320px] gap-6 items-start">
+    // El espacio de abajo es para la barra fija del teléfono, que si no tapa
+    // el último producto de la lista.
+    <div className="grid lg:grid-cols-[1fr_320px] gap-6 items-start pb-20 lg:pb-0">
       <div className="border border-black/10 rounded-lg bg-white divide-y divide-black/5">
         {rows.map((r) => {
           const q = qty[r.id] ?? 0;
           const price = priceOverride[r.id] ?? r.price;
           const discounted = price !== r.price;
           return (
+            // En el teléfono el nombre se lleva la primera línea entera y los
+            // controles bajan a la segunda: con todo en un renglón el producto
+            // quedaba cortado a tres palabras.
             <div
               key={r.id}
-              className="flex items-center gap-3 px-4 py-3"
+              className="flex flex-wrap items-center gap-x-3 gap-y-2 px-4 py-3"
             >
-              <div className="flex-1 min-w-0">
+              <div className="w-full sm:w-auto sm:flex-1 min-w-0">
                 <p className="text-sm font-medium truncate">{r.label}</p>
                 <p className="text-xs text-[#787774]">
                   {r.size}
@@ -230,6 +235,7 @@ export default function CotizadorClient({
                   {bcvRate && ` · Bs. ${fmtBs(price * bcvRate)}`}
                 </p>
               </div>
+              <div className="flex items-center gap-3 ml-auto shrink-0">
               {q > 0 ? (
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-sm text-[#787774]">$</span>
@@ -240,7 +246,7 @@ export default function CotizadorClient({
                     value={price}
                     onChange={(e) => setRowPrice(r.id, Number(e.target.value))}
                     aria-label={`Precio de ${r.label}`}
-                    className={`w-16 rounded-md border px-1.5 py-1.5 text-sm text-right outline-none focus:border-[#37352f] ${
+                    className={`w-20 rounded-md border px-1.5 py-1.5 text-sm text-right outline-none focus:border-[#37352f] ${
                       discounted
                         ? "border-[#b4700a] text-[#b4700a] font-medium"
                         : "border-black/15"
@@ -272,12 +278,15 @@ export default function CotizadorClient({
                   <Plus size={14} />
                 </button>
               </div>
+              </div>
             </div>
           );
         })}
       </div>
 
-      <div className="lg:sticky lg:top-8 border border-black/10 rounded-lg bg-white p-4 space-y-4">
+      {/* Sin la columna al lado, el resumen va arriba: la entrega y el total se
+          eligen y se leen sin recorrer los catorce productos primero. */}
+      <div className="order-first lg:order-none lg:sticky lg:top-8 border border-black/10 rounded-lg bg-white p-4 space-y-4">
         <div>
           <label
             htmlFor="entrega"
@@ -412,6 +421,30 @@ export default function CotizadorClient({
           </button>
         </div>
       </div>
+
+      {/* En el teléfono el resumen queda arriba y la lista es larga: esta barra
+          mantiene el total y el botón de copiar a la mano mientras se arma el
+          pedido. */}
+      {hasItems && (
+        <div className="lg:hidden fixed bottom-0 inset-x-0 z-40 flex items-center gap-3 border-t border-black/10 bg-white/95 backdrop-blur px-4 py-3">
+          <div className="min-w-0">
+            <p className="text-[11px] text-[#787774] leading-tight">
+              {selected.length} producto{selected.length === 1 ? "" : "s"}
+            </p>
+            <p className="font-semibold tabular-nums leading-tight">
+              {fmtUsd(total)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={copy}
+            className="ml-auto flex items-center justify-center gap-1.5 rounded-md bg-[#37352f] text-white text-sm font-medium px-4 py-2.5"
+          >
+            {copied ? <Check size={15} /> : <Copy size={15} />}
+            {copied ? "¡Copiado!" : "Copiar"}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

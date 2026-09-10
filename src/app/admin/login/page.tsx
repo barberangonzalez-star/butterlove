@@ -10,7 +10,7 @@ export default function AdminLoginPage() {
   const [state, formAction, pending] = useActionState(login, initialState);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#fbfaf8] px-4">
+    <div className="min-h-dvh flex items-center justify-center bg-[#fbfaf8] px-4">
       <div className="w-full max-w-sm">
         <form
           action={formAction}

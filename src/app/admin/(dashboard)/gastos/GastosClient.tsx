@@ -244,7 +244,8 @@ export default function GastosClient({
             <span className="text-[#787774]">
               {" "}
               · {fmtUsd(deducted)} resta
-              {total - deducted > 0 && ` · ${fmtUsd(total - deducted)} no`}
+              {total - deducted > 0 &&
+                ` · ${fmtUsd(total - deducted)} no resta`}
             </span>
           </p>
         </div>

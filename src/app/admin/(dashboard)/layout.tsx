@@ -15,7 +15,7 @@ export default async function AdminDashboardLayout({
   const pendingCount = await countPendingOrders();
 
   return (
-    <div className="min-h-screen bg-[#fbfaf8] text-[#37352f]">
+    <div className="min-h-dvh bg-[#fbfaf8] text-[#37352f]">
       <AdminNav pendingCount={pendingCount} />
       <div className="lg:pl-60">
         <main className="min-w-0 px-4 pt-[4.5rem] pb-12 lg:px-8 lg:py-8">

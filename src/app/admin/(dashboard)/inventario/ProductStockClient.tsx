@@ -20,7 +20,7 @@ function StockCell({ sizeId, initialValue }: { sizeId: number; initialValue: num
           setStockAction(sizeId, parsed);
         }
       }}
-      className={`w-16 md:w-24 rounded-md border px-2 py-2 md:py-1.5 text-sm text-right outline-none focus:border-[#37352f] ${
+      className={`w-20 md:w-24 rounded-md border px-2 py-2 md:py-1.5 text-sm text-right outline-none focus:border-[#37352f] ${
         Number(value) <= LOW_STOCK_THRESHOLD
           ? "border-red-300 text-red-700 bg-red-50"
           : "border-black/15"
