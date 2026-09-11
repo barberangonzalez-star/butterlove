@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 
 export default function Footer() {
   return (
@@ -30,6 +31,9 @@ export default function Footer() {
           <span>© {new Date().getFullYear()} Butter Love</span>
           <span>Pago Móvil · USD · Binance</span>
           <span>Hecho con amor en Venezuela</span>
+          <Link href="/politicas-de-privacidad" className="hover:text-cream">
+            Políticas y privacidad
+          </Link>
         </div>
       </div>
     </footer>
