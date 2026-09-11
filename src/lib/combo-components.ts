@@ -17,6 +17,10 @@ export interface ComboComponent {
 
 export const COMBO_COMPONENTS: Record<string, ComboComponent[]> = {
   "duo-mani": [{ productKey: "mani", grams: 230, quantity: 2 }],
+  "duo-mani-chocomani": [
+    { productKey: "mani", grams: 230, quantity: 1 },
+    { productKey: "chocomani", grams: 230, quantity: 1 },
+  ],
   "duo-merey-mani": [
     { productKey: "merey", grams: 230, quantity: 1 },
     { productKey: "mani", grams: 230, quantity: 1 },

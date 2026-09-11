@@ -44,7 +44,12 @@ export type ProductShot =
  *
  *     mani: ["/products/mani-cuchara.jpg", "/products/mani-tostada.jpg"],
  */
-export const EXTRA_PHOTOS: Record<string, string[]> = {};
+export const EXTRA_PHOTOS: Record<string, string[]> = {
+  // La otra toma de la misma sesión: el chocomaní adelante y el maní detrás.
+  // Las fotos de cada frasco por separado no van acá — son las de sus propias
+  // fichas, y `productShots` ya las trae por ser los componentes del dúo.
+  "duo-mani-chocomani": ["/products/duo-mani-chocomani-frente.jpg"],
+};
 
 /** Cuántas diapositivas se muestran como máximo. Un combo con dos sabores
  *  llega a cinco; de ahí para arriba la galería deja de leerse de un vistazo. */
