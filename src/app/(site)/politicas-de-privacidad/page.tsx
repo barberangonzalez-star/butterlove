@@ -28,7 +28,7 @@ const sections = [
     heading: "Qué datos pedimos",
     paragraphs: [
       "Para armar un pedido pedimos nombre, teléfono, y la dirección o zona de entrega. Si el envío es por encomienda, además pedimos cédula, porque la empresa de encomienda la exige para entregar el paquete.",
-      "Si eliges delivery en Caracas, te pedimos que envíes tu ubicación por WhatsApp: es la forma en que el repartidor llega sin dar vueltas. Si pagas por Pago Móvil, Binance o cualquier método que pida comprobante, ese comprobante —una foto o una captura— también se manda por WhatsApp.",
+      "Si eliges delivery en Caracas, te pedimos que envíes tu ubicación por WhatsApp: es la forma en que el repartidor llega sin dar vueltas. Si pagas por Pago Móvil, Binance o cualquier método que pida comprobante, ese comprobante, una foto o una captura, también se manda por WhatsApp.",
       "Nada de esto se escribe en un formulario del sitio que lo guarde: el carrito arma un mensaje con estos datos y tú lo envías por tu WhatsApp al nuestro. Quien recibe y responde ese mensaje es Butter Love.",
     ],
   },
@@ -42,7 +42,7 @@ const sections = [
   {
     heading: "Con quién se comparten",
     paragraphs: [
-      `Solo con quien necesita saberlo para que el pedido llegue: la persona que hace el delivery (${DELIVERY_PROVIDERS.join(", ")}) o la empresa de encomienda que elijas (${NATIONAL_COURIERS.join(", ")}). Reciben lo mínimo para entregar —nombre, dirección o agencia, teléfono y, en encomienda, cédula— y nada más.`,
+      `Solo con quien necesita saberlo para que el pedido llegue: la persona que hace el delivery (${DELIVERY_PROVIDERS.join(", ")}) o la empresa de encomienda que elijas (${NATIONAL_COURIERS.join(", ")}). Reciben lo mínimo para entregar (nombre, dirección o agencia, teléfono y, en encomienda, cédula) y nada más.`,
     ],
   },
   {
@@ -93,7 +93,7 @@ const sections = [
   {
     heading: "Cambios a esta política",
     paragraphs: [
-      "Si cambia algo de fondo —qué datos pedimos o para qué los usamos— lo actualizamos aquí mismo y cambiamos la fecha de abajo.",
+      "Si cambia algo de fondo, qué datos pedimos o para qué los usamos, lo actualizamos aquí mismo y cambiamos la fecha de abajo.",
     ],
   },
 ];
