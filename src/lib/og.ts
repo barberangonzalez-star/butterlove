@@ -4,6 +4,7 @@
 // formato 1200x630 es el que esas plataformas recortan menos.
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import sharp from "sharp";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 
@@ -11,13 +12,11 @@ export const OG_SIZE = { width: 1200, height: 630 };
 export const CREAM = "#f4efda";
 export const INK = "#1e4356";
 
-const MIME_BY_EXT: Record<string, string> = {
-  jpg: "image/jpeg",
-  jpeg: "image/jpeg",
-  png: "image/png",
-  webp: "image/webp",
-  gif: "image/gif",
-};
+// El renderizador de `next/og` (Satori) sólo sabe decodificar estos formatos;
+// un WebP como `<img>` le rompe el build con un error críptico ("u2 is not
+// iterable"). Como el resto del sitio sí sirve WebP para pesar menos, acá se
+// reconvierte a PNG antes de incrustarlo.
+const SATORI_SAFE_EXT = new Set(["jpg", "jpeg", "png", "gif"]);
 
 /**
  * Convierte una ruta de /public en un data URI para poder incrustarla en la
@@ -36,9 +35,17 @@ export async function ogImageSource(path: string): Promise<string | null> {
   if (relative.includes("..")) return null;
 
   try {
-    const data = await readFile(join(process.cwd(), "public", relative), "base64");
+    const file = join(process.cwd(), "public", relative);
     const ext = relative.split(".").pop()?.toLowerCase() ?? "";
-    return `data:${MIME_BY_EXT[ext] ?? "image/png"};base64,${data}`;
+
+    if (SATORI_SAFE_EXT.has(ext)) {
+      const data = await readFile(file, "base64");
+      const mime = ext === "png" ? "image/png" : ext === "gif" ? "image/gif" : "image/jpeg";
+      return `data:${mime};base64,${data}`;
+    }
+
+    const png = await sharp(file).png().toBuffer();
+    return `data:image/png;base64,${png.toString("base64")}`;
   } catch {
     return null;
   }
