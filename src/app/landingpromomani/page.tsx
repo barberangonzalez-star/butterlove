@@ -389,7 +389,7 @@ export default async function LandingPromoMani() {
             que tenía con el frasco chico. */}
         <div className="rounded-[34px] bg-mani-bg py-6 pl-2 pr-6 sm:py-8 sm:pl-3 sm:pr-8 flex items-center gap-3 sm:gap-4">
           <Image
-            src="/products/mani.png"
+            src="/products/mani.webp"
             alt=""
             aria-hidden="true"
             width={384}

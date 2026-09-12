@@ -106,7 +106,7 @@ export default function PromoBuy({ packs }: { packs: Pack[] }) {
                   {Array.from({ length: p.jars }).map((_, i) => (
                     <Image
                       key={i}
-                      src="/products/mani.png"
+                      src="/products/mani.webp"
                       alt=""
                       aria-hidden="true"
                       width={72}
