@@ -240,24 +240,9 @@ export default function GastosClient({
       </form>
 
       <div className="border border-black/10 rounded-lg bg-white overflow-hidden">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 px-4 py-3 border-b border-black/10">
+        <div className="px-4 py-3 border-b border-black/10">
           <p className="text-xs font-medium text-[#787774] uppercase tracking-wide">
             {rows.length} gasto{rows.length === 1 ? "" : "s"} en el mes
-          </p>
-          <p className="text-sm">
-            <span className="font-semibold tabular-nums">{fmtUsd(total)}</span>
-            {bcvRate && (
-              <span className="text-[#787774] tabular-nums">
-                {" "}
-                ({fmtBs(total * bcvRate)})
-              </span>
-            )}
-            <span className="text-[#787774]">
-              {" "}
-              · {fmtUsd(deducted)} resta
-              {total - deducted > 0 &&
-                ` · ${fmtUsd(total - deducted)} no resta`}
-            </span>
           </p>
         </div>
 
@@ -378,6 +363,40 @@ export default function GastosClient({
           <p className="px-4 py-10 text-center text-sm text-[#787774]">
             Sin gastos registrados este mes.
           </p>
+        )}
+
+        {rows.length > 0 && (
+          <div className="border-t border-black/10 bg-black/[0.015] px-4 py-3">
+            <dl className="ml-auto w-full max-w-[15rem] space-y-1.5">
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-sm text-[#787774]">Total gastado</dt>
+                <dd className="text-right">
+                  <span className="text-sm font-semibold tabular-nums">
+                    {fmtUsd(total)}
+                  </span>
+                  {bcvRate && (
+                    <span className="block text-xs text-[#787774] tabular-nums">
+                      {fmtBs(total * bcvRate)}
+                    </span>
+                  )}
+                </dd>
+              </div>
+              <div className="flex items-baseline justify-between gap-3">
+                <dt className="text-sm text-[#787774]">Resta de la ganancia</dt>
+                <dd className="text-sm font-medium tabular-nums">
+                  {fmtUsd(deducted)}
+                </dd>
+              </div>
+              {total - deducted > 0 && (
+                <div className="flex items-baseline justify-between gap-3">
+                  <dt className="text-sm text-[#787774]">No resta</dt>
+                  <dd className="text-sm font-medium tabular-nums">
+                    {fmtUsd(total - deducted)}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </div>
         )}
       </div>
     </div>
