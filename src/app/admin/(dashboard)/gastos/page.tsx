@@ -2,6 +2,7 @@ import Link from "next/link";
 import { monthBounds } from "@/lib/finance-data";
 import { getExpenseMonths, getExpenses } from "@/lib/expenses-data";
 import { today } from "@/lib/period";
+import { getBcvRate } from "@/lib/bcv";
 import MonthPicker, { type MonthOption } from "../finanzas/MonthPicker";
 import BcvConverterWidget from "../_components/BcvConverterWidget";
 import GastosClient from "./GastosClient";
@@ -34,9 +35,10 @@ export default async function GastosPage({
     monthParam && MONTH_RE.test(monthParam) ? monthParam : currentMonth;
 
   const { from, to } = monthBounds(month);
-  const [expenses, expenseMonths] = await Promise.all([
+  const [expenses, expenseMonths, bcvRate] = await Promise.all([
     getExpenses(from, to),
     getExpenseMonths(),
+    getBcvRate(),
   ]);
 
   const months: MonthOption[] = [
@@ -72,6 +74,7 @@ export default async function GastosPage({
           <GastosClient
             expenses={expenses}
             defaultDate={month === currentMonth ? today() : from}
+            bcvRate={bcvRate?.rate ?? null}
           />
         </div>
 

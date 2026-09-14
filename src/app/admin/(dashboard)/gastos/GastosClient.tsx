@@ -20,6 +20,8 @@ const inputClass =
 const labelClass = "block text-xs font-medium text-[#787774] mb-1";
 
 const fmtUsd = (n: number) => `$${n.toFixed(2)}`;
+const fmtBs = (n: number) =>
+  `Bs. ${n.toLocaleString("es-VE", { maximumFractionDigits: 2 })}`;
 
 /** El día sin el año, que es el que se repite en toda la tabla. */
 function shortDate(iso: string) {
@@ -69,10 +71,13 @@ function KindButton({
 export default function GastosClient({
   expenses,
   defaultDate,
+  bcvRate,
 }: {
   expenses: Expense[];
   /** Con qué fecha arranca el formulario: hoy, o el primer día del mes visto. */
   defaultDate: string;
+  /** Tasa BCV del día, para mostrar cada monto también en bolívares. */
+  bcvRate: number | null;
 }) {
   // El interruptor de cada fila responde de una vez y la lista se corrige sola
   // cuando el servidor contesta.
@@ -241,6 +246,12 @@ export default function GastosClient({
           </p>
           <p className="text-sm">
             <span className="font-semibold tabular-nums">{fmtUsd(total)}</span>
+            {bcvRate && (
+              <span className="text-[#787774] tabular-nums">
+                {" "}
+                ({fmtBs(total * bcvRate)})
+              </span>
+            )}
             <span className="text-[#787774]">
               {" "}
               · {fmtUsd(deducted)} resta
@@ -263,8 +274,15 @@ export default function GastosClient({
                     {expense.description ? ` · ${expense.description}` : ""}
                   </p>
                 </div>
-                <span className="text-sm font-medium tabular-nums shrink-0">
-                  {fmtUsd(Number(expense.amountUsd))}
+                <span className="text-right shrink-0">
+                  <span className="block text-sm font-medium tabular-nums">
+                    {fmtUsd(Number(expense.amountUsd))}
+                  </span>
+                  {bcvRate && (
+                    <span className="block text-xs text-[#787774] tabular-nums">
+                      {fmtBs(Number(expense.amountUsd) * bcvRate)}
+                    </span>
+                  )}
                 </span>
               </div>
               <div className="flex items-center gap-1 mt-2">
@@ -299,7 +317,7 @@ export default function GastosClient({
                 <th className="px-4 py-2.5 font-medium">Categoría</th>
                 <th className="px-4 py-2.5 font-medium">Detalle</th>
                 <th className="px-4 py-2.5 font-medium w-32">¿Resta?</th>
-                <th className="px-4 py-2.5 font-medium text-right w-24">Monto</th>
+                <th className="px-4 py-2.5 font-medium text-right w-32">Monto</th>
                 <th className="px-4 py-2.5 font-medium w-20"></th>
               </tr>
             </thead>
@@ -322,8 +340,15 @@ export default function GastosClient({
                       onClick={() => toggleKind(expense)}
                     />
                   </td>
-                  <td className="px-4 py-2.5 text-right font-medium tabular-nums">
-                    {fmtUsd(Number(expense.amountUsd))}
+                  <td className="px-4 py-2.5 text-right tabular-nums">
+                    <span className="block font-medium">
+                      {fmtUsd(Number(expense.amountUsd))}
+                    </span>
+                    {bcvRate && (
+                      <span className="block text-xs text-[#787774]">
+                        {fmtBs(Number(expense.amountUsd) * bcvRate)}
+                      </span>
+                    )}
                   </td>
                   <td className="px-4 py-2.5">
                     <div className="flex items-center gap-1">
