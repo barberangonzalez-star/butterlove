@@ -3,6 +3,7 @@ import { monthBounds } from "@/lib/finance-data";
 import { getExpenseMonths, getExpenses } from "@/lib/expenses-data";
 import { today } from "@/lib/period";
 import MonthPicker, { type MonthOption } from "../finanzas/MonthPicker";
+import BcvConverterWidget from "../_components/BcvConverterWidget";
 import GastosClient from "./GastosClient";
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -63,12 +64,19 @@ export default async function GastosPage({
         <MonthPicker month={month} months={months} />
       </div>
 
-      {/* Anotar un gasto viejo es lo raro: si el mes que se está viendo es el
-          de hoy, el formulario arranca en hoy; si no, en su primer día. */}
-      <GastosClient
-        expenses={expenses}
-        defaultDate={month === currentMonth ? today() : from}
-      />
+      <div className="grid 2xl:grid-cols-[1fr_260px] gap-6 items-start">
+        <div className="min-w-0">
+          {/* Anotar un gasto viejo es lo raro: si el mes que se está viendo es
+              el de hoy, el formulario arranca en hoy; si no, en su primer
+              día. */}
+          <GastosClient
+            expenses={expenses}
+            defaultDate={month === currentMonth ? today() : from}
+          />
+        </div>
+
+        <BcvConverterWidget />
+      </div>
     </div>
   );
 }
