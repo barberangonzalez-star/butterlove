@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { monthBounds } from "@/lib/finance-data";
 import { getExpenseMonths, getExpenses } from "@/lib/expenses-data";
+import { getCasheaPurchases } from "@/lib/cashea-data";
 import { today } from "@/lib/period";
 import { getBcvRate } from "@/lib/bcv";
 import MonthPicker, { type MonthOption } from "../finanzas/MonthPicker";
 import BcvConverterWidget from "../_components/BcvConverterWidget";
 import GastosClient from "./GastosClient";
+import CasheaPurchaseForm from "./CasheaPurchaseForm";
+import CasheaPurchasesList from "./CasheaPurchasesList";
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
 const pad = (n: number) => String(n).padStart(2, "0");
@@ -35,10 +38,11 @@ export default async function GastosPage({
     monthParam && MONTH_RE.test(monthParam) ? monthParam : currentMonth;
 
   const { from, to } = monthBounds(month);
-  const [expenses, expenseMonths, bcvRate] = await Promise.all([
+  const [expenses, expenseMonths, bcvRate, casheaPurchases] = await Promise.all([
     getExpenses(from, to),
     getExpenseMonths(),
     getBcvRate(),
+    getCasheaPurchases(),
   ]);
 
   const months: MonthOption[] = [
@@ -76,6 +80,14 @@ export default async function GastosPage({
             defaultDate={month === currentMonth ? today() : from}
             bcvRate={bcvRate?.rate ?? null}
           />
+
+          <div className="mt-6 space-y-4">
+            <CasheaPurchaseForm
+              defaultDate={month === currentMonth ? today() : from}
+              bcvRate={bcvRate?.rate ?? null}
+            />
+            <CasheaPurchasesList purchases={casheaPurchases} />
+          </div>
         </div>
 
         <BcvConverterWidget />

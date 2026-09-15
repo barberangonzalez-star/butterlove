@@ -9,7 +9,8 @@ import {
   updateExpense,
   type ExpenseInput,
 } from "@/lib/expenses-data";
-import { expenseKind, isExpenseKind } from "@/lib/config";
+import { createCasheaPurchase, type CasheaPurchaseInput } from "@/lib/cashea-data";
+import { expenseKind, isExpenseKind, CASHEA_INSTALLMENT_OPTIONS } from "@/lib/config";
 
 /**
  * Los gastos se anotan en su propia sección, pero los lee Finanzas: cada uno
@@ -60,6 +61,30 @@ export async function saveExpenseAction(formData: FormData) {
 export async function deleteExpenseAction(id: number) {
   await verifySession();
   await deleteExpense(id);
+  revalidateExpenses();
+}
+
+export async function createCasheaPurchaseAction(input: CasheaPurchaseInput) {
+  await verifySession();
+
+  if (!input.purchaseDate) throw new Error("La compra necesita una fecha.");
+  if (!Number.isFinite(input.totalUsd) || input.totalUsd <= 0) {
+    throw new Error("El total de la compra tiene que ser mayor que cero.");
+  }
+  if (!Number.isFinite(input.initialUsd) || input.initialUsd < 0) {
+    throw new Error("La inicial no puede ser negativa.");
+  }
+  if (!CASHEA_INSTALLMENT_OPTIONS.includes(input.installmentCount)) {
+    throw new Error("Número de cuotas inválido.");
+  }
+  if (input.installmentDates.some((d) => !d)) {
+    throw new Error("Falta la fecha de alguna cuota.");
+  }
+
+  await createCasheaPurchase({
+    ...input,
+    description: input.description?.trim() || null,
+  });
   revalidateExpenses();
 }
 

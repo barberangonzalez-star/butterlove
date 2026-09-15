@@ -397,8 +397,12 @@ export const EXPENSE_CATEGORIES: ExpenseCategory[] = [
   { name: "Servicios (luz, gas, internet)", kind: "operativo" },
   { name: "Equipos y utensilios", kind: "operativo" },
   { name: "Ferias y eventos", kind: "operativo" },
+  { name: "Cashea", kind: "operativo" },
   { name: "Otros", kind: "operativo" },
 ];
+
+/** Cuotas fijas que ofrece Cashea; no se puede elegir un número libre. */
+export const CASHEA_INSTALLMENT_OPTIONS = [1, 2, 3, 6, 9, 12] as const;
 
 export function isExpenseKind(value: unknown): value is ExpenseKind {
   return EXPENSE_KINDS.some((k) => k.value === value);

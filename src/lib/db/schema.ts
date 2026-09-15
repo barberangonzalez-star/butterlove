@@ -163,6 +163,51 @@ export const expenses = pgTable(
 );
 
 /**
+ * Una compra a crédito con Cashea: se paga una inicial de una vez y el resto
+ * en cuotas futuras. La inicial genera su gasto al momento (se paga hoy); las
+ * cuotas (`casheaInstallments`) generan el suyo cuando llega su fecha, vía el
+ * cron diario — por eso la compra guarda el total y la inicial, pero cada
+ * gasto real vive en `expenses` y se enlaza desde ahí.
+ */
+export const casheaPurchases = pgTable("cashea_purchases", {
+  id: serial("id").primaryKey(),
+  purchaseDate: date("purchase_date").notNull(),
+  description: text("description"),
+  totalUsd: numeric("total_usd", { precision: 10, scale: 2 }).notNull(),
+  initialUsd: numeric("initial_usd", { precision: 10, scale: 2 }).notNull(),
+  installmentCount: integer("installment_count").notNull(),
+  // Tasa BCV con la que se convirtió al anotar la compra, sólo de referencia.
+  bcvRate: numeric("bcv_rate", { precision: 12, scale: 4 }),
+  initialExpenseId: integer("initial_expense_id").references(() => expenses.id, {
+    onDelete: "set null",
+  }),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * Una cuota de una compra Cashea. `expenseId` queda vacío hasta que el cron
+ * diario la registra como gasto en su fecha; `notifiedAt` evita avisar dos
+ * veces la misma cuota.
+ */
+export const casheaInstallments = pgTable(
+  "cashea_installments",
+  {
+    id: serial("id").primaryKey(),
+    purchaseId: integer("purchase_id")
+      .notNull()
+      .references(() => casheaPurchases.id, { onDelete: "cascade" }),
+    installmentNumber: integer("installment_number").notNull(),
+    dueDate: date("due_date").notNull(),
+    amountUsd: numeric("amount_usd", { precision: 10, scale: 2 }).notNull(),
+    expenseId: integer("expense_id").references(() => expenses.id, {
+      onDelete: "set null",
+    }),
+    notifiedAt: timestamp("notified_at"),
+  },
+  (table) => [index("cashea_installments_due_date_idx").on(table.dueDate)],
+);
+
+/**
  * A qué tasa se consiguen los dólares de verdad, por mes. Cobrar en bolívares
  * a tasa BCV y reponer comprando dólares más caros es una pérdida que no
  * aparece en ninguna venta; con esta tasa el reporte la puede medir.
