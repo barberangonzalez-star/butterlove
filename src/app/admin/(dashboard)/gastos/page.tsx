@@ -7,7 +7,6 @@ import { getBcvRate } from "@/lib/bcv";
 import MonthPicker, { type MonthOption } from "../finanzas/MonthPicker";
 import BcvConverterWidget from "../_components/BcvConverterWidget";
 import GastosClient from "./GastosClient";
-import CasheaPurchaseForm from "./CasheaPurchaseForm";
 import CasheaPurchasesList from "./CasheaPurchasesList";
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/;
@@ -81,12 +80,12 @@ export default async function GastosPage({
             bcvRate={bcvRate?.rate ?? null}
           />
 
-          <div className="mt-6 space-y-4">
-            <CasheaPurchaseForm
+          <div className="mt-6">
+            <CasheaPurchasesList
+              purchases={casheaPurchases}
               defaultDate={month === currentMonth ? today() : from}
               bcvRate={bcvRate?.rate ?? null}
             />
-            <CasheaPurchasesList purchases={casheaPurchases} />
           </div>
         </div>
 

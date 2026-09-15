@@ -11,9 +11,13 @@ import {
 } from "@/lib/expenses-data";
 import {
   createCasheaPurchase,
+  deleteCasheaPurchase,
   getCasheaInstallmentById,
   getCasheaPurchaseById,
   markInstallmentPaid,
+  markInstallmentUnpaid,
+  updateInstallment,
+  updatePurchaseDescription,
   type CasheaPurchaseInput,
 } from "@/lib/cashea-data";
 import { expenseKind, isExpenseKind, CASHEA_INSTALLMENT_OPTIONS } from "@/lib/config";
@@ -113,6 +117,65 @@ export async function confirmCasheaInstallmentAction(installmentId: number) {
   if (!purchase) throw new Error("No se encontró la compra de esa cuota.");
 
   await markInstallmentPaid(installment, purchase);
+  revalidateExpenses();
+}
+
+const ISO_DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+async function requireInstallment(installmentId: number) {
+  if (!Number.isInteger(installmentId) || installmentId <= 0) {
+    throw new Error("Cuota inválida.");
+  }
+  const installment = await getCasheaInstallmentById(installmentId);
+  if (!installment) throw new Error("La cuota ya no existe.");
+  return installment;
+}
+
+async function requirePurchase(purchaseId: number) {
+  if (!Number.isInteger(purchaseId) || purchaseId <= 0) {
+    throw new Error("Compra inválida.");
+  }
+  const purchase = await getCasheaPurchaseById(purchaseId);
+  if (!purchase) throw new Error("La compra ya no existe.");
+  return purchase;
+}
+
+/** Para cuando se confirmó una cuota por error. */
+export async function unconfirmCasheaInstallmentAction(installmentId: number) {
+  await verifySession();
+  const installment = await requireInstallment(installmentId);
+  await markInstallmentUnpaid(installment);
+  revalidateExpenses();
+}
+
+export async function updateCasheaInstallmentAction(
+  installmentId: number,
+  input: { dueDate: string; amountUsd: number },
+) {
+  await verifySession();
+  if (!ISO_DATE_RE.test(input.dueDate)) throw new Error("La cuota necesita una fecha.");
+  if (!Number.isFinite(input.amountUsd) || input.amountUsd <= 0) {
+    throw new Error("El monto de la cuota tiene que ser mayor que cero.");
+  }
+  const installment = await requireInstallment(installmentId);
+  await updateInstallment(installment, input);
+  revalidateExpenses();
+}
+
+export async function updateCasheaPurchaseAction(
+  purchaseId: number,
+  description: string | null,
+) {
+  await verifySession();
+  const purchase = await requirePurchase(purchaseId);
+  await updatePurchaseDescription(purchase, description?.trim() || null);
+  revalidateExpenses();
+}
+
+export async function deleteCasheaPurchaseAction(purchaseId: number) {
+  await verifySession();
+  const purchase = await requirePurchase(purchaseId);
+  await deleteCasheaPurchase(purchase);
   revalidateExpenses();
 }
 

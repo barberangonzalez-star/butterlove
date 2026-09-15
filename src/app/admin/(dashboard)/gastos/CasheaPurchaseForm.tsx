@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ShoppingBag } from "lucide-react";
 import { createCasheaPurchaseAction } from "./actions";
 import { CASHEA_INSTALLMENT_OPTIONS } from "@/lib/config";
 import DualCurrencyInput from "./DualCurrencyInput";
@@ -10,8 +9,8 @@ const inputClass =
   "w-full rounded-md border border-black/15 bg-white px-2.5 py-2 text-sm outline-none focus:border-[#37352f]";
 const labelClass = "block text-xs font-medium text-[#787774] mb-1";
 
-/** Cashea cobra cada cuota 15 días después de la anterior. */
-const CASHEA_INSTALLMENT_INTERVAL_DAYS = 15;
+/** Cashea cobra cada cuota 14 días después de la anterior. */
+const CASHEA_INSTALLMENT_INTERVAL_DAYS = 14;
 
 /** Suma días a una fecha "YYYY-MM-DD" en UTC, para no correrse un día por la zona horaria. */
 function addDaysIso(iso: string, days: number): string {
@@ -20,7 +19,7 @@ function addDaysIso(iso: string, days: number): string {
   return date.toISOString().slice(0, 10);
 }
 
-/** Cuota 1 a los 15 días de la compra, cuota 2 a los 30, y así — cada 15 días. */
+/** Cuota 1 a los 14 días de la compra, cuota 2 a los 28, y así — cada 14 días. */
 function computeInstallmentDates(purchaseDate: string, count: number): string[] {
   if (!purchaseDate) return Array(count).fill("");
   return Array.from({ length: count }, (_, i) =>
@@ -30,15 +29,20 @@ function computeInstallmentDates(purchaseDate: string, count: number): string[] 
 
 /**
  * Registrar una compra a crédito con Cashea: la inicial se paga hoy (entra a
- * Gastos de una vez) y el resto se reparte en cuotas futuras que se registran
- * solas, y avisan, cuando llega su fecha.
+ * Gastos de una vez) y el resto se reparte en cuotas futuras, que se confirman
+ * a mano cuando se pagan. Vive dentro de la tarjeta de Compras Cashea y se
+ * abre sólo cuando se va a usar.
  */
 export default function CasheaPurchaseForm({
   defaultDate,
   bcvRate,
+  onDone,
+  onCancel,
 }: {
   defaultDate: string;
   bcvRate: number | null;
+  onDone: () => void;
+  onCancel: () => void;
 }) {
   const [isPending, startTransition] = useTransition();
   const [purchaseDate, setPurchaseDate] = useState(defaultDate);
@@ -64,15 +68,6 @@ export default function CasheaPurchaseForm({
 
   const remaining = Math.max(totalUsd - initialUsd, 0);
   const perInstallment = installmentCount > 0 ? remaining / installmentCount : 0;
-
-  const reset = () => {
-    setPurchaseDate(defaultDate);
-    setDescription("");
-    setTotalUsd(0);
-    setInitialUsd(0);
-    setInstallmentCount(3);
-    setInstallmentDates(computeInstallmentDates(defaultDate, 3));
-  };
 
   const submit = () => {
     setError(null);
@@ -100,7 +95,7 @@ export default function CasheaPurchaseForm({
           bcvRate,
           installmentDates,
         });
-        reset();
+        onDone();
       } catch (err) {
         setError(err instanceof Error ? err.message : "No se pudo registrar la compra.");
       }
@@ -108,12 +103,7 @@ export default function CasheaPurchaseForm({
   };
 
   return (
-    <div className="border border-black/10 rounded-lg bg-white p-4 space-y-3">
-      <div className="flex items-center gap-2 text-sm font-semibold">
-        <ShoppingBag size={15} />
-        Compra Cashea (en cuotas)
-      </div>
-
+    <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
           <span className={labelClass}>Fecha de la compra</span>
@@ -136,7 +126,7 @@ export default function CasheaPurchaseForm({
       </div>
 
       <DualCurrencyInput
-        label="Total de la compra"
+        label="Total"
         usd={totalUsd}
         onChange={setTotalUsd}
         bcvRate={bcvRate}
@@ -150,13 +140,14 @@ export default function CasheaPurchaseForm({
 
       <div>
         <span className={labelClass}>Número de cuotas</span>
-        <div className="flex flex-wrap gap-1.5">
+        <div className="grid grid-cols-6 gap-1.5 sm:flex sm:flex-wrap">
           {CASHEA_INSTALLMENT_OPTIONS.map((count) => (
             <button
               key={count}
               type="button"
               onClick={() => chooseCount(count)}
-              className={`rounded-full border px-3 py-1 text-xs font-medium transition-colors ${
+              aria-pressed={installmentCount === count}
+              className={`h-9 rounded-full border text-sm font-medium transition-colors sm:min-w-10 sm:px-3 ${
                 installmentCount === count
                   ? "border-[#37352f] bg-[#37352f] text-white"
                   : "border-black/15 text-[#5f5e5b] hover:bg-black/5"
@@ -166,47 +157,55 @@ export default function CasheaPurchaseForm({
             </button>
           ))}
         </div>
+        {remaining > 0 && (
+          <p className="text-xs text-[#787774] mt-1.5">
+            Quedan ${remaining.toFixed(2)} en {installmentCount} cuota
+            {installmentCount === 1 ? "" : "s"} de ${perInstallment.toFixed(2)}.
+          </p>
+        )}
       </div>
 
-      {remaining > 0 && (
-        <p className="text-xs text-[#787774]">
-          Queda ${remaining.toFixed(2)} en {installmentCount} cuota
-          {installmentCount === 1 ? "" : "s"} de ${perInstallment.toFixed(2)} cada una.
+      <div>
+        <p className="text-xs text-[#787774] mb-1.5">
+          Las fechas van cada 14 días desde la compra; cámbialas si alguna cae
+          distinto.
         </p>
-      )}
-
-      <p className="text-xs text-[#787774]">
-        Las fechas se calculan solas cada 15 días desde la compra; edítalas si
-        alguna cuota cae distinto.
-      </p>
-      <div className="grid gap-2 sm:grid-cols-3">
-        {installmentDates.map((date, i) => (
-          <label key={i} className="block">
-            <span className={labelClass}>Fecha cuota {i + 1}</span>
-            <input
-              type="date"
-              value={date}
-              onChange={(e) =>
-                setInstallmentDates((prev) =>
-                  prev.map((d, idx) => (idx === i ? e.target.value : d)),
-                )
-              }
-              className={inputClass}
-            />
-          </label>
-        ))}
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {installmentDates.map((date, i) => (
+            <label key={i} className="block min-w-0">
+              <span className={labelClass}>Cuota {i + 1}</span>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) =>
+                  setInstallmentDates((prev) =>
+                    prev.map((d, idx) => (idx === i ? e.target.value : d)),
+                  )
+                }
+                className={`${inputClass} px-2`}
+              />
+            </label>
+          ))}
+        </div>
       </div>
 
       {error && <p className="text-xs text-red-600">{error}</p>}
 
-      <div className="flex justify-end">
+      <div className="flex gap-2 sm:justify-end">
+        <button
+          type="button"
+          onClick={onCancel}
+          className="flex-1 sm:flex-none rounded-md border border-black/15 px-4 py-2 text-sm hover:bg-black/5"
+        >
+          Cancelar
+        </button>
         <button
           type="button"
           disabled={isPending}
           onClick={submit}
-          className="rounded-md bg-[#37352f] text-white text-sm font-medium px-4 py-2 hover:opacity-90 disabled:opacity-60"
+          className="flex-1 sm:flex-none rounded-md bg-[#37352f] text-white text-sm font-medium px-4 py-2 hover:opacity-90 disabled:opacity-60"
         >
-          {isPending ? "Registrando…" : "Registrar compra Cashea"}
+          {isPending ? "Registrando…" : "Registrar compra"}
         </button>
       </div>
     </div>
