@@ -25,10 +25,18 @@ function shortDate(iso: string) {
 
 /**
  * Las compras recientes, para ir pidiendo reseñas. Arranca mostrando sólo las
- * que todavía no se pidieron, que son las que quedan por hacer.
+ * que todavía no se pidieron, que son las que quedan por hacer; buscando a
+ * alguien arranca en todas, porque se lo busca a él y no a lo pendiente.
  */
-export default function RequestList({ rows }: { rows: RequestRow[] }) {
-  const [filter, setFilter] = useState<Filter>("sin-pedir");
+export default function RequestList({
+  rows,
+  query,
+}: {
+  rows: RequestRow[];
+  /** Lo que se está buscando, o vacío. */
+  query: string;
+}) {
+  const [filter, setFilter] = useState<Filter>(query ? "todas" : "sin-pedir");
   const pending = rows.filter((row) => row.reviewCount === 0 && !row.askedLabel);
   const visible = filter === "sin-pedir" ? pending : rows;
 
@@ -41,7 +49,7 @@ export default function RequestList({ rows }: { rows: RequestRow[] }) {
     <div className="border border-black/10 rounded-lg bg-white overflow-hidden">
       <div className="px-4 py-3 border-b border-black/10 flex flex-wrap items-center justify-between gap-2">
         <p className="text-xs font-medium text-[#787774] uppercase tracking-wide">
-          Compras al detal · últimos 6 meses
+          {query ? "Compras al detal que coinciden" : "Compras al detal · últimos 6 meses"}
         </p>
         <div className="flex gap-1.5" role="group" aria-label="Filtrar compras">
           {filters.map(({ value, label }) => (
@@ -63,10 +71,14 @@ export default function RequestList({ rows }: { rows: RequestRow[] }) {
       </div>
 
       {visible.length === 0 ? (
-        <p className="px-4 py-10 text-center text-sm text-[#787774]">
-          {filter === "sin-pedir"
-            ? "Ya pediste reseña a todas las compras recientes."
-            : "No hay compras al detal en los últimos 6 meses."}
+        <p className="px-4 py-10 text-center text-sm text-[#787774] break-words">
+          {query
+            ? filter === "sin-pedir" && rows.length > 0
+              ? `A todas las compras de “${query}” ya se les pidió reseña.`
+              : `No hay compras al detal de alguien que se llame “${query}”.`
+            : filter === "sin-pedir"
+              ? "Ya pediste reseña a todas las compras recientes."
+              : "No hay compras al detal en los últimos 6 meses."}
         </p>
       ) : (
         <ul className="divide-y divide-black/5">

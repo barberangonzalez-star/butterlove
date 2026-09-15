@@ -17,6 +17,7 @@ import ReviewCard from "./ReviewCard";
 import RequestList, { type RequestRow } from "./RequestList";
 import InviteCreator from "./InviteCreator";
 import InviteList, { type InviteRow } from "./InviteList";
+import ReviewSearch from "./ReviewSearch";
 
 type Tab = ReviewStatus | "pedir";
 
@@ -26,6 +27,12 @@ const TABS: { value: Tab; label: string }[] = [
   { value: "oculta", label: "Ocultas" },
   { value: "pedir", label: "Pedir reseñas" },
 ];
+
+const STATUS_LABEL: Record<ReviewStatus, string> = {
+  pendiente: "por aprobar",
+  publicada: "publicada",
+  oculta: "oculta",
+};
 
 const EMPTY: Record<ReviewStatus, string> = {
   pendiente:
@@ -42,9 +49,10 @@ const EMPTY: Record<ReviewStatus, string> = {
 export default async function ResenasPage({
   searchParams,
 }: {
-  searchParams: Promise<{ tab?: string }>;
+  searchParams: Promise<{ tab?: string; q?: string }>;
 }) {
-  const { tab: tabParam } = await searchParams;
+  const { tab: tabParam, q: queryParam } = await searchParams;
+  const query = (queryParam ?? "").trim().slice(0, 80);
   const counts = await countReviewsByStatus();
   const tab: Tab =
     tabParam === "pedir" || isReviewStatus(tabParam)
@@ -76,7 +84,9 @@ export default async function ResenasPage({
           return (
             <Link
               key={value}
-              href={`/admin/resenas?tab=${value}`}
+              href={`/admin/resenas?tab=${value}${
+                query ? `&q=${encodeURIComponent(query)}` : ""
+              }`}
               aria-current={active ? "page" : undefined}
               className={`shrink-0 h-9 inline-flex items-center gap-1.5 rounded-full border px-3.5 text-sm whitespace-nowrap transition-colors ${
                 active
@@ -103,15 +113,28 @@ export default async function ResenasPage({
         })}
       </nav>
 
-      {tab === "pedir" ? <RequestTab /> : <ReviewsTab status={tab} />}
+      <ReviewSearch
+        key={tab}
+        tab={tab}
+        initialQuery={query}
+        placeholder={
+          tab === "pedir" ? "Buscar cliente por nombre…" : "Buscar reseñas por nombre…"
+        }
+      />
+
+      {tab === "pedir" ? (
+        <RequestTab query={query} />
+      ) : (
+        <ReviewsTab status={tab} query={query} />
+      )}
     </div>
   );
 }
 
-async function RequestTab() {
+async function RequestTab({ query }: { query: string }) {
   const [candidates, invites, catalog] = await Promise.all([
-    getReviewRequestCandidates(),
-    getReviewInvites(),
+    getReviewRequestCandidates(query),
+    getReviewInvites(query),
     getAdminProducts(),
   ]);
 
@@ -160,19 +183,25 @@ async function RequestTab() {
         tienes que enviarlo. Cada enlace es de esa compra, así que sólo opina
         quien compró.
       </p>
-      <RequestList rows={rows} />
+      {/* La clave reinicia el filtro al buscar: buscando a alguien se muestran
+          todas sus compras, también las que ya se pidieron. */}
+      <RequestList key={query} rows={rows} query={query} />
     </>
   );
 }
 
-async function ReviewsTab({ status }: { status: ReviewStatus }) {
-  const reviews = await getAdminReviews(status);
+async function ReviewsTab({ status, query }: { status: ReviewStatus; query: string }) {
+  const reviews = await getAdminReviews(status, query);
 
   if (reviews.length === 0) {
     return (
       <div className="border border-black/10 rounded-lg bg-white px-4 py-10 text-center">
-        <p className="text-sm text-[#787774]">{EMPTY[status]}</p>
-        {status === "pendiente" && (
+        <p className="text-sm text-[#787774] break-words">
+          {query
+            ? `Ninguna reseña ${STATUS_LABEL[status]} coincide con “${query}”.`
+            : EMPTY[status]}
+        </p>
+        {status === "pendiente" && !query && (
           <Link
             href="/admin/resenas?tab=pedir"
             className="mt-3 inline-flex h-9 items-center rounded-md bg-[#37352f] px-4 text-sm font-medium text-white hover:opacity-90"

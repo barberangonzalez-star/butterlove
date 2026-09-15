@@ -1,7 +1,9 @@
 import "server-only";
 import { cache } from "react";
-import { and, count, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
+import { and, count, desc, eq, gte, inArray, isNotNull, or, sql, type SQL } from "drizzle-orm";
+import type { AnyPgColumn } from "drizzle-orm/pg-core";
 import { getDb } from "./db";
+import { foldText } from "./customers";
 import {
   products,
   reviewInvites,
@@ -45,6 +47,23 @@ const fullDayFormat = new Intl.DateTimeFormat("es-VE", {
   year: "numeric",
   timeZone: TIME_ZONE,
 });
+
+// El buscador del panel ignora tildes y mayúsculas en los dos lados: lo que
+// se escribe pasa por `foldText`, y la columna por `lower` + `translate`, que
+// hace lo mismo sin depender de la extensión `unaccent` en la base.
+const ACCENTED = "áàäâãéèëêíìïîóòöôõúùüûñ";
+const PLAIN = "aaaaaeeeeiiiiooooouuuun";
+
+/** Lo escrito en el buscador como patrón LIKE, o null si no hay nada que buscar. */
+function searchPattern(query: string | undefined): string | null {
+  const term = foldText(query ?? "").trim().replace(/\s+/g, " ");
+  if (!term) return null;
+  return `%${term.replace(/[\\%_]/g, "\\$&")}%`;
+}
+
+function nameLike(column: AnyPgColumn, pattern: string): SQL {
+  return sql`translate(lower(${column}), ${ACCENTED}, ${PLAIN}) like ${pattern}`;
+}
 
 const productFields = {
   key: products.key,
@@ -327,8 +346,17 @@ export async function countPendingReviews(): Promise<number> {
   return row?.count ?? 0;
 }
 
-export async function getAdminReviews(status: ReviewStatus): Promise<AdminReview[]> {
+/**
+ * Las reseñas de un estado. Con búsqueda, las de quien firmó con ese nombre o
+ * las que salieron de la venta o del enlace de alguien que se llama así: la
+ * gente firma "María G." y se la busca como "María González".
+ */
+export async function getAdminReviews(
+  status: ReviewStatus,
+  query?: string,
+): Promise<AdminReview[]> {
   const db = getDb();
+  const pattern = searchPattern(query);
   const rows = await db
     .select({
       review: reviews,
@@ -342,7 +370,18 @@ export async function getAdminReviews(status: ReviewStatus): Promise<AdminReview
     .innerJoin(products, eq(reviews.productId, products.id))
     .leftJoin(sales, eq(reviews.saleId, sales.id))
     .leftJoin(reviewInvites, eq(reviews.inviteId, reviewInvites.id))
-    .where(eq(reviews.status, status))
+    .where(
+      pattern
+        ? and(
+            eq(reviews.status, status),
+            or(
+              nameLike(reviews.authorName, pattern),
+              nameLike(sales.customerName, pattern),
+              nameLike(reviewInvites.customerName, pattern),
+            ),
+          )
+        : eq(reviews.status, status),
+    )
     .orderBy(desc(reviews.createdAt), desc(reviews.id))
     .limit(200);
 
@@ -437,9 +476,15 @@ const REQUEST_WINDOW_DAYS = 180;
  * Las ventas al detal recientes, para pedirles reseña. Al mayor no: quien
  * revende no es quien se come el frasco. Se saltan las ventas cuyos productos
  * ya no están en el catálogo, porque no habría qué reseñar.
+ *
+ * Con búsqueda no hay tope de fecha: si se busca a alguien por nombre es
+ * porque se lo quiere encontrar, aunque haya comprado hace un año.
  */
-export async function getReviewRequestCandidates(): Promise<ReviewRequestCandidate[]> {
+export async function getReviewRequestCandidates(
+  query?: string,
+): Promise<ReviewRequestCandidate[]> {
   const db = getDb();
+  const pattern = searchPattern(query);
   const since = new Date(Date.now() - REQUEST_WINDOW_DAYS * 86_400_000)
     .toISOString()
     .slice(0, 10);
@@ -453,7 +498,12 @@ export async function getReviewRequestCandidates(): Promise<ReviewRequestCandida
       customerId: sales.customerId,
     })
     .from(sales)
-    .where(and(gte(sales.saleDate, since), eq(sales.channel, "detal")))
+    .where(
+      and(
+        eq(sales.channel, "detal"),
+        pattern ? nameLike(sales.customerName, pattern) : gte(sales.saleDate, since),
+      ),
+    )
     .orderBy(desc(sales.saleDate), desc(sales.id))
     .limit(150);
   if (rows.length === 0) return [];
@@ -528,11 +578,13 @@ export async function createReviewInvite(input: {
 }
 
 /** Los enlaces hechos a mano más recientes, con si ya opinaron. */
-export async function getReviewInvites(): Promise<ReviewInviteSummary[]> {
+export async function getReviewInvites(query?: string): Promise<ReviewInviteSummary[]> {
   const db = getDb();
+  const pattern = searchPattern(query);
   const rows = await db
     .select()
     .from(reviewInvites)
+    .where(pattern ? nameLike(reviewInvites.customerName, pattern) : undefined)
     .orderBy(desc(reviewInvites.createdAt), desc(reviewInvites.id))
     .limit(50);
   if (rows.length === 0) return [];
