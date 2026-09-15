@@ -12,6 +12,7 @@ import {
   PAYMENT_METHODS,
 } from "./config";
 import { productTitle, sizeLabel, type Product } from "./products";
+import { formatRating, type ProductReviews } from "./reviews";
 import { CATEGORY_LABEL, postPlainText, type Post } from "./posts";
 
 export const SITE_NAME = "Butter Love";
@@ -124,8 +125,13 @@ export function breadcrumbSchema(crumbs: Crumb[]) {
 /**
  * Producto con sus precios por tamaño. Cuando hay más de un tamaño usamos
  * AggregateOffer con el rango, que es lo que Google espera para variantes.
+ *
+ * Con reseñas publicadas suficientes se suman el promedio y las más recientes:
+ * es lo que habilita las estrellas en el resultado de búsqueda. Google exige
+ * que esas mismas reseñas se vean en la página, y se ven: son las de la
+ * sección "Lo que dicen".
  */
-export function productSchema(product: Product) {
+export function productSchema(product: Product, reviews?: ProductReviews | null) {
   const url = absoluteUrl(`/productos/${product.key}`);
   const prices = product.sizes.map((s) => s.price);
 
@@ -185,6 +191,29 @@ export function productSchema(product: Product) {
         }
       : {}),
     offers,
+    ...(reviews
+      ? {
+          aggregateRating: {
+            "@type": "AggregateRating",
+            ratingValue: formatRating(reviews.summary.average),
+            reviewCount: reviews.summary.count,
+            bestRating: 5,
+            worstRating: 1,
+          },
+          review: reviews.reviews.slice(0, 10).map((review) => ({
+            "@type": "Review",
+            author: { "@type": "Person", name: review.authorName },
+            datePublished: review.datePublished,
+            reviewRating: {
+              "@type": "Rating",
+              ratingValue: review.rating,
+              bestRating: 5,
+              worstRating: 1,
+            },
+            ...(review.comment ? { reviewBody: review.comment } : {}),
+          })),
+        }
+      : {}),
   };
 }
 

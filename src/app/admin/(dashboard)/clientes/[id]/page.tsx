@@ -12,7 +12,10 @@ import { CARACAS_ZONES, deliveryPriceForZone } from "@/lib/config";
 import { getCustomerWithStats } from "@/lib/customers-data";
 import { getSales, type Sale } from "@/lib/sales-data";
 import { formatPhone, whatsappLink } from "@/lib/customers";
+import { getReviewRequestStates } from "@/lib/reviews-data";
+import { reviewRequestLinks } from "@/lib/review-links";
 import CustomerActions from "../CustomerActions";
+import ReviewRequestButton from "../../resenas/ReviewRequestButton";
 
 const fmtUsd = (n: number) => `$${n.toFixed(2)}`;
 
@@ -40,6 +43,14 @@ export default async function ClienteDetailPage({
     getSales({ customerId: id }),
   ]);
   if (!customer) notFound();
+
+  // Pedir reseña sólo tiene sentido en compras al detal con algún producto que
+  // siga en el catálogo: al mayor no se come quien compra.
+  const reviewable = sales.filter(
+    (sale) => sale.channel === "detal" && sale.items.some((i) => i.productId !== null),
+  );
+  const reviewStates = await getReviewRequestStates(reviewable.map((s) => s.id));
+  const reviewLinks = new Map(reviewable.map((sale) => [sale.id, reviewRequestLinks(sale)]));
 
   const { stats } = customer;
   const avgTicket = stats.orders > 0 ? stats.totalUsd / stats.orders : 0;
@@ -231,6 +242,17 @@ export default async function ClienteDetailPage({
                           {sale.paymentMethod ?? "Pago —"} · {deliveryLabel(sale)}
                           {sale.deliveryState ? ` · ${sale.deliveryState}` : ""}
                         </p>
+                        {reviewLinks.has(sale.id) && (
+                          <div className="mt-2">
+                            <ReviewRequestButton
+                              saleId={sale.id}
+                              whatsappHref={reviewLinks.get(sale.id)!.whatsappHref}
+                              message={reviewLinks.get(sale.id)!.message}
+                              askedLabel={reviewStates.get(sale.id)?.askedLabel ?? null}
+                              reviewed={(reviewStates.get(sale.id)?.reviewCount ?? 0) > 0}
+                            />
+                          </div>
+                        )}
                       </div>
                       <p className="shrink-0 font-semibold text-sm tabular-nums">
                         {fmtUsd(Number(sale.amountUsd))}

@@ -1,6 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { getProducts } from "@/lib/products-data";
+import { getRatingSummaries } from "@/lib/reviews-data";
+import { formatRating } from "@/lib/reviews";
 import { isCombo, productTitle, type Product } from "@/lib/products";
 
 /**
@@ -21,7 +24,10 @@ export default async function RelatedProducts({
 }: {
   currentKey: string;
 }) {
-  const products = await getProducts();
+  const [products, ratings] = await Promise.all([
+    getProducts(),
+    getRatingSummaries(),
+  ]);
   const suggestions = related(products, currentKey);
   if (suggestions.length === 0) return null;
 
@@ -37,6 +43,7 @@ export default async function RelatedProducts({
         {suggestions.map((p) => {
           const title = productTitle(p);
           const from = Math.min(...p.sizes.map((s) => s.price));
+          const rating = ratings[p.key];
           return (
             <li
               key={p.key}
@@ -63,8 +70,26 @@ export default async function RelatedProducts({
                 <p className="mt-2 font-display font-700 text-sm text-ink leading-snug group-hover:underline">
                   {title}
                 </p>
-                <p className="text-xs text-ink-soft">
-                  {p.sizes.length > 1 ? "Desde " : ""}${from.toFixed(2)}
+                <p className="flex items-center gap-1 text-xs text-ink-soft">
+                  <span>
+                    {p.sizes.length > 1 ? "Desde " : ""}${from.toFixed(2)}
+                  </span>
+                  {rating && (
+                    <>
+                      <span aria-hidden="true">·</span>
+                      <Star
+                        size={12}
+                        fill="currentColor"
+                        strokeWidth={0}
+                        className="text-star"
+                        aria-hidden="true"
+                      />
+                      <span>
+                        {formatRating(rating.average)}
+                        <span className="sr-only"> de 5 estrellas</span>
+                      </span>
+                    </>
+                  )}
                 </p>
               </Link>
             </li>

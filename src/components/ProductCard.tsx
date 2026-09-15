@@ -2,10 +2,23 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { Star } from "lucide-react";
 import { Product, isCombo, productTitle, sizeLabel } from "@/lib/products";
 import { useCart } from "@/lib/cart-context";
+import {
+  formatRating,
+  reviewCountLabel,
+  type RatingSummary,
+} from "@/lib/reviews";
 
-export default function ProductCard({ product }: { product: Product }) {
+export default function ProductCard({
+  product,
+  rating,
+}: {
+  product: Product;
+  /** Sólo llega si el producto tiene reseñas publicadas suficientes. */
+  rating?: RatingSummary;
+}) {
   const { addItem } = useCart();
   // La vitrina cotiza siempre el frasco de 230g, que es el que se lleva la
   // mayoría: un solo precio por tarjeta se lee de un vistazo, y quien quiera
@@ -31,10 +44,30 @@ export default function ProductCard({ product }: { product: Product }) {
           className="absolute inset-0 z-10"
         />
 
-        <div className="relative z-20">
+        {/* Las estrellas van arriba, frente a la etiqueta, y no en el pie: el
+            renglón de nombre, precio y botón ya va justo en el teléfono. No
+            reciben toques, así que tocarlas abre la ficha como el resto. */}
+        <div className="relative z-20 flex items-start justify-between gap-2">
           <span className="bg-white/90 text-ink text-xs px-3 py-1 rounded-full">
             {isCombo(product) ? "Combo" : "Sin azúcar"}
           </span>
+          {rating && (
+            <span
+              role="img"
+              aria-label={`${formatRating(rating.average)} de 5 estrellas, ${reviewCountLabel(rating.count)}`}
+              className="pointer-events-none inline-flex items-center gap-1 bg-white/90 text-ink text-xs font-semibold px-2.5 py-1 rounded-full"
+            >
+              <Star
+                size={12}
+                fill="currentColor"
+                strokeWidth={0}
+                className="text-star"
+                aria-hidden="true"
+              />
+              {formatRating(rating.average)}
+              <span className="font-normal text-ink-soft">({rating.count})</span>
+            </span>
+          )}
         </div>
 
         {/* Los recortes sin fondo flotan sobre el color de la tarjeta, con las

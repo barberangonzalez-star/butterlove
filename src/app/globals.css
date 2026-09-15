@@ -20,6 +20,10 @@
   --card-neutro-b: #c9b8d8;
 
   --dark-panel: #1f4e5f;
+
+  /* Las estrellas de las reseñas. Más oscuro que el amarillo del maní, que
+     sobre blanco casi no se distingue del gris de las estrellas vacías. */
+  --star: #e9a21b;
 }
 
 @theme inline {
@@ -36,6 +40,7 @@
   --color-neutro-a-bg: var(--card-neutro-a);
   --color-neutro-b-bg: var(--card-neutro-b);
   --color-dark-panel: var(--dark-panel);
+  --color-star: var(--star);
 
   --font-display: var(--font-fredoka);
   --font-body: var(--font-dmsans);

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Hero from "@/components/Hero";
 import ProductsGrid from "@/components/ProductsGrid";
+import FeaturedReviews from "@/components/FeaturedReviews";
 import Story from "@/components/Story";
 import HowToOrder from "@/components/HowToOrder";
 import JsonLd from "@/components/JsonLd";
@@ -26,6 +27,7 @@ export default async function Home() {
       <JsonLd data={breadcrumbSchema([{ name: "Inicio", path: "/" }])} />
       <Hero announcement={announcement} />
       <ProductsGrid />
+      <FeaturedReviews />
       <Story />
       <HowToOrder />
     </>

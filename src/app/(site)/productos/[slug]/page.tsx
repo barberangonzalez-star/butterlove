@@ -10,6 +10,10 @@ import ProductGallery from "@/components/ProductGallery";
 import ProductPurchase from "@/components/ProductPurchase";
 import RelatedProducts from "@/components/RelatedProducts";
 import JsonLd from "@/components/JsonLd";
+import ProductReviews from "@/components/ProductReviews";
+import StarRating from "@/components/StarRating";
+import { getProductReviews } from "@/lib/reviews-data";
+import { formatRating, reviewCountLabel } from "@/lib/reviews";
 import {
   productSchema,
   breadcrumbSchema,
@@ -76,7 +80,10 @@ export default async function ProductPage({
 
   // La vitrina completa: de ahí salen los frascos que arma un combo, tanto
   // para la galería como para el renglón que dice qué trae adentro.
-  const catalog = await getProducts();
+  const [catalog, reviewData] = await Promise.all([
+    getProducts(),
+    getProductReviews(product.key),
+  ]);
   const shots = productShots(product, catalog);
   const contents = comboContents(product, catalog);
 
@@ -100,7 +107,7 @@ export default async function ProductPage({
     <>
       {/* Producto + precios por tamaño: es lo que habilita que Google muestre
           precio y disponibilidad directamente en el resultado de búsqueda. */}
-      <JsonLd data={productSchema(product)} />
+      <JsonLd data={productSchema(product, reviewData)} />
       <JsonLd
         data={breadcrumbSchema([
           { name: "Inicio", path: "/" },
@@ -147,6 +154,24 @@ export default async function ProductPage({
               {title}
             </h1>
             <p className="mt-2 text-base text-ink-soft">{product.tagline}</p>
+
+            {/* Las estrellas junto al nombre, antes que la foto en el teléfono:
+                es lo primero que se busca de un producto que no se conoce. Van
+                a la sección de reseñas, más abajo. */}
+            {reviewData && (
+              <a
+                href="#resenas"
+                className="mt-2 inline-flex items-center gap-2 text-sm text-ink hover:underline underline-offset-4"
+              >
+                <StarRating value={reviewData.summary.average} size={16} />
+                <span className="font-semibold tabular-nums">
+                  {formatRating(reviewData.summary.average)}
+                </span>
+                <span className="text-ink-soft">
+                  ({reviewCountLabel(reviewData.summary.count)})
+                </span>
+              </a>
+            )}
 
             {contents.length > 0 && (
               <p className="mt-2 text-base text-ink">
@@ -224,6 +249,8 @@ export default async function ProductPage({
           </div>
         </div>
       </section>
+
+      {reviewData && <ProductReviews data={reviewData} />}
 
       <RelatedProducts currentKey={product.key} />
 

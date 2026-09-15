@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   pgTable,
   serial,
@@ -9,6 +10,8 @@ import {
   date,
   timestamp,
   index,
+  uniqueIndex,
+  check,
 } from "drizzle-orm/pg-core";
 
 export const products = pgTable("products", {
@@ -457,6 +460,55 @@ export const pendingOrders = pgTable("pending_orders", {
   agency: text("agency"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+/**
+ * A qué ventas ya se les mandó el enlace para opinar, y cuándo. Nada más: el
+ * enlace no se guarda —se firma al vuelo desde el número de la venta, ver
+ * `review-links.ts`—, así que esto existe para que el panel diga "ya se la
+ * pediste" y no se le escriba dos veces a la misma persona.
+ */
+export const reviewRequests = pgTable("review_requests", {
+  saleId: integer("sale_id")
+    .primaryKey()
+    .references(() => sales.id, { onDelete: "cascade" }),
+  askedAt: timestamp("asked_at").notNull().defaultNow(),
+});
+
+/**
+ * Lo que opinó alguien que compró. Cada reseña sale de una venta real —el
+ * enlace va atado a ella— y es de un producto de esa venta; la pareja es
+ * única, así que el mismo enlace no sirve para dejar veinte reseñas del mismo
+ * frasco. Entra como `pendiente` y no se ve en la tienda hasta publicarla.
+ *
+ * Si se borra la venta la reseña queda: lo que opinó esa persona no deja de
+ * ser cierto porque se haya corregido el registro de la venta.
+ */
+export const reviews = pgTable(
+  "reviews",
+  {
+    id: serial("id").primaryKey(),
+    saleId: integer("sale_id").references(() => sales.id, { onDelete: "set null" }),
+    productId: integer("product_id")
+      .notNull()
+      .references(() => products.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    comment: text("comment"),
+    /** Como pidió aparecer: "María G.", no el nombre completo de la venta. */
+    authorName: text("author_name").notNull(),
+    /** "pendiente", "publicada" u "oculta", de `REVIEW_STATUSES`. */
+    status: text("status").notNull().default("pendiente"),
+    /** La respuesta pública de Butter Love, debajo de la reseña. */
+    reply: text("reply"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    /** La primera vez que se publicó: ocultarla y volver a publicarla no la hace nueva. */
+    publishedAt: timestamp("published_at"),
+  },
+  (table) => [
+    uniqueIndex("reviews_sale_product_idx").on(table.saleId, table.productId),
+    index("reviews_product_status_idx").on(table.productId, table.status),
+    check("reviews_rating_check", sql`${table.rating} between 1 and 5`),
+  ],
+);
 
 /**
  * A qué teléfonos avisarle cuando entra un pedido.

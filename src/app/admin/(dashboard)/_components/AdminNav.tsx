@@ -10,6 +10,7 @@ import {
   Banknote,
   Calculator,
   Receipt,
+  Star,
   Tag,
   Truck,
   Users,
@@ -30,18 +31,25 @@ const NAV_ITEMS = [
   { href: "/admin/cotizador", label: "Cotizador", icon: Calculator },
   { href: "/admin/mayoreo", label: "Mayoreo", icon: Truck },
   { href: "/admin/clientes", label: "Clientes", icon: Users },
+  { href: "/admin/resenas", label: "Reseñas", icon: Star },
   { href: "/admin/gastos", label: "Gastos", icon: Banknote },
   { href: "/admin/finanzas", label: "Finanzas", icon: Wallet },
   { href: "/admin/promociones", label: "Promociones", icon: Tag },
 ];
 
+interface NavCounts {
+  /** Pedidos de la tienda esperando confirmación. */
+  pendingCount: number;
+  /** Reseñas esperando que se publiquen u oculten. */
+  pendingReviews: number;
+}
+
 function NavLinks({
   onNavigate,
   pendingCount,
-}: {
+  pendingReviews,
+}: NavCounts & {
   onNavigate?: () => void;
-  /** Pedidos de la tienda esperando confirmación. */
-  pendingCount: number;
 }) {
   const pathname = usePathname();
 
@@ -53,6 +61,14 @@ function NavLinks({
         // es prefijo de todas las demás.
         const active =
           href === "/admin" ? pathname === href : pathname.startsWith(href);
+        // Los contadores cuelgan de donde se atienden: los pedidos en Ventas,
+        // las reseñas por aprobar en Reseñas.
+        const badge =
+          href === "/admin/ventas"
+            ? pendingCount
+            : href === "/admin/resenas"
+              ? pendingReviews
+              : 0;
         return (
           <Link
             key={href}
@@ -67,10 +83,9 @@ function NavLinks({
           >
             <Icon size={16} strokeWidth={2} />
             {label}
-            {/* El contador sólo cuelga de Ventas, que es donde se atienden. */}
-            {href === "/admin/ventas" && pendingCount > 0 && (
+            {badge > 0 && (
               <span className="ml-auto min-w-5 text-center text-[11px] font-medium bg-[#b4700a] text-white rounded-full px-1.5 py-0.5">
-                {pendingCount}
+                {badge}
               </span>
             )}
           </Link>
@@ -98,7 +113,7 @@ function NavFooter() {
   );
 }
 
-export default function AdminNav({ pendingCount }: { pendingCount: number }) {
+export default function AdminNav({ pendingCount, pendingReviews }: NavCounts) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -140,7 +155,11 @@ export default function AdminNav({ pendingCount }: { pendingCount: number }) {
                 <X size={18} />
               </button>
             </div>
-            <NavLinks onNavigate={() => setOpen(false)} pendingCount={pendingCount} />
+            <NavLinks
+              onNavigate={() => setOpen(false)}
+              pendingCount={pendingCount}
+              pendingReviews={pendingReviews}
+            />
             <NavFooter />
           </div>
         </div>
@@ -150,7 +169,7 @@ export default function AdminNav({ pendingCount }: { pendingCount: number }) {
         <div className="px-5 h-16 flex items-center border-b border-black/10">
           <span className="font-semibold text-sm">🧈 Butter Love Admin</span>
         </div>
-        <NavLinks pendingCount={pendingCount} />
+        <NavLinks pendingCount={pendingCount} pendingReviews={pendingReviews} />
         <NavFooter />
       </aside>
     </>
