@@ -10,6 +10,24 @@ const inputClass =
   "w-full rounded-md border border-black/15 bg-white px-2.5 py-2 text-sm outline-none focus:border-[#37352f]";
 const labelClass = "block text-xs font-medium text-[#787774] mb-1";
 
+/** Cashea cobra cada cuota 15 días después de la anterior. */
+const CASHEA_INSTALLMENT_INTERVAL_DAYS = 15;
+
+/** Suma días a una fecha "YYYY-MM-DD" en UTC, para no correrse un día por la zona horaria. */
+function addDaysIso(iso: string, days: number): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day + days));
+  return date.toISOString().slice(0, 10);
+}
+
+/** Cuota 1 a los 15 días de la compra, cuota 2 a los 30, y así — cada 15 días. */
+function computeInstallmentDates(purchaseDate: string, count: number): string[] {
+  if (!purchaseDate) return Array(count).fill("");
+  return Array.from({ length: count }, (_, i) =>
+    addDaysIso(purchaseDate, CASHEA_INSTALLMENT_INTERVAL_DAYS * (i + 1)),
+  );
+}
+
 /**
  * Registrar una compra a crédito con Cashea: la inicial se paga hoy (entra a
  * Gastos de una vez) y el resto se reparte en cuotas futuras que se registran
@@ -29,18 +47,19 @@ export default function CasheaPurchaseForm({
   const [initialUsd, setInitialUsd] = useState(0);
   const [installmentCount, setInstallmentCount] =
     useState<(typeof CASHEA_INSTALLMENT_OPTIONS)[number]>(3);
-  const [installmentDates, setInstallmentDates] = useState<string[]>(
-    Array(3).fill(""),
+  const [installmentDates, setInstallmentDates] = useState<string[]>(() =>
+    computeInstallmentDates(defaultDate, 3),
   );
   const [error, setError] = useState<string | null>(null);
 
   const chooseCount = (count: (typeof CASHEA_INSTALLMENT_OPTIONS)[number]) => {
     setInstallmentCount(count);
-    setInstallmentDates((prev) => {
-      const next = prev.slice(0, count);
-      while (next.length < count) next.push("");
-      return next;
-    });
+    setInstallmentDates(computeInstallmentDates(purchaseDate, count));
+  };
+
+  const changePurchaseDate = (date: string) => {
+    setPurchaseDate(date);
+    setInstallmentDates(computeInstallmentDates(date, installmentCount));
   };
 
   const remaining = Math.max(totalUsd - initialUsd, 0);
@@ -52,7 +71,7 @@ export default function CasheaPurchaseForm({
     setTotalUsd(0);
     setInitialUsd(0);
     setInstallmentCount(3);
-    setInstallmentDates(Array(3).fill(""));
+    setInstallmentDates(computeInstallmentDates(defaultDate, 3));
   };
 
   const submit = () => {
@@ -101,7 +120,7 @@ export default function CasheaPurchaseForm({
           <input
             type="date"
             value={purchaseDate}
-            onChange={(e) => setPurchaseDate(e.target.value)}
+            onChange={(e) => changePurchaseDate(e.target.value)}
             className={inputClass}
           />
         </label>
@@ -156,6 +175,10 @@ export default function CasheaPurchaseForm({
         </p>
       )}
 
+      <p className="text-xs text-[#787774]">
+        Las fechas se calculan solas cada 15 días desde la compra; edítalas si
+        alguna cuota cae distinto.
+      </p>
       <div className="grid gap-2 sm:grid-cols-3">
         {installmentDates.map((date, i) => (
           <label key={i} className="block">
