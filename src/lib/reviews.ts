@@ -21,6 +21,17 @@ export const REVIEWS_MIN_TO_SHOW = 3;
 export const REVIEW_COMMENT_MAX = 600;
 export const REVIEW_NAME_MAX = 40;
 export const REVIEW_REPLY_MAX = 600;
+/** Nombre y apellido juntos, en un enlace hecho a mano. */
+export const INVITE_NAME_MAX = 60;
+
+/**
+ * De dónde sale un enlace para opinar: de una venta registrada o de uno hecho
+ * a mano en el panel para alguien sin venta.
+ */
+export interface ReviewRef {
+  kind: "sale" | "invite";
+  id: number;
+}
 
 /** Lo que dice el formulario debajo de las estrellas elegidas. */
 export const RATING_LABELS: Record<number, string> = {
@@ -43,6 +54,11 @@ export interface PublicReview {
   comment: string | null;
   authorName: string;
   reply: string | null;
+  /**
+   * Si salió del enlace de una venta registrada. Las de enlaces hechos a mano
+   * no se presentan como compra verificada: nada en el sistema lo respalda.
+   */
+  verified: boolean;
   /** "septiembre de 2026", ya formateado en el servidor. */
   dateLabel: string;
   /** YYYY-MM-DD, para los datos estructurados. */
@@ -86,6 +102,20 @@ export interface AdminReview {
   saleDate: string | null;
   customerName: string | null;
   customerId: number | null;
+  /** A quién se le hizo el enlace a mano, si la reseña salió de uno. */
+  inviteName: string | null;
+}
+
+/** Un enlace hecho a mano, en la lista del panel. */
+export interface ReviewInviteSummary {
+  id: number;
+  customerName: string;
+  customerPhone: string | null;
+  /** DD/MM/YYYY, ya formateado en el servidor. */
+  createdLabel: string;
+  /** Vacío si la persona elige qué productos probó. */
+  productTitles: string[];
+  reviewCount: number;
 }
 
 export const formatRating = (value: number) => value.toFixed(1);

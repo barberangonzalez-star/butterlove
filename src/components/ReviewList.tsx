@@ -21,7 +21,8 @@ export default function ReviewList({ reviews }: { reviews: PublicReview[] }) {
               <span className="text-sm font-semibold text-ink">{review.authorName}</span>
             </div>
             <p className="mt-1 text-xs text-ink-soft">
-              Compra verificada · {review.dateLabel}
+              {review.verified ? "Compra verificada" : "Cliente Butter Love"} ·{" "}
+              {review.dateLabel}
             </p>
             {review.comment && (
               <p className="mt-2 text-base text-ink leading-relaxed whitespace-pre-line break-words">

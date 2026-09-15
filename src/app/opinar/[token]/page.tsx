@@ -2,14 +2,14 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { saleIdFromReviewToken } from "@/lib/review-links";
-import { getReviewableSale } from "@/lib/reviews-data";
+import { parseReviewToken } from "@/lib/review-links";
+import { getReviewTarget } from "@/lib/reviews-data";
 import { publicAuthorName } from "@/lib/reviews";
 import ReviewForm from "./ReviewForm";
 
 export const metadata: Metadata = {
   title: "Cuéntanos qué te pareció",
-  // Cada enlace es de una sola compra: no hay nada que indexar, y un
+  // Cada enlace es de una sola persona: no hay nada que indexar, y un
   // rastreador que lo encuentre compartido no tiene por qué seguirlo.
   robots: {
     index: false,
@@ -29,13 +29,13 @@ export default async function OpinarPage({
   params: Promise<{ token: string }>;
 }) {
   const { token } = await params;
-  const saleId = saleIdFromReviewToken(token);
-  if (!saleId) notFound();
+  const ref = parseReviewToken(token);
+  if (!ref) notFound();
 
-  const sale = await getReviewableSale(saleId);
-  if (!sale) notFound();
+  const target = await getReviewTarget(ref);
+  if (!target) notFound();
 
-  const firstName = sale.customerName?.trim().split(/\s+/)[0] || null;
+  const firstName = target.customerName?.trim().split(/\s+/)[0] || null;
 
   return (
     <main className="flex-1 bg-page">
@@ -58,8 +58,9 @@ export default async function OpinarPage({
         <ReviewForm
           token={token}
           firstName={firstName}
-          defaultAuthorName={publicAuthorName(sale.customerName)}
-          products={sale.products}
+          defaultAuthorName={publicAuthorName(target.customerName)}
+          products={target.products}
+          choose={target.choose}
         />
       </div>
     </main>

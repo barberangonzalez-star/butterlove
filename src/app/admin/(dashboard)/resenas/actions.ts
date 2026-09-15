@@ -3,12 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { verifySession } from "@/lib/admin-session";
 import {
+  createReviewInvite,
   deleteReview,
+  deleteReviewInvite,
   markReviewRequested,
   setReviewReply,
   setReviewStatus,
 } from "@/lib/reviews-data";
-import { isReviewStatus, REVIEW_REPLY_MAX } from "@/lib/reviews";
+import { inviteRequestLinks, type ReviewRequestLinks } from "@/lib/review-links";
+import { INVITE_NAME_MAX, isReviewStatus, REVIEW_REPLY_MAX } from "@/lib/reviews";
 
 /**
  * Publicar, ocultar, responder o borrar cambia lo que muestra la tienda —las
@@ -48,6 +51,60 @@ export async function deleteReviewAction(id: number) {
   requireId(id, "Reseña");
   await deleteReview(id);
   revalidateReviews();
+}
+
+const cleanText = (value: unknown) =>
+  typeof value === "string" ? value.trim().replace(/\s+/g, " ") : "";
+
+export interface CreatedInvite extends ReviewRequestLinks {
+  customerName: string;
+}
+
+/**
+ * "Crear enlace personalizado": para alguien que compró pero no tiene venta
+ * registrada. Devuelve el enlace y el mensaje listos para mandar.
+ */
+export async function createReviewInviteAction(input: {
+  firstName: unknown;
+  lastName: unknown;
+  phone: unknown;
+  productIds: unknown;
+}): Promise<CreatedInvite> {
+  await verifySession();
+
+  const firstName = cleanText(input?.firstName);
+  const lastName = cleanText(input?.lastName);
+  if (!firstName) throw new Error("Escribe el nombre de la persona.");
+  const customerName = [firstName, lastName].filter(Boolean).join(" ");
+  if (customerName.length > INVITE_NAME_MAX) {
+    throw new Error(`Nombre y apellido pueden sumar hasta ${INVITE_NAME_MAX} caracteres.`);
+  }
+
+  const phone = cleanText(input?.phone) || null;
+  if (phone && phone.length > 30) throw new Error("Ese teléfono es demasiado largo.");
+
+  const productIds = Array.isArray(input?.productIds)
+    ? [
+        ...new Set(
+          input.productIds.map(Number).filter((id) => Number.isInteger(id) && id > 0),
+        ),
+      ]
+    : [];
+
+  const invite = await createReviewInvite({
+    customerName,
+    customerPhone: phone,
+    productIds,
+  });
+  revalidatePath("/admin/resenas");
+  return { customerName, ...inviteRequestLinks(invite) };
+}
+
+export async function deleteReviewInviteAction(id: number) {
+  await verifySession();
+  requireId(id, "Enlace");
+  await deleteReviewInvite(id);
+  revalidatePath("/admin/resenas");
 }
 
 /** Anota que a esta venta ya se le mandó el enlace. */

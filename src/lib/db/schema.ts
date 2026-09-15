@@ -475,10 +475,25 @@ export const reviewRequests = pgTable("review_requests", {
 });
 
 /**
- * Lo que opinó alguien que compró. Cada reseña sale de una venta real —el
- * enlace va atado a ella— y es de un producto de esa venta; la pareja es
- * única, así que el mismo enlace no sirve para dejar veinte reseñas del mismo
- * frasco. Entra como `pendiente` y no se ve en la tienda hasta publicarla.
+ * Un enlace para opinar hecho a mano, para alguien que compró pero no tiene
+ * venta registrada: una compra de feria, un regalo, un cliente de antes del
+ * panel. Guarda a quién se le hizo y, si se eligieron, qué productos puede
+ * reseñar; sin productos, la persona marca los que probó al abrirlo.
+ */
+export const reviewInvites = pgTable("review_invites", {
+  id: serial("id").primaryKey(),
+  customerName: text("customer_name").notNull(),
+  customerPhone: text("customer_phone"),
+  productIds: jsonb("product_ids").$type<number[]>().notNull().default([]),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+/**
+ * Lo que opinó alguien que compró. Cada reseña sale de un enlace personal:
+ * el de una venta real o uno hecho a mano (`reviewInvites`). La pareja enlace
+ * y producto es única, así que el mismo enlace no sirve para dejar veinte
+ * reseñas del mismo frasco. Entra como `pendiente` y no se ve en la tienda
+ * hasta publicarla.
  *
  * Si se borra la venta la reseña queda: lo que opinó esa persona no deja de
  * ser cierto porque se haya corregido el registro de la venta.
@@ -488,6 +503,10 @@ export const reviews = pgTable(
   {
     id: serial("id").primaryKey(),
     saleId: integer("sale_id").references(() => sales.id, { onDelete: "set null" }),
+    /** El enlace hecho a mano del que salió, si no salió de una venta. */
+    inviteId: integer("invite_id").references(() => reviewInvites.id, {
+      onDelete: "set null",
+    }),
     productId: integer("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
@@ -505,6 +524,7 @@ export const reviews = pgTable(
   },
   (table) => [
     uniqueIndex("reviews_sale_product_idx").on(table.saleId, table.productId),
+    uniqueIndex("reviews_invite_product_idx").on(table.inviteId, table.productId),
     index("reviews_product_status_idx").on(table.productId, table.status),
     check("reviews_rating_check", sql`${table.rating} between 1 and 5`),
   ],

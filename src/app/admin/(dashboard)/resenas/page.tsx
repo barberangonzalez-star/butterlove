@@ -2,9 +2,12 @@ import Link from "next/link";
 import {
   countReviewsByStatus,
   getAdminReviews,
+  getReviewInvites,
   getReviewRequestCandidates,
 } from "@/lib/reviews-data";
-import { reviewRequestLinks } from "@/lib/review-links";
+import { inviteRequestLinks, reviewRequestLinks } from "@/lib/review-links";
+import { getAdminProducts } from "@/lib/products-data";
+import { productTitle } from "@/lib/products";
 import {
   REVIEWS_MIN_TO_SHOW,
   isReviewStatus,
@@ -12,6 +15,8 @@ import {
 } from "@/lib/reviews";
 import ReviewCard from "./ReviewCard";
 import RequestList, { type RequestRow } from "./RequestList";
+import InviteCreator from "./InviteCreator";
+import InviteList, { type InviteRow } from "./InviteList";
 
 type Tab = ReviewStatus | "pedir";
 
@@ -104,7 +109,29 @@ export default async function ResenasPage({
 }
 
 async function RequestTab() {
-  const candidates = await getReviewRequestCandidates();
+  const [candidates, invites, catalog] = await Promise.all([
+    getReviewRequestCandidates(),
+    getReviewInvites(),
+    getAdminProducts(),
+  ]);
+
+  const productOptions = catalog
+    .filter((product) => product.inStore)
+    .map((product) => ({ id: product.id, title: productTitle(product) }));
+
+  const inviteRows: InviteRow[] = invites.map((invite) => {
+    const links = inviteRequestLinks(invite);
+    return {
+      id: invite.id,
+      customerName: invite.customerName,
+      createdLabel: invite.createdLabel,
+      productTitles: invite.productTitles,
+      reviewCount: invite.reviewCount,
+      whatsappHref: links.whatsappHref,
+      message: links.message,
+    };
+  });
+
   const rows: RequestRow[] = candidates.map((candidate) => {
     const links = reviewRequestLinks({
       id: candidate.saleId,
@@ -126,6 +153,8 @@ async function RequestTab() {
 
   return (
     <>
+      <InviteCreator products={productOptions} />
+      {inviteRows.length > 0 && <InviteList rows={inviteRows} />}
       <p className="text-sm text-[#787774] mb-3">
         El botón abre WhatsApp con el mensaje y el enlace ya escritos: sólo
         tienes que enviarlo. Cada enlace es de esa compra, así que sólo opina

@@ -96,6 +96,9 @@ export default function ReviewCard({ review }: { review: AdminReview }) {
             {review.saleDate ? ` el ${fullDate(review.saleDate)}` : ""}
           </>
         )}
+        {!review.customerName && review.inviteName && (
+          <> · enlace para {review.inviteName}</>
+        )}
       </p>
 
       {review.comment ? (

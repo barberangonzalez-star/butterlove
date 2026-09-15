@@ -2,7 +2,14 @@ import "server-only";
 import { cache } from "react";
 import { and, count, desc, eq, gte, inArray, isNotNull, sql } from "drizzle-orm";
 import { getDb } from "./db";
-import { products, reviewRequests, reviews, saleItems, sales } from "./db/schema";
+import {
+  products,
+  reviewInvites,
+  reviewRequests,
+  reviews,
+  saleItems,
+  sales,
+} from "./db/schema";
 import { productTitle, type ProductKind } from "./products";
 import {
   REVIEWS_MIN_TO_SHOW,
@@ -11,6 +18,8 @@ import {
   type ProductReviews,
   type PublicReview,
   type RatingSummary,
+  type ReviewInviteSummary,
+  type ReviewRef,
   type ReviewStatus,
   type ReviewableProduct,
 } from "./reviews";
@@ -57,6 +66,7 @@ function toPublicReview(
     comment: row.comment,
     authorName: row.authorName,
     reply: row.reply,
+    verified: row.inviteId === null,
     dateLabel: monthFormat.format(date),
     datePublished: date.toISOString().slice(0, 10),
     productKey: product.key,
@@ -152,83 +162,142 @@ export const getFeaturedReviews = cache(async function getFeaturedReviews(): Pro
 
 // ── Formulario de /opinar ───────────────────────────────────────────────────
 
-export interface ReviewableSale {
-  saleId: number;
+export interface ReviewTarget {
+  ref: ReviewRef;
   customerName: string | null;
   products: ReviewableProduct[];
+  /**
+   * Si la persona tiene que marcar qué productos probó. Pasa con los enlaces
+   * hechos a mano sin productos elegidos: no hay venta de donde sacarlos.
+   */
+  choose: boolean;
 }
 
-/** La venta del enlace con sus productos, marcando los que ya tienen reseña. */
-export async function getReviewableSale(saleId: number): Promise<ReviewableSale | null> {
-  const db = getDb();
-  const [sale] = await db
-    .select({ id: sales.id, customerName: sales.customerName })
-    .from(sales)
-    .where(eq(sales.id, saleId))
-    .limit(1);
-  if (!sale) return null;
+const productCardFields = {
+  id: products.id,
+  name: products.name,
+  kind: products.kind,
+  image: products.image,
+  imageCutout: products.imageCutout,
+  bgClass: products.bgClass,
+  sortOrder: products.sortOrder,
+};
 
+function toReviewable(
+  items: {
+    id: number;
+    name: string;
+    kind: string;
+    image: string;
+    imageCutout: boolean;
+    bgClass: string;
+    sortOrder: number;
+  }[],
+  reviewed: Set<number>,
+): ReviewableProduct[] {
+  return [...items]
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((item) => ({
+      id: item.id,
+      title: titleOf(item),
+      image: item.image,
+      imageCutout: item.imageCutout,
+      bgClass: item.bgClass,
+      reviewed: reviewed.has(item.id),
+    }));
+}
+
+/** A quién es el enlace y qué puede reseñar, marcando lo que ya reseñó. */
+export async function getReviewTarget(ref: ReviewRef): Promise<ReviewTarget | null> {
+  const db = getDb();
+
+  if (ref.kind === "sale") {
+    const [sale] = await db
+      .select({ customerName: sales.customerName })
+      .from(sales)
+      .where(eq(sales.id, ref.id))
+      .limit(1);
+    if (!sale) return null;
+
+    const [items, done] = await Promise.all([
+      db
+        .selectDistinct(productCardFields)
+        .from(saleItems)
+        .innerJoin(products, eq(saleItems.productId, products.id))
+        .where(eq(saleItems.saleId, ref.id)),
+      db
+        .select({ productId: reviews.productId })
+        .from(reviews)
+        .where(eq(reviews.saleId, ref.id)),
+    ]);
+
+    return {
+      ref,
+      customerName: sale.customerName,
+      choose: false,
+      products: toReviewable(items, new Set(done.map((row) => row.productId))),
+    };
+  }
+
+  const [invite] = await db
+    .select()
+    .from(reviewInvites)
+    .where(eq(reviewInvites.id, ref.id))
+    .limit(1);
+  if (!invite) return null;
+
+  const chosen = invite.productIds;
   const [items, done] = await Promise.all([
     db
-      .selectDistinct({
-        id: products.id,
-        name: products.name,
-        kind: products.kind,
-        image: products.image,
-        imageCutout: products.imageCutout,
-        bgClass: products.bgClass,
-        sortOrder: products.sortOrder,
-      })
-      .from(saleItems)
-      .innerJoin(products, eq(saleItems.productId, products.id))
-      .where(eq(saleItems.saleId, saleId)),
+      .select(productCardFields)
+      .from(products)
+      .where(
+        chosen.length > 0 ? inArray(products.id, chosen) : eq(products.inStore, true),
+      ),
     db
       .select({ productId: reviews.productId })
       .from(reviews)
-      .where(eq(reviews.saleId, saleId)),
+      .where(eq(reviews.inviteId, ref.id)),
   ]);
 
-  const reviewed = new Set(done.map((row) => row.productId));
   return {
-    saleId: sale.id,
-    customerName: sale.customerName,
-    products: items
-      .sort((a, b) => a.sortOrder - b.sortOrder)
-      .map((item) => ({
-        id: item.id,
-        title: titleOf(item),
-        image: item.image,
-        imageCutout: item.imageCutout,
-        bgClass: item.bgClass,
-        reviewed: reviewed.has(item.id),
-      })),
+    ref,
+    customerName: invite.customerName,
+    choose: chosen.length === 0,
+    products: toReviewable(items, new Set(done.map((row) => row.productId))),
   };
 }
 
 /**
- * Guarda las reseñas de una venta. Si alguna ya existía —el mismo enlace
+ * Guarda las reseñas de un enlace. Si alguna ya existía —el mismo enlace
  * enviado dos veces, dos pestañas abiertas— se salta en silencio. Devuelve
  * cuántas entraron de verdad.
  */
 export async function createReviews(
-  saleId: number,
+  ref: ReviewRef,
   authorName: string,
   entries: { productId: number; rating: number; comment: string | null }[],
 ): Promise<number> {
   if (entries.length === 0) return 0;
   const db = getDb();
+  const owner = ref.kind === "sale" ? { saleId: ref.id } : { inviteId: ref.id };
   const inserted = await db
     .insert(reviews)
     .values(
       entries.map((entry) => ({
-        saleId,
+        ...owner,
         productId: entry.productId,
         rating: entry.rating,
         comment: entry.comment,
         authorName,
       })),
     )
-    .onConflictDoNothing({ target: [reviews.saleId, reviews.productId] })
+    .onConflictDoNothing({
+      target:
+        ref.kind === "sale"
+          ? [reviews.saleId, reviews.productId]
+          : [reviews.inviteId, reviews.productId],
+    })
     .returning({ id: reviews.id });
   return inserted.length;
 }
@@ -267,15 +336,17 @@ export async function getAdminReviews(status: ReviewStatus): Promise<AdminReview
       saleDate: sales.saleDate,
       customerName: sales.customerName,
       customerId: sales.customerId,
+      inviteName: reviewInvites.customerName,
     })
     .from(reviews)
     .innerJoin(products, eq(reviews.productId, products.id))
     .leftJoin(sales, eq(reviews.saleId, sales.id))
+    .leftJoin(reviewInvites, eq(reviews.inviteId, reviewInvites.id))
     .where(eq(reviews.status, status))
     .orderBy(desc(reviews.createdAt), desc(reviews.id))
     .limit(200);
 
-  return rows.map(({ review, product, saleDate, customerName, customerId }) => ({
+  return rows.map(({ review, product, saleDate, customerName, customerId, inviteName }) => ({
     id: review.id,
     rating: review.rating,
     comment: review.comment,
@@ -289,6 +360,7 @@ export async function getAdminReviews(status: ReviewStatus): Promise<AdminReview
     saleDate,
     customerName,
     customerId,
+    inviteName,
   }));
 }
 
@@ -419,4 +491,99 @@ export async function markReviewRequested(saleId: number) {
     .insert(reviewRequests)
     .values({ saleId, askedAt: now })
     .onConflictDoUpdate({ target: reviewRequests.saleId, set: { askedAt: now } });
+}
+
+// ── Enlaces hechos a mano ───────────────────────────────────────────────────
+
+/**
+ * Crea un enlace para alguien sin venta registrada. De los productos elegidos
+ * sólo quedan los que siguen en la vitrina: un id que no existe haría un
+ * enlace que no deja reseñar nada.
+ */
+export async function createReviewInvite(input: {
+  customerName: string;
+  customerPhone: string | null;
+  productIds: number[];
+}) {
+  const db = getDb();
+  const productIds =
+    input.productIds.length > 0
+      ? (
+          await db
+            .select({ id: products.id })
+            .from(products)
+            .where(and(inArray(products.id, input.productIds), eq(products.inStore, true)))
+        ).map((row) => row.id)
+      : [];
+
+  const [invite] = await db
+    .insert(reviewInvites)
+    .values({
+      customerName: input.customerName,
+      customerPhone: input.customerPhone,
+      productIds,
+    })
+    .returning();
+  return invite;
+}
+
+/** Los enlaces hechos a mano más recientes, con si ya opinaron. */
+export async function getReviewInvites(): Promise<ReviewInviteSummary[]> {
+  const db = getDb();
+  const rows = await db
+    .select()
+    .from(reviewInvites)
+    .orderBy(desc(reviewInvites.createdAt), desc(reviewInvites.id))
+    .limit(50);
+  if (rows.length === 0) return [];
+
+  const productIds = [...new Set(rows.flatMap((row) => row.productIds))];
+  const productRows =
+    productIds.length > 0
+      ? await db
+          .select({ id: products.id, name: products.name, kind: products.kind })
+          .from(products)
+          .where(inArray(products.id, productIds))
+      : [];
+  const counts = await db
+    .select({ inviteId: reviews.inviteId, count: count() })
+    .from(reviews)
+    .where(
+      inArray(
+        reviews.inviteId,
+        rows.map((row) => row.id),
+      ),
+    )
+    .groupBy(reviews.inviteId);
+
+  const titles = new Map(productRows.map((p) => [p.id, titleOf(p)]));
+  const reviewCounts = new Map(counts.map((row) => [row.inviteId, row.count]));
+
+  return rows.map((row) => ({
+    id: row.id,
+    customerName: row.customerName,
+    customerPhone: row.customerPhone,
+    createdLabel: fullDayFormat.format(row.createdAt),
+    productTitles: row.productIds
+      .map((id) => titles.get(id))
+      .filter((title): title is string => Boolean(title)),
+    reviewCount: reviewCounts.get(row.id) ?? 0,
+  }));
+}
+
+/**
+ * Borra un enlace hecho a mano que nadie usó. Uno con reseñas no se borra:
+ * es lo que dice de dónde salió cada una, y sin él pasarían a mostrarse como
+ * compra verificada.
+ */
+export async function deleteReviewInvite(id: number) {
+  const db = getDb();
+  const [row] = await db
+    .select({ count: count() })
+    .from(reviews)
+    .where(eq(reviews.inviteId, id));
+  if ((row?.count ?? 0) > 0) {
+    throw new Error("Esta persona ya opinó, así que su enlace no se puede borrar.");
+  }
+  await db.delete(reviewInvites).where(eq(reviewInvites.id, id));
 }

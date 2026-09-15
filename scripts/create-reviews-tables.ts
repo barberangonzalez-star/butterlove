@@ -1,13 +1,16 @@
 /**
- * Crea las tablas de reseñas: `review_requests` (a qué ventas ya se les pidió)
- * y `reviews` (lo que opinaron).
+ * Crea las tablas de reseñas: `review_invites` (enlaces hechos a mano),
+ * `review_requests` (a qué ventas ya se les pidió) y `reviews` (lo que
+ * opinaron).
  *
  * Tiene que correr ANTES de publicar el código de reseñas: la home, las fichas
  * de producto y el panel las consultan, y sin ellas el build falla.
  *
- * Idempotente: sólo crea lo que falta y no toca nada que ya exista. Los nombres
- * de las restricciones son los mismos que usaría drizzle-kit, así que un
- * `drizzle-kit push` posterior no las ve como distintas.
+ * Idempotente: sólo crea lo que falta y no toca nada que ya exista, así que
+ * sirve también para ponerle al día una base que tenía una versión anterior de
+ * estas tablas. Los nombres de las restricciones son los mismos que usaría
+ * drizzle-kit, así que un `drizzle-kit push` posterior no las ve como
+ * distintas.
  *
  *   npx dotenv -e .env.local -- npx tsx scripts/create-reviews-tables.ts
  */
@@ -16,6 +19,16 @@ import { neon } from "@neondatabase/serverless";
 const sql = neon(process.env.DATABASE_URL!);
 
 async function main() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS review_invites (
+      id serial PRIMARY KEY,
+      customer_name text NOT NULL,
+      customer_phone text,
+      product_ids jsonb NOT NULL DEFAULT '[]'::jsonb,
+      created_at timestamp NOT NULL DEFAULT now()
+    )
+  `;
+
   await sql`
     CREATE TABLE IF NOT EXISTS review_requests (
       sale_id integer PRIMARY KEY,
@@ -45,9 +58,27 @@ async function main() {
     )
   `;
 
+  await sql`ALTER TABLE reviews ADD COLUMN IF NOT EXISTS invite_id integer`;
+  await sql`
+    DO $$
+    BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'reviews_invite_id_review_invites_id_fk'
+      ) THEN
+        ALTER TABLE reviews
+          ADD CONSTRAINT reviews_invite_id_review_invites_id_fk
+          FOREIGN KEY (invite_id) REFERENCES review_invites(id) ON DELETE set null;
+      END IF;
+    END $$
+  `;
+
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS reviews_sale_product_idx
       ON reviews (sale_id, product_id)
+  `;
+  await sql`
+    CREATE UNIQUE INDEX IF NOT EXISTS reviews_invite_product_idx
+      ON reviews (invite_id, product_id)
   `;
   await sql`
     CREATE INDEX IF NOT EXISTS reviews_product_status_idx

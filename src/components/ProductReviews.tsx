@@ -70,8 +70,8 @@ export default function ProductReviews({ data }: { data: ProductReviewsData }) {
           </ul>
 
           <p className="mt-4 text-xs text-ink-soft leading-relaxed">
-            Sólo opinan clientes que compraron: cada reseña viene de un pedido
-            real.
+            Sólo opinan clientes: cada reseña llega por un enlace personal que
+            les mandamos, y la leemos antes de publicarla.
           </p>
         </div>
 

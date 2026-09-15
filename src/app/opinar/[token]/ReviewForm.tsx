@@ -69,13 +69,27 @@ function StarPicker({
   );
 }
 
-function Closing({
-  title,
-  text,
+function ProductThumb({
+  product,
+  className,
 }: {
-  title: string;
-  text: string;
+  product: ReviewableProduct;
+  className: string;
 }) {
+  return (
+    <span className={`relative shrink-0 overflow-hidden ${product.bgClass} ${className}`}>
+      <Image
+        src={product.image}
+        alt=""
+        fill
+        sizes="64px"
+        className={product.imageCutout ? "object-contain p-1" : "object-cover"}
+      />
+    </span>
+  );
+}
+
+function Closing({ title, text }: { title: string; text: string }) {
   return (
     <div className="pt-6 text-center">
       <span className="mx-auto w-16 h-16 flex items-center justify-center rounded-full bg-mani-bg">
@@ -100,12 +114,16 @@ export default function ReviewForm({
   firstName,
   defaultAuthorName,
   products,
+  choose,
 }: {
   token: string;
   firstName: string | null;
   defaultAuthorName: string;
   products: ReviewableProduct[];
+  /** Si primero tiene que marcar qué productos probó. */
+  choose: boolean;
 }) {
+  const [selected, setSelected] = useState<Set<number>>(() => new Set());
   const [ratings, setRatings] = useState<Record<number, number>>({});
   const [comments, setComments] = useState<Record<number, string>>({});
   const [authorName, setAuthorName] = useState(defaultAuthorName);
@@ -114,7 +132,10 @@ export default function ReviewForm({
   const [isPending, startTransition] = useTransition();
 
   const open = products.filter((p) => !p.reviewed);
-  const rated = open.filter((p) => ratings[p.id]);
+  // Con productos elegidos de antemano se muestran todos, incluidos los ya
+  // reseñados; cuando la persona elige, sólo los que marcó.
+  const cards = choose ? open.filter((p) => selected.has(p.id)) : products;
+  const rated = cards.filter((p) => !p.reviewed && ratings[p.id]);
 
   if (sent) {
     return (
@@ -129,7 +150,7 @@ export default function ReviewForm({
     return (
       <Closing
         title="No hay nada que reseñar"
-        text="Los productos de esta compra ya no están en nuestro catálogo. ¡Gracias igual por escribirnos!"
+        text="Los productos de este enlace ya no están en nuestro catálogo. ¡Gracias igual por escribirnos!"
       />
     );
   }
@@ -138,16 +159,28 @@ export default function ReviewForm({
     return (
       <Closing
         title="Ya tenemos tu opinión"
-        text="Ya dejaste tu reseña de esta compra. ¡Gracias por tomarte el tiempo!"
+        text="Ya dejaste tu reseña con este enlace. ¡Gracias por tomarte el tiempo!"
       />
     );
   }
+
+  const toggle = (id: number) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
 
   const submit = (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
     if (rated.length === 0) {
-      setError("Elige las estrellas de al menos un producto.");
+      setError(
+        choose && selected.size === 0
+          ? "Marca los productos que probaste."
+          : "Elige las estrellas de al menos un producto.",
+      );
       return;
     }
     if (!authorName.trim()) {
@@ -187,77 +220,111 @@ export default function ReviewForm({
         hacerlo cada vez mejor. Toma menos de un minuto.
       </p>
 
-      <ul className="mt-8 space-y-4">
-        {products.map((product) => {
-          const rating = ratings[product.id] ?? 0;
-          return (
-            <li key={product.id} className="rounded-3xl bg-surface p-4 sm:p-5">
-              <div className="flex items-center gap-3">
-                <div
-                  className={`relative w-16 h-16 shrink-0 overflow-hidden rounded-2xl ${product.bgClass}`}
+      {/* Sin productos elegidos de antemano, primero se marcan los que se
+          probaron: con todo el catálogo en tarjetas de estrellas serían diez
+          pantallas en el teléfono. */}
+      {choose && (
+        <fieldset className="mt-8">
+          <legend className="font-display font-700 text-xl text-ink">
+            ¿Cuáles probaste?
+          </legend>
+          <p className="mt-1 text-sm text-ink-soft">
+            Marca los que quieras reseñar.
+          </p>
+          <div className="mt-3 grid grid-cols-2 gap-2">
+            {products.map((product) => {
+              const on = selected.has(product.id);
+              return (
+                <button
+                  key={product.id}
+                  type="button"
+                  onClick={() => toggle(product.id)}
+                  disabled={product.reviewed}
+                  aria-pressed={on}
+                  className={`relative flex min-h-14 items-center gap-2 rounded-2xl border p-2 pr-7 text-left transition-colors disabled:opacity-60 ${
+                    on
+                      ? "border-ink bg-surface"
+                      : "border-ink/15 bg-page hover:bg-surface"
+                  }`}
                 >
-                  <Image
-                    src={product.image}
-                    alt=""
-                    fill
-                    sizes="64px"
-                    className={
-                      product.imageCutout ? "object-contain p-1.5" : "object-cover"
-                    }
-                  />
-                </div>
-                <div className="min-w-0">
-                  <p className="font-display font-700 text-lg text-ink leading-tight">
+                  <ProductThumb product={product} className="w-11 h-11 rounded-xl" />
+                  <span className="min-w-0 text-sm font-medium text-ink leading-tight line-clamp-2">
                     {product.title}
-                  </p>
-                  {product.reviewed && (
-                    <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-ink-soft">
-                      <Check size={14} aria-hidden="true" /> Ya dejaste tu opinión
+                    {product.reviewed && <span className="sr-only"> (ya opinaste)</span>}
+                  </span>
+                  {(on || product.reviewed) && (
+                    <span className="absolute top-1.5 right-1.5 w-5 h-5 flex items-center justify-center rounded-full bg-ink text-cream">
+                      <Check size={12} aria-hidden="true" />
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
+        </fieldset>
+      )}
+
+      {cards.length > 0 && (
+        <ul className={`${choose ? "mt-6" : "mt-8"} space-y-4`}>
+          {cards.map((product) => {
+            const rating = ratings[product.id] ?? 0;
+            return (
+              <li key={product.id} className="rounded-3xl bg-surface p-4 sm:p-5">
+                <div className="flex items-center gap-3">
+                  <ProductThumb product={product} className="w-16 h-16 rounded-2xl" />
+                  <div className="min-w-0">
+                    <p className="font-display font-700 text-lg text-ink leading-tight">
+                      {product.title}
                     </p>
-                  )}
+                    {product.reviewed && (
+                      <p className="mt-0.5 inline-flex items-center gap-1 text-sm text-ink-soft">
+                        <Check size={14} aria-hidden="true" /> Ya dejaste tu opinión
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
 
-              {!product.reviewed && (
-                <div className="mt-3">
-                  <StarPicker
-                    name={`rating-${product.id}`}
-                    label={`¿Cuántas estrellas le das a ${product.title}?`}
-                    value={rating}
-                    onChange={(value) =>
-                      setRatings((prev) => ({ ...prev, [product.id]: value }))
-                    }
-                  />
+                {!product.reviewed && (
+                  <div className="mt-3">
+                    <StarPicker
+                      name={`rating-${product.id}`}
+                      label={`¿Cuántas estrellas le das a ${product.title}?`}
+                      value={rating}
+                      onChange={(value) =>
+                        setRatings((prev) => ({ ...prev, [product.id]: value }))
+                      }
+                    />
 
-                  {/* El comentario aparece después de elegir estrellas: de
-                      entrada el formulario pide una sola cosa, y así se ve
-                      tan corto como es. */}
-                  {rating > 0 && (
-                    <label className="mt-2 block">
-                      <span className="block text-sm text-ink-soft mb-1.5">
-                        ¿Qué te gustó? (opcional)
-                      </span>
-                      <textarea
-                        rows={3}
-                        maxLength={REVIEW_COMMENT_MAX}
-                        value={comments[product.id] ?? ""}
-                        onChange={(e) =>
-                          setComments((prev) => ({
-                            ...prev,
-                            [product.id]: e.target.value,
-                          }))
-                        }
-                        placeholder="Con qué la comes, qué la hace distinta…"
-                        className="w-full min-h-24 resize-y rounded-2xl border border-ink/15 bg-page px-4 py-3 text-base text-ink placeholder:text-ink-soft/60 outline-none focus:border-ink"
-                      />
-                    </label>
-                  )}
-                </div>
-              )}
-            </li>
-          );
-        })}
-      </ul>
+                    {/* El comentario aparece después de elegir estrellas: de
+                        entrada el formulario pide una sola cosa, y así se ve
+                        tan corto como es. */}
+                    {rating > 0 && (
+                      <label className="mt-2 block">
+                        <span className="block text-sm text-ink-soft mb-1.5">
+                          ¿Qué te gustó? (opcional)
+                        </span>
+                        <textarea
+                          rows={3}
+                          maxLength={REVIEW_COMMENT_MAX}
+                          value={comments[product.id] ?? ""}
+                          onChange={(e) =>
+                            setComments((prev) => ({
+                              ...prev,
+                              [product.id]: e.target.value,
+                            }))
+                          }
+                          placeholder="Con qué la comes, qué la hace distinta…"
+                          className="w-full min-h-24 resize-y rounded-2xl border border-ink/15 bg-page px-4 py-3 text-base text-ink placeholder:text-ink-soft/60 outline-none focus:border-ink"
+                        />
+                      </label>
+                    )}
+                  </div>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       <label className="mt-6 block">
         <span className="block text-sm font-semibold text-ink mb-1.5">

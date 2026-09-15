@@ -1,7 +1,7 @@
 "use server";
 
-import { saleIdFromReviewToken } from "@/lib/review-links";
-import { createReviews, getReviewableSale } from "@/lib/reviews-data";
+import { parseReviewToken } from "@/lib/review-links";
+import { createReviews, getReviewTarget } from "@/lib/reviews-data";
 import { sendAdminPush } from "@/lib/push";
 import { REVIEW_COMMENT_MAX, REVIEW_NAME_MAX } from "@/lib/reviews";
 
@@ -16,9 +16,9 @@ const truncate = (text: string, max: number) =>
  * Lo que manda el formulario de /opinar.
  *
  * Es una acción pública —la usa un cliente sin sesión—, así que el enlace es
- * la única credencial: se verifica la firma, que cada producto sea de esa
- * venta y que no tenga reseña ya, y todo lo demás se trata como si viniera de
- * cualquiera. Los errores vuelven como valor y no como excepción porque en
+ * la única credencial: se verifica la firma, que cada producto sea de los que
+ * ese enlace deja reseñar y que no tenga reseña ya, y todo lo demás se trata
+ * como si viniera de cualquiera. Los errores vuelven como valor y no como excepción porque en
  * producción Next oculta el mensaje de las excepciones, y el cliente vería un
  * error genérico en vez de qué corregir.
  */
@@ -27,11 +27,11 @@ export async function submitReviewsAction(
   input: unknown,
 ): Promise<SubmitReviewsResult> {
   try {
-    const saleId = typeof token === "string" ? saleIdFromReviewToken(token) : null;
-    if (!saleId) return fail("Este enlace no es válido.");
+    const ref = typeof token === "string" ? parseReviewToken(token) : null;
+    if (!ref) return fail("Este enlace no es válido.");
 
-    const sale = await getReviewableSale(saleId);
-    if (!sale) return fail("No encontramos esta compra.");
+    const target = await getReviewTarget(ref);
+    if (!target) return fail("Este enlace ya no existe.");
 
     const data = (input ?? {}) as { authorName?: unknown; entries?: unknown };
     const authorName =
@@ -47,7 +47,7 @@ export async function submitReviewsAction(
     }
 
     const open = new Map(
-      sale.products.filter((p) => !p.reviewed).map((p) => [p.id, p]),
+      target.products.filter((p) => !p.reviewed).map((p) => [p.id, p]),
     );
     const entries: { productId: number; rating: number; comment: string | null }[] = [];
     for (const raw of data.entries) {
@@ -74,7 +74,7 @@ export async function submitReviewsAction(
       return fail("Ya tenemos tu opinión de estos productos.");
     }
 
-    const inserted = await createReviews(saleId, authorName, entries);
+    const inserted = await createReviews(ref, authorName, entries);
 
     if (inserted > 0) {
       const first = entries[0];
@@ -90,7 +90,7 @@ export async function submitReviewsAction(
             first.comment ? `: “${truncate(first.comment, 90)}”` : ""
           }`,
           url: "/admin/resenas",
-          tag: `review-${saleId}`,
+          tag: `review-${ref.kind}-${ref.id}`,
         });
       } catch (error) {
         console.error("No se pudo avisar de la reseña nueva", error);

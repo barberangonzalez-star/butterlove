@@ -5,9 +5,10 @@ import { Check, Copy, MessageCircle } from "lucide-react";
 import { markReviewRequestedAction } from "./actions";
 
 /**
- * Pedirle la reseña a una venta: abre WhatsApp con el mensaje y el enlace ya
+ * Mandar el enlace para opinar: abre WhatsApp con el mensaje y el enlace ya
  * escritos, o los copia para mandarlos por otro lado cuando el teléfono no
- * sirve para WhatsApp. Se usa en Reseñas y en la ficha de cada cliente.
+ * sirve para WhatsApp. Se usa con las ventas —en Reseñas y en la ficha de cada
+ * cliente, donde además anota que ya se pidió— y con los enlaces hechos a mano.
  */
 export default function ReviewRequestButton({
   saleId,
@@ -16,7 +17,8 @@ export default function ReviewRequestButton({
   askedLabel,
   reviewed,
 }: {
-  saleId: number;
+  /** La venta del enlace, o null si es un enlace hecho a mano. */
+  saleId: number | null;
   whatsappHref: string | null;
   message: string;
   /** DD/MM de la última vez que se pidió, o null si nunca. */
@@ -28,6 +30,7 @@ export default function ReviewRequestButton({
   const [copyFailed, setCopyFailed] = useState(false);
 
   const mark = () => {
+    if (saleId === null) return;
     setAsked("hoy");
     // Se anota sin esperar: WhatsApp ya se abrió en otra pestaña, y si esto
     // falla lo único que se pierde es la marca de "ya se la pediste".
@@ -57,7 +60,11 @@ export default function ReviewRequestButton({
           className="h-9 inline-flex items-center gap-1.5 rounded-md bg-[#1f7a4d] px-3 text-sm font-medium text-white hover:opacity-90"
         >
           <MessageCircle size={15} aria-hidden="true" />
-          {asked ? "Volver a pedir" : "Pedir por WhatsApp"}
+          {saleId === null
+            ? "Enviar por WhatsApp"
+            : asked
+              ? "Volver a pedir"
+              : "Pedir por WhatsApp"}
         </a>
       )}
       <button
