@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, eq, isNull, lte } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { getDb } from "./db";
 import { casheaInstallments, casheaPurchases, expenses } from "./db/schema";
 import { CASHEA_INSTALLMENT_OPTIONS } from "./config";
@@ -117,18 +117,24 @@ export async function getCasheaPurchases(): Promise<CasheaPurchaseWithInstallmen
   }));
 }
 
-/** Cuotas con fecha de hoy (o antes) que todavía no se registraron como gasto. */
-export async function getInstallmentsDueForExpense(today: string) {
+export async function getCasheaInstallmentById(
+  id: number,
+): Promise<CasheaInstallment | null> {
   const db = getDb();
-  return db
+  const [row] = await db
     .select()
     .from(casheaInstallments)
-    .where(
-      and(lte(casheaInstallments.dueDate, today), isNull(casheaInstallments.expenseId)),
-    );
+    .where(eq(casheaInstallments.id, id))
+    .limit(1);
+  return row ?? null;
 }
 
-/** Registra la cuota como gasto del día que vence, y la enlaza. */
+/**
+ * Registra la cuota como gasto del día que vence, y la enlaza. La dispara
+ * Gabriel a mano desde el panel al confirmar que ya la pagó — no corre sola
+ * por fecha, porque puede pagarla un día distinto al que anotó o Cashea
+ * cobrársela en otra fecha.
+ */
 export async function markInstallmentPaid(
   installment: CasheaInstallment,
   purchase: CasheaPurchase,

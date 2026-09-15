@@ -1,9 +1,7 @@
 import {
   getCasheaPurchaseById,
-  getInstallmentsDueForExpense,
   getInstallmentsToNotify,
   markInstallmentNotified,
-  markInstallmentPaid,
 } from "@/lib/cashea-data";
 import { sendAdminPush } from "@/lib/push";
 
@@ -18,11 +16,12 @@ function caracasDate(offsetDays = 0): string {
 }
 
 /**
- * Cron diario: registra como gasto las cuotas Cashea que vencen hoy (o que se
- * quedaron atrás) y avisa por push las que vencen mañana, para que Gabriel
- * tenga el efectivo listo. Vercel la llama con `Authorization: Bearer
+ * Cron diario: avisa por push las cuotas Cashea que vencen mañana, para que
+ * Gabriel tenga el efectivo listo. El gasto en sí NO se crea solo — Gabriel
+ * confirma el pago a mano desde /admin/gastos, porque puede pagarla un día
+ * distinto al anotado. Vercel la llama con `Authorization: Bearer
  * $CRON_SECRET`; sin ese secreto configurado, se rechaza cualquier llamada
- * para que nadie dispare gastos o pushes desde afuera.
+ * para que nadie dispare pushes desde afuera.
  */
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
@@ -33,17 +32,7 @@ export async function GET(request: Request) {
     return new Response("Unauthorized", { status: 401 });
   }
 
-  const today = caracasDate();
   const tomorrow = caracasDate(1);
-
-  const due = await getInstallmentsDueForExpense(today);
-  let charged = 0;
-  for (const installment of due) {
-    const purchase = await getCasheaPurchaseById(installment.purchaseId);
-    if (!purchase) continue;
-    await markInstallmentPaid(installment, purchase);
-    charged += 1;
-  }
 
   const toNotify = await getInstallmentsToNotify(tomorrow);
   let notified = 0;
@@ -61,5 +50,5 @@ export async function GET(request: Request) {
     notified += 1;
   }
 
-  return Response.json({ today, tomorrow, charged, notified });
+  return Response.json({ tomorrow, notified });
 }

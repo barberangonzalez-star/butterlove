@@ -9,7 +9,13 @@ import {
   updateExpense,
   type ExpenseInput,
 } from "@/lib/expenses-data";
-import { createCasheaPurchase, type CasheaPurchaseInput } from "@/lib/cashea-data";
+import {
+  createCasheaPurchase,
+  getCasheaInstallmentById,
+  getCasheaPurchaseById,
+  markInstallmentPaid,
+  type CasheaPurchaseInput,
+} from "@/lib/cashea-data";
 import { expenseKind, isExpenseKind, CASHEA_INSTALLMENT_OPTIONS } from "@/lib/config";
 
 /**
@@ -85,6 +91,28 @@ export async function createCasheaPurchaseAction(input: CasheaPurchaseInput) {
     ...input,
     description: input.description?.trim() || null,
   });
+  revalidateExpenses();
+}
+
+/**
+ * El botón "Confirmar pago" de una cuota Cashea: recién ahí se crea el gasto,
+ * nunca solo por haber llegado la fecha — Gabriel puede pagarla otro día, o
+ * Cashea cobrarla en una fecha distinta a la anotada.
+ */
+export async function confirmCasheaInstallmentAction(installmentId: number) {
+  await verifySession();
+  if (!Number.isInteger(installmentId) || installmentId <= 0) {
+    throw new Error("Cuota inválida.");
+  }
+
+  const installment = await getCasheaInstallmentById(installmentId);
+  if (!installment) throw new Error("La cuota ya no existe.");
+  if (installment.expenseId) throw new Error("Esa cuota ya está confirmada.");
+
+  const purchase = await getCasheaPurchaseById(installment.purchaseId);
+  if (!purchase) throw new Error("No se encontró la compra de esa cuota.");
+
+  await markInstallmentPaid(installment, purchase);
   revalidateExpenses();
 }
 
