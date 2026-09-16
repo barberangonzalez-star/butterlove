@@ -5,7 +5,7 @@ import { getRangeSummary, getSales } from "./sales-data";
 import { getProductSales, getRangeReport } from "./finance-data";
 import { getCustomers } from "./customers-data";
 import { foldText } from "./customers";
-import { getAdminProducts } from "./products-data";
+import { getAdminProducts, type AdminProduct } from "./products-data";
 import { getSupplyItems } from "./inventory-data";
 import { getWholesaleCatalog } from "./wholesale-data";
 import { getPendingOrders } from "./pending-orders-data";
@@ -14,7 +14,10 @@ import { getPromotions } from "./promotions-data";
 import { getCasheaPurchases } from "./cashea-data";
 import { countReviewsByStatus, getAdminReviews } from "./reviews-data";
 import { isIsoDate, isPeriodKind, resolvePeriod, shiftPeriod, today } from "./period";
-import { productTitle } from "./products";
+import { getBcvRate } from "./bcv";
+import { PAGO_MOVIL, deliveryPriceForZone } from "./config";
+import { buildQuote, fmtUsd, quoteAccount, type QuoteLine } from "./quote";
+import { productTitle, sizeLabel } from "./products";
 
 /**
  * Lo que el asistente del panel puede consultar.
@@ -481,6 +484,192 @@ const inventarioYPrecios = tool({
   },
 });
 
+// ── Cotizaciones ────────────────────────────────────────────────────────────
+
+/**
+ * El sabor que quiso decir quien cotiza.
+ *
+ * El nombre llega como se habla —"maní", "dúo maní", "mantequilla de
+ * pistacho"—, así que no alcanza con buscar el primero que contenga la
+ * palabra: "dúo maní" contiene "maní", y a la primera coincidencia le tocaría
+ * el frasco suelto en vez del dúo. Se puntúan todos y gana el más específico.
+ */
+function matchProduct(name: string | undefined, catalog: AdminProduct[]) {
+  const term = foldText(name ?? "").trim();
+  if (!term) return undefined;
+
+  const scored = catalog
+    .map((row) => {
+      const title = foldText(productTitle(row));
+      const plain = foldText(row.name);
+
+      // Un nombre exacto gana siempre. Después, que el título contenga lo
+      // pedido. Y de último que lo pedido contenga el nombre del producto, que
+      // es la más floja: ahí gana el nombre más largo, o sea el más específico.
+      const score =
+        title === term || plain === term
+          ? 100
+          : title.includes(term)
+            ? 60 + term.length
+            : term.includes(plain)
+              ? 20 + plain.length
+              : plain.includes(term)
+                ? 10 + term.length
+                : 0;
+
+      return { row, score, length: plain.length };
+    })
+    .filter((candidate) => candidate.score > 0)
+    .sort((a, b) => b.score - a.score || b.length - a.length);
+
+  return scored[0]?.row;
+}
+
+const armarCotizacion = tool({
+  description:
+    "Arma una cotización lista para pegarle al cliente: líneas con precios, delivery, total en dólares y bolívares, y los datos de Pago Móvil. Los precios los pone el catálogo, no hay que dárselos. Para cotízame tantos de tal sabor, cuánto le sale a alguien tal pedido.",
+  inputSchema: z.object({
+    productos: z
+      .array(
+        z.object({
+          producto: z
+            .string()
+            .describe("Nombre del sabor como lo dijo la persona: maní, pistacho, dúo maní."),
+          gramos: z
+            .number()
+            .int()
+            .optional()
+            .describe("230 o 350. Sin esto se usa el tamaño más chico que exista."),
+          cantidad: z.number().int().describe("Cuántos frascos."),
+          precioUnitario: z
+            .number()
+            .optional()
+            .describe(
+              "Sólo si se acordó un precio distinto al de catálogo. Si no viene, manda el catálogo.",
+            ),
+        }),
+      )
+      .describe("Lo que lleva el pedido."),
+    entrega: z
+      .string()
+      .optional()
+      .describe(
+        "La zona de Caracas ('Altamira'), o 'pickup' para retiro en tienda, o 'nacional' para encomienda. Sin esto la cotización no menciona entrega.",
+      ),
+    costoEntrega: z
+      .number()
+      .optional()
+      .describe("Para cobrar un monto distinto al de la lista de zonas."),
+    cuenta: z
+      .string()
+      .optional()
+      .describe("Banco de Pago Móvil a mostrar. Por defecto el que cobra la tienda."),
+  }),
+  execute: async ({ productos, entrega, costoEntrega, cuenta }) => {
+    const [catalog, bcv] = await Promise.all([getAdminProducts(), getBcvRate()]);
+
+    const lines: QuoteLine[] = [];
+    const noEncontrados: string[] = [];
+    const avisos: string[] = [];
+
+    for (const item of productos ?? []) {
+      const product = matchProduct(item.producto, catalog);
+
+      if (!product) {
+        noEncontrados.push(item.producto);
+        continue;
+      }
+
+      const size =
+        (item.gramos ? product.sizes.find((s) => s.grams === item.gramos) : undefined) ??
+        product.sizes[0];
+      if (!size) {
+        noEncontrados.push(item.producto);
+        continue;
+      }
+      if (item.gramos && size.grams !== item.gramos) {
+        avisos.push(
+          `${productTitle(product)} no viene en ${item.gramos}g; se cotizó en ${size.grams}g.`,
+        );
+      }
+
+      const quantity = Math.max(1, Math.round(item.cantidad ?? 1));
+      const unitPrice =
+        typeof item.precioUnitario === "number" && item.precioUnitario >= 0
+          ? item.precioUnitario
+          : size.price;
+      if (unitPrice !== size.price) {
+        avisos.push(
+          `${productTitle(product)} ${sizeLabel(product, size)} va a ${fmtUsd(unitPrice)} en vez de ${fmtUsd(size.price)} de catálogo.`,
+        );
+      }
+
+      lines.push({
+        label: productTitle(product),
+        size: sizeLabel(product, size),
+        quantity,
+        unitPrice,
+      });
+    }
+
+    if (lines.length === 0) {
+      return {
+        cotizacion: null,
+        noEncontrados,
+        error:
+          "No reconocí ninguno de esos productos. Pregunta cuál es, o consulta el catálogo con inventarioYPrecios.",
+      };
+    }
+
+    const standalone = entrega === "pickup" || entrega === "nacional";
+    const delivery = entrega
+      ? {
+          label: standalone
+            ? entrega === "pickup"
+              ? "Retiro en tienda"
+              : "Envío nacional"
+            : entrega,
+          // La lista de precios sólo cubre unas zonas; en las demás el monto va
+          // "a coordinar" en vez de inventado.
+          price:
+            typeof costoEntrega === "number"
+              ? costoEntrega
+              : entrega === "pickup"
+                ? 0
+                : entrega === "nacional"
+                  ? null
+                  : deliveryPriceForZone(entrega),
+          standalone,
+        }
+      : null;
+
+    if (delivery && !standalone && delivery.price === null) {
+      avisos.push(
+        `No hay tarifa publicada para ${entrega}, así que el delivery quedó "a coordinar".`,
+      );
+    }
+
+    const quote = buildQuote({
+      lines,
+      delivery,
+      bcvRate: bcv?.rate ?? null,
+      account: quoteAccount(cuenta ?? PAGO_MOVIL.bank),
+    });
+
+    return {
+      // El texto se manda tal cual, sin retocar: es el mismo formato que saca
+      // el cotizador a clics.
+      cotizacion: quote.text,
+      subtotalUsd: usd(quote.subtotal),
+      deliveryUsd: quote.deliveryPrice === null ? null : usd(quote.deliveryPrice),
+      totalUsd: usd(quote.total),
+      tasaBcv: bcv?.rate ?? null,
+      noEncontrados,
+      avisos,
+    };
+  },
+});
+
 // ── Lo que está esperando ───────────────────────────────────────────────────
 
 const pendientes = tool({
@@ -609,6 +798,7 @@ export const adminAgentTools = {
   reporteFinanciero,
   listarVentas,
   patronPorDia,
+  armarCotizacion,
   cliente,
   mejoresClientes,
   inventarioYPrecios,

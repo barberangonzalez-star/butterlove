@@ -16,6 +16,7 @@ const TOOL_LABELS: Record<string, string> = {
   reporteFinanciero: "Armando el reporte…",
   listarVentas: "Buscando las ventas…",
   patronPorDia: "Cruzando las ventas por día…",
+  armarCotizacion: "Armando la cotización…",
   cliente: "Buscando el cliente…",
   mejoresClientes: "Revisando los clientes…",
   inventarioYPrecios: "Revisando el inventario…",

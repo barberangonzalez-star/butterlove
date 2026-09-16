@@ -11,6 +11,7 @@ import {
   PAGO_MOVIL_ACCOUNTS,
   deliveryPriceForZone,
 } from "@/lib/config";
+import { buildQuote, fmtBs, fmtUsd, quoteAccount } from "@/lib/quote";
 
 type Row = {
   id: string;
@@ -23,13 +24,6 @@ type DeliveryChoice = "" | "pickup" | "nacional" | string;
 
 /** La cuenta con la que arranca el cotizador: la misma que cobra la tienda. */
 const DEFAULT_ACCOUNT = PAGO_MOVIL.bank;
-
-const fmtUsd = (n: number) => `$${n.toFixed(2)}`;
-const fmtBs = (n: number) =>
-  n.toLocaleString("es-VE", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  });
 
 function useBcvRate() {
   const [rate, setRate] = useState<number | null>(null);
@@ -147,51 +141,31 @@ export default function CotizadorClient({
     const delivery_ = delivery
       ? { label: deliveryLabel(delivery), price: parseFee(deliveryFee) }
       : null;
-    const total = subtotal + (delivery_?.price ?? 0);
 
-    if (selected.length === 0) {
-      return { selected, subtotal, delivery_, total, quoteText: "" };
-    }
-
-    const lines = selected.map((r) => {
-      const q = qty[r.id] ?? 0;
-      const lineTotal = price(r) * q;
-      const bs = bcvRate ? ` (Bs. ${fmtBs(lineTotal * bcvRate)})` : "";
-      return `• ${r.label} ${r.size} x${q}: ${fmtUsd(lineTotal)}${bs}`;
+    const quote = buildQuote({
+      lines: selected.map((r) => ({
+        label: r.label,
+        size: r.size,
+        quantity: qty[r.id] ?? 0,
+        unitPrice: price(r),
+      })),
+      delivery: delivery_
+        ? {
+            ...delivery_,
+            standalone: delivery === "pickup" || delivery === "nacional",
+          }
+        : null,
+      bcvRate,
+      account: quoteAccount(account),
     });
 
-    const out = ["🧈 Cotización Butter Love", "", ...lines];
-
-    if (delivery_) {
-      // El retiro y el envío nacional se nombran solos; una zona va rotulada
-      // como delivery, para que se lea a qué corresponde el monto.
-      const label =
-        delivery === "pickup" || delivery === "nacional"
-          ? delivery_.label
-          : `Delivery (${delivery_.label})`;
-      if (delivery_.price === null) {
-        out.push("", `${label}: a coordinar`);
-      } else {
-        const bs = bcvRate ? ` (Bs. ${fmtBs(delivery_.price * bcvRate)})` : "";
-        out.push("", `${label}: ${fmtUsd(delivery_.price)}${bs}`);
-      }
-    } else {
-      out.push("");
-    }
-
-    const totalBs = bcvRate ? ` (Bs. ${fmtBs(total * bcvRate)})` : "";
-    out.push(`Total: ${fmtUsd(total)}${totalBs}`);
-
-    if (bcvRate) {
-      out.push("", `Tasa BCV: Bs. ${fmtBs(bcvRate)}`);
-    }
-
-    const bank = PAGO_MOVIL_ACCOUNTS.find((a) => a.bank === account);
-    if (bank) {
-      out.push("", "💳 Pago Móvil", bank.bank, `CI ${bank.id}`, bank.phone);
-    }
-
-    return { selected, subtotal, delivery_, total, quoteText: out.join("\n") };
+    return {
+      selected,
+      subtotal,
+      delivery_,
+      total: quote.total,
+      quoteText: quote.text,
+    };
   }, [rows, qty, priceOverride, delivery, deliveryFee, account, bcvRate]);
 
   const hasItems = selected.length > 0;
