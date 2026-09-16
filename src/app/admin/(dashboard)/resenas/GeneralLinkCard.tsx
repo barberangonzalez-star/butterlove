@@ -1,7 +1,7 @@
 "use client";
 
 import { ExternalLink, Globe, MessageCircle } from "lucide-react";
-import CopyButton from "./CopyButton";
+import CopyButton from "../_components/CopyButton";
 import type { ReviewRequestLinks } from "@/lib/review-links";
 
 /**

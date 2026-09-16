@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Check, Link2, MessageCircle, Plus, X } from "lucide-react";
-import CopyButton from "./CopyButton";
+import CopyButton from "../_components/CopyButton";
 import { createReviewInviteAction, type CreatedInvite } from "./actions";
 
 const inputClass =

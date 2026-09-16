@@ -2,6 +2,7 @@ import { verifySession } from "@/lib/admin-session";
 import { countPendingOrders } from "@/lib/pending-orders-data";
 import { countPendingReviews } from "@/lib/reviews-data";
 import AdminNav from "./_components/AdminNav";
+import AdminAssistantShell from "./_components/AdminAssistantShell";
 
 export default async function AdminDashboardLayout({
   children,
@@ -18,14 +19,15 @@ export default async function AdminDashboardLayout({
     countPendingReviews(),
   ]);
 
+  // El marco lo arma el shell: el ancho del contenido depende de si el
+  // asistente está abierto, y eso sólo se sabe en el navegador.
   return (
-    <div className="min-h-dvh bg-[#fbfaf8] text-[#37352f]">
-      <AdminNav pendingCount={pendingCount} pendingReviews={pendingReviews} />
-      <div className="lg:pl-60">
-        <main className="min-w-0 px-4 pt-[4.5rem] pb-12 lg:px-8 lg:py-8">
-          {children}
-        </main>
-      </div>
-    </div>
+    <AdminAssistantShell
+      nav={
+        <AdminNav pendingCount={pendingCount} pendingReviews={pendingReviews} />
+      }
+    >
+      {children}
+    </AdminAssistantShell>
   );
 }

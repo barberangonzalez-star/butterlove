@@ -17,11 +17,13 @@ import {
   Wallet,
   LogOut,
   Menu,
+  Sparkles,
   X,
 } from "lucide-react";
 import { logout } from "../actions";
 import InstallPrompt from "../../_pwa/InstallPrompt";
 import PushToggle from "../../_pwa/PushToggle";
+import { useAdminAssistant } from "./AdminAssistantShell";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -52,9 +54,27 @@ function NavLinks({
   onNavigate?: () => void;
 }) {
   const pathname = usePathname();
+  const assistant = useAdminAssistant();
 
   return (
     <nav className="flex-1 px-3 py-4 space-y-0.5">
+      {/* Va de primero y es botón, no enlace: no lleva a ninguna pantalla, abre
+          el panel de al lado. En el teléfono además cierra este menú, porque el
+          asistente se abre encima. */}
+      {assistant && (
+        <button
+          type="button"
+          onClick={() => {
+            assistant.setOpen(true);
+            onNavigate?.();
+          }}
+          className="w-full flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-[#5f5e5b] hover:bg-black/5 hover:text-[#37352f] transition-colors"
+        >
+          <Sparkles size={16} strokeWidth={2} className="text-[#b4700a]" />
+          Asistente
+        </button>
+      )}
+
       {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
         // Las subpáginas marcan su sección: la ficha de un cliente deja
         // "Clientes" encendido. El dashboard se compara exacto porque su ruta
