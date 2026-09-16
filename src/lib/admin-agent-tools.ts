@@ -52,6 +52,13 @@ const periodShape = {
     .describe(
       "Cuántos períodos hacia atrás. 0 es el actual (por defecto) y 1 el anterior: con periodo 'mes' y hace 1, el mes pasado.",
     ),
+  ultimosDias: z
+    .number()
+    .int()
+    .optional()
+    .describe(
+      "Los últimos N días contando hoy, sin cortar por calendario. Para 'las últimas dos semanas' o para juntar muestra al buscar patrones.",
+    ),
   desde: z
     .string()
     .optional()
@@ -64,11 +71,16 @@ const periodShape = {
 interface PeriodInput {
   periodo?: "dia" | "semana" | "mes" | "trimestre" | "semestre" | "anio";
   hace?: number;
+  ultimosDias?: number;
   desde?: string;
   hasta?: string;
 }
 
-function resolveRange(input: PeriodInput) {
+/** Un día de calendario en UTC, que es como se guardan las fechas de venta. */
+const parseDay = (iso: string) => new Date(`${iso}T00:00:00Z`);
+const isoDay = (date: Date) => date.toISOString().slice(0, 10);
+
+function resolveRange(input: PeriodInput, fallbackDays?: number) {
   if (isIsoDate(input.desde)) {
     const period = resolvePeriod(
       "rango",
@@ -76,6 +88,22 @@ function resolveRange(input: PeriodInput) {
       isIsoDate(input.hasta) ? input.hasta : input.desde,
     );
     return { from: period.from, to: period.to, label: period.label };
+  }
+
+  // "Los últimos N días" no es un período de calendario: es una ventana móvil
+  // que termina hoy. Sirve para juntar muestra sin que el corte de mes la parta
+  // en dos.
+  const days =
+    Number.isInteger(input.ultimosDias) && (input.ultimosDias as number) > 0
+      ? (input.ultimosDias as number)
+      : !input.periodo && fallbackDays
+        ? fallbackDays
+        : null;
+
+  if (days) {
+    const to = today();
+    const from = isoDay(new Date(parseDay(to).getTime() - (days - 1) * 86_400_000));
+    return { from, to, label: `últimos ${days} días` };
   }
 
   const kind = isPeriodKind(input.periodo) ? input.periodo : "mes";
@@ -200,6 +228,120 @@ const listarVentas = tool({
           (item) => `${item.quantity}x ${item.productName} ${item.grams}g`,
         ),
       })),
+    };
+  },
+});
+
+/** Lunes primero, que es como se piensa una semana de trabajo. */
+const WEEKDAYS = [
+  "lunes",
+  "martes",
+  "miércoles",
+  "jueves",
+  "viernes",
+  "sábado",
+  "domingo",
+];
+
+/** Índice 0 = lunes. `getUTCDay()` da 0 el domingo, así que se corre uno. */
+const weekdayIndex = (iso: string) => (parseDay(iso).getUTCDay() + 6) % 7;
+
+/** Cuántos días tiene el rango, contando las dos puntas. */
+const daysBetween = (from: string, to: string) =>
+  Math.round((parseDay(to).getTime() - parseDay(from).getTime()) / 86_400_000) + 1;
+
+const patronPorDia = tool({
+  description:
+    "Qué días se vende más. Agrupa las ventas por día de la semana y devuelve además el día a día. Para qué día vendo más, cuál es mi mejor día, en qué días conviene publicar o hacer delivery. Por defecto mira los últimos 90 días, que es lo mínimo para que el patrón signifique algo.",
+  inputSchema: z.object({
+    ...periodShape,
+    canal: z
+      .enum(["detal", "mayor"])
+      .optional()
+      .describe(
+        "Para un patrón de la tienda conviene 'detal': una venta al mayor es grande y esporádica, y sola tuerce el día en que cayó. Sin esto vienen los dos.",
+      ),
+  }),
+  execute: async (input) => {
+    // Sin período pedido, 90 días: con un mes solo hay cuatro lunes, y cuatro
+    // datos no son un patrón.
+    const { from, to, label } = resolveRange(input, 90);
+    const sales = await getSales({ from, to, channel: input.canal });
+
+    // Cuántas veces cae cada día de la semana en el rango. Sin esto, un mes con
+    // cinco lunes haría ver el lunes mejor de lo que es.
+    const occurrences = [0, 0, 0, 0, 0, 0, 0];
+    const totalDays = daysBetween(from, to);
+    for (let i = 0; i < totalDays; i += 1) {
+      const day = isoDay(new Date(parseDay(from).getTime() + i * 86_400_000));
+      occurrences[weekdayIndex(day)] += 1;
+    }
+
+    const byWeekday = WEEKDAYS.map((dia, i) => ({
+      dia,
+      vecesEnElRango: occurrences[i],
+      pedidos: 0,
+      totalUsd: 0,
+    }));
+    const byDate = new Map<string, { pedidos: number; totalUsd: number }>();
+
+    for (const sale of sales) {
+      const amount = Number(sale.amountUsd);
+      const weekday = byWeekday[weekdayIndex(sale.saleDate)];
+      weekday.pedidos += 1;
+      weekday.totalUsd += amount;
+
+      const day = byDate.get(sale.saleDate) ?? { pedidos: 0, totalUsd: 0 };
+      day.pedidos += 1;
+      day.totalUsd += amount;
+      byDate.set(sale.saleDate, day);
+    }
+
+    // El promedio por ocurrencia es lo comparable entre días; el total crudo no,
+    // porque cada día de la semana cae un número distinto de veces.
+    const dias = byWeekday.map((row) => ({
+      dia: row.dia,
+      vecesEnElRango: row.vecesEnElRango,
+      pedidos: row.pedidos,
+      totalUsd: usd(row.totalUsd),
+      promedioPorFechaUsd: row.vecesEnElRango > 0 ? usd(row.totalUsd / row.vecesEnElRango) : 0,
+      pedidosPorFecha:
+        row.vecesEnElRango > 0
+          ? Math.round((row.pedidos / row.vecesEnElRango) * 10) / 10
+          : 0,
+    }));
+
+    const ranked = [...dias].sort((a, b) => b.promedioPorFechaUsd - a.promedioPorFechaUsd);
+    const semanas = Math.round((totalDays / 7) * 10) / 10;
+
+    return {
+      periodo: label,
+      desde: from,
+      hasta: to,
+      canal: input.canal ?? "detal y mayor",
+      // Con pocas semanas cada día tiene tres o cuatro datos y el orden lo
+      // decide el ruido. El asistente tiene que decirlo en vez de presentarlo
+      // como un hallazgo.
+      semanasDeMuestra: semanas,
+      muestraSuficiente: semanas >= 8,
+      totalPedidos: sales.length,
+      mejorDia: ranked[0]?.dia ?? null,
+      peorDia: ranked.at(-1)?.dia ?? null,
+      diasSinVentas: dias.filter((d) => d.pedidos === 0).map((d) => d.dia),
+      porDiaDeLaSemana: dias,
+      // El día a día sólo si cabe: un año son 365 renglones que no ayudan a ver
+      // un patrón y sí llenan el contexto.
+      diaADia:
+        totalDays <= 62
+          ? [...byDate.entries()]
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([fecha, row]) => ({
+                fecha,
+                dia: WEEKDAYS[weekdayIndex(fecha)],
+                pedidos: row.pedidos,
+                totalUsd: usd(row.totalUsd),
+              }))
+          : null,
     };
   },
 });
@@ -466,6 +608,7 @@ export const adminAgentTools = {
   ventasDelPeriodo,
   reporteFinanciero,
   listarVentas,
+  patronPorDia,
   cliente,
   mejoresClientes,
   inventarioYPrecios,
