@@ -1,8 +1,8 @@
 "use client";
 
 import { createContext, useContext, useSyncExternalStore } from "react";
-import { Sparkles } from "lucide-react";
 import AdminAssistant from "./AdminAssistant";
+import { ASSISTANT_EMOJI, ASSISTANT_NAME } from "./assistant-identity";
 
 const STORAGE_KEY = "butterlove:asistente-abierto";
 
@@ -116,10 +116,10 @@ export default function AdminAssistantShell({
           <button
             type="button"
             onClick={() => writeOpen(true)}
-            aria-label="Abrir asistente"
-            className="lg:hidden fixed bottom-5 right-5 z-40 w-14 h-14 flex items-center justify-center rounded-full bg-[#37352f] text-white shadow-lg active:scale-95 transition-transform"
+            aria-label={`Abrir a ${ASSISTANT_NAME}`}
+            className="lg:hidden fixed bottom-5 right-5 z-40 w-14 h-14 flex items-center justify-center rounded-full bg-[#37352f] text-2xl shadow-lg active:scale-95 transition-transform"
           >
-            <Sparkles size={22} />
+            <span aria-hidden="true">{ASSISTANT_EMOJI}</span>
           </button>
         )}
 
@@ -129,10 +129,14 @@ export default function AdminAssistantShell({
           <button
             type="button"
             onClick={() => writeOpen(true)}
-            className="hidden lg:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 items-center gap-1.5 rounded-l-lg border border-r-0 border-black/10 bg-white py-3 pl-3 pr-2 text-xs font-medium text-[#5f5e5b] shadow-sm hover:bg-black/[0.03]"
+            className="hidden lg:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-1.5 rounded-l-lg border border-r-0 border-black/10 bg-white py-3 pl-3 pr-2 text-xs font-medium text-[#5f5e5b] shadow-sm hover:bg-black/[0.03]"
           >
-            <Sparkles size={14} className="text-[#b4700a]" aria-hidden="true" />
-            <span className="[writing-mode:vertical-rl] rotate-180">Asistente</span>
+            <span className="text-sm leading-none" aria-hidden="true">
+              {ASSISTANT_EMOJI}
+            </span>
+            <span className="[writing-mode:vertical-rl] rotate-180">
+              {ASSISTANT_NAME}
+            </span>
           </button>
         )}
       </div>

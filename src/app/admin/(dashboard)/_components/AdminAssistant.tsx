@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport, getToolName, isToolUIPart } from "ai";
-import { ArrowUp, PanelRightClose, Sparkles } from "lucide-react";
+import { ArrowUp, PanelRightClose } from "lucide-react";
 import CopyButton from "./CopyButton";
+import { ASSISTANT_EMOJI, ASSISTANT_NAME } from "./assistant-identity";
 
 /**
  * Qué decir mientras corre cada consulta. Sin esto el panel se queda mudo unos
@@ -87,12 +88,14 @@ export default function AdminAssistant({ onClose }: { onClose: () => void }) {
   return (
     <div className="flex flex-col h-full min-h-0">
       <header className="h-14 shrink-0 flex items-center gap-2 px-3 border-b border-black/10">
-        <Sparkles size={16} className="text-[#b4700a]" aria-hidden="true" />
-        <span className="font-semibold text-sm flex-1 truncate">Asistente</span>
+        <span className="text-lg leading-none" aria-hidden="true">
+          {ASSISTANT_EMOJI}
+        </span>
+        <span className="font-semibold text-sm flex-1 truncate">{ASSISTANT_NAME}</span>
         <button
           type="button"
           onClick={onClose}
-          aria-label="Cerrar asistente"
+          aria-label={`Cerrar a ${ASSISTANT_NAME}`}
           className="w-9 h-9 flex items-center justify-center rounded-md text-[#5f5e5b] hover:bg-black/5"
         >
           <PanelRightClose size={18} />
@@ -103,8 +106,9 @@ export default function AdminAssistant({ onClose }: { onClose: () => void }) {
         {messages.length === 0 && (
           <div>
             <p className="text-[#787774]">
-              Pregúntame por tus ventas, clientes, inventario o cuentas. Leo los
-              datos reales del panel.
+              Soy {ASSISTANT_NAME}. Pregúntame por tus ventas, clientes,
+              inventario o cuentas, o pídeme una cotización. Leo los datos
+              reales del panel.
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {SUGGESTIONS.map((suggestion) => (

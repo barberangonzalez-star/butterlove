@@ -17,13 +17,13 @@ import {
   Wallet,
   LogOut,
   Menu,
-  Sparkles,
   X,
 } from "lucide-react";
 import { logout } from "../actions";
 import InstallPrompt from "../../_pwa/InstallPrompt";
 import PushToggle from "../../_pwa/PushToggle";
 import { useAdminAssistant } from "./AdminAssistantShell";
+import { ASSISTANT_EMOJI, ASSISTANT_NAME } from "./assistant-identity";
 
 const NAV_ITEMS = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -70,8 +70,15 @@ function NavLinks({
           }}
           className="w-full flex items-center gap-2.5 rounded-md px-3 py-2.5 text-sm text-[#5f5e5b] hover:bg-black/5 hover:text-[#37352f] transition-colors"
         >
-          <Sparkles size={16} strokeWidth={2} className="text-[#b4700a]" />
-          Asistente
+          {/* El emoji ocupa el ancho de los iconos de al lado para que los
+              nombres del menú queden alineados. */}
+          <span
+            className="w-4 shrink-0 text-center text-base leading-none"
+            aria-hidden="true"
+          >
+            {ASSISTANT_EMOJI}
+          </span>
+          {ASSISTANT_NAME}
         </button>
       )}
 
