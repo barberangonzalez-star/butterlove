@@ -23,7 +23,7 @@ const combo = {
   name: "Dúo Maní + Chocomaní",
   tagline: "La clásica y la de cacao, juntas.",
   description:
-    "Un frasco de 230g de mantequilla de maní y uno de chocomaní. La receta original al lado de la misma mantequilla con cacao y sin azúcar agregada: la de todos los días y el antojo, en un solo pedido.",
+    "Un frasco de 230g de mantequilla de maní y uno de chocomaní. La receta original al lado de la misma mantequilla con cacao al 70%, endulzada con stevia y sin azúcar agregada: la de todos los días y el antojo, en un solo pedido.",
   // La foto de los dos frascos trae su propio fondo y llena la tarjeta
   // entera, así que no es un recorte. Va con el mismo nombre en las dos
   // carpetas, como los demás dúos: la galería la muestra una sola vez.

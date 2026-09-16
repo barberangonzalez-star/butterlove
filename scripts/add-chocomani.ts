@@ -22,7 +22,7 @@ const product = {
   name: "Chocomaní",
   tagline: "Maní y cacao, sin azúcar agregada.",
   description:
-    "Nuestra mantequilla de maní con cacao, molida igual de despacio: maní tostado y cacao, sin azúcar agregada.",
+    "Nuestra mantequilla de maní con cacao, molida igual de despacio: maní tostado y cacao al 70%, endulzada con stevia y sin azúcar agregada.",
   // La foto del frasco sobre el fondo azul es la del producto: llena la
   // tarjeta entera, así que no es un recorte. La de los dos frascos es la de
   // ambiente, y es la misma que abre el carrusel.
@@ -46,6 +46,10 @@ const VITRINA = [
   "merey",
   "chocomani",
   "duo-mani",
+  // Tiene que estar acá aunque lo cargue `add-duo-mani-chocomani.ts`: esta
+  // lista escribe el orden entero, y sin él los dos dúos de abajo quedarían
+  // en su misma posición.
+  "duo-mani-chocomani",
   "duo-merey-mani",
   "duo-almendras-merey",
   "duo-pistacho-almendras",
