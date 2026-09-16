@@ -16,12 +16,13 @@ import { productTitle, type ProductKind } from "./products";
 import {
   REVIEWS_MIN_TO_SHOW,
   isReviewStatus,
+  reviewSource,
   type AdminReview,
   type ProductReviews,
   type PublicReview,
   type RatingSummary,
   type ReviewInviteSummary,
-  type ReviewRef,
+  type ReviewOrigin,
   type ReviewStatus,
   type ReviewableProduct,
 } from "./reviews";
@@ -85,7 +86,7 @@ function toPublicReview(
     comment: row.comment,
     authorName: row.authorName,
     reply: row.reply,
-    verified: row.inviteId === null,
+    verified: row.source === "venta",
     dateLabel: monthFormat.format(date),
     datePublished: date.toISOString().slice(0, 10),
     productKey: product.key,
@@ -182,12 +183,13 @@ export const getFeaturedReviews = cache(async function getFeaturedReviews(): Pro
 // ── Formulario de /opinar ───────────────────────────────────────────────────
 
 export interface ReviewTarget {
-  ref: ReviewRef;
+  origin: ReviewOrigin;
   customerName: string | null;
   products: ReviewableProduct[];
   /**
-   * Si la persona tiene que marcar qué productos probó. Pasa con los enlaces
-   * hechos a mano sin productos elegidos: no hay venta de donde sacarlos.
+   * Si la persona tiene que marcar qué productos probó. Pasa con el enlace
+   * general y con los hechos a mano sin productos elegidos: no hay venta de
+   * donde sacarlos.
    */
   choose: boolean;
 }
@@ -226,15 +228,33 @@ function toReviewable(
     }));
 }
 
+/** Los que están en la vitrina, que es lo que puede reseñar quien no trae una compra. */
+function inStoreCards() {
+  return getDb().select(productCardFields).from(products).where(eq(products.inStore, true));
+}
+
 /** A quién es el enlace y qué puede reseñar, marcando lo que ya reseñó. */
-export async function getReviewTarget(ref: ReviewRef): Promise<ReviewTarget | null> {
+export async function getReviewTarget(
+  origin: ReviewOrigin,
+): Promise<ReviewTarget | null> {
   const db = getDb();
 
-  if (ref.kind === "sale") {
+  // El enlace general no es de nadie: no hay nombre que saludar ni reseñas
+  // previas que marcar, porque nada identifica a quien lo abre.
+  if (origin.kind === "general") {
+    return {
+      origin,
+      customerName: null,
+      choose: true,
+      products: toReviewable(await inStoreCards(), new Set()),
+    };
+  }
+
+  if (origin.kind === "sale") {
     const [sale] = await db
       .select({ customerName: sales.customerName })
       .from(sales)
-      .where(eq(sales.id, ref.id))
+      .where(eq(sales.id, origin.id))
       .limit(1);
     if (!sale) return null;
 
@@ -243,15 +263,15 @@ export async function getReviewTarget(ref: ReviewRef): Promise<ReviewTarget | nu
         .selectDistinct(productCardFields)
         .from(saleItems)
         .innerJoin(products, eq(saleItems.productId, products.id))
-        .where(eq(saleItems.saleId, ref.id)),
+        .where(eq(saleItems.saleId, origin.id)),
       db
         .select({ productId: reviews.productId })
         .from(reviews)
-        .where(eq(reviews.saleId, ref.id)),
+        .where(eq(reviews.saleId, origin.id)),
     ]);
 
     return {
-      ref,
+      origin,
       customerName: sale.customerName,
       choose: false,
       products: toReviewable(items, new Set(done.map((row) => row.productId))),
@@ -261,26 +281,23 @@ export async function getReviewTarget(ref: ReviewRef): Promise<ReviewTarget | nu
   const [invite] = await db
     .select()
     .from(reviewInvites)
-    .where(eq(reviewInvites.id, ref.id))
+    .where(eq(reviewInvites.id, origin.id))
     .limit(1);
   if (!invite) return null;
 
   const chosen = invite.productIds;
   const [items, done] = await Promise.all([
-    db
-      .select(productCardFields)
-      .from(products)
-      .where(
-        chosen.length > 0 ? inArray(products.id, chosen) : eq(products.inStore, true),
-      ),
+    chosen.length > 0
+      ? db.select(productCardFields).from(products).where(inArray(products.id, chosen))
+      : inStoreCards(),
     db
       .select({ productId: reviews.productId })
       .from(reviews)
-      .where(eq(reviews.inviteId, ref.id)),
+      .where(eq(reviews.inviteId, origin.id)),
   ]);
 
   return {
-    ref,
+    origin,
     customerName: invite.customerName,
     choose: chosen.length === 0,
     products: toReviewable(items, new Set(done.map((row) => row.productId))),
@@ -293,32 +310,61 @@ export async function getReviewTarget(ref: ReviewRef): Promise<ReviewTarget | nu
  * cuántas entraron de verdad.
  */
 export async function createReviews(
-  ref: ReviewRef,
+  origin: ReviewOrigin,
   authorName: string,
   entries: { productId: number; rating: number; comment: string | null }[],
 ): Promise<number> {
   if (entries.length === 0) return 0;
   const db = getDb();
-  const owner = ref.kind === "sale" ? { saleId: ref.id } : { inviteId: ref.id };
-  const inserted = await db
-    .insert(reviews)
-    .values(
-      entries.map((entry) => ({
-        ...owner,
-        productId: entry.productId,
-        rating: entry.rating,
-        comment: entry.comment,
-        authorName,
-      })),
-    )
-    .onConflictDoNothing({
-      target:
-        ref.kind === "sale"
-          ? [reviews.saleId, reviews.productId]
-          : [reviews.inviteId, reviews.productId],
-    })
-    .returning({ id: reviews.id });
+  const owner =
+    origin.kind === "sale"
+      ? { saleId: origin.id, source: "venta" as const }
+      : origin.kind === "invite"
+        ? { inviteId: origin.id, source: "enlace" as const }
+        : { source: "general" as const };
+
+  const insert = db.insert(reviews).values(
+    entries.map((entry) => ({
+      ...owner,
+      productId: entry.productId,
+      rating: entry.rating,
+      comment: entry.comment,
+      authorName,
+    })),
+  );
+
+  // Las del enlace general no chocan con nada: no llenan ninguna de las dos
+  // columnas de enlace, y para un índice único dos nulls no son iguales. Por
+  // eso ahí no hay nada que repetir ni que saltarse.
+  const inserted = await (origin.kind === "general"
+    ? insert
+    : insert.onConflictDoNothing({
+        target:
+          origin.kind === "sale"
+            ? [reviews.saleId, reviews.productId]
+            : [reviews.inviteId, reviews.productId],
+      })
+  ).returning({ id: reviews.id });
   return inserted.length;
+}
+
+/**
+ * Cuántas reseñas entraron por el enlace general en las últimas horas. Es el
+ * único que puede abrir cualquiera, así que es el único que se puede inundar:
+ * con esto el formulario corta antes de llenar el panel de basura.
+ */
+export async function countRecentGeneralReviews(hours: number): Promise<number> {
+  const db = getDb();
+  const [row] = await db
+    .select({ count: count() })
+    .from(reviews)
+    .where(
+      and(
+        eq(reviews.source, "general"),
+        gte(reviews.createdAt, new Date(Date.now() - hours * 3_600_000)),
+      ),
+    );
+  return row?.count ?? 0;
 }
 
 // ── Panel ───────────────────────────────────────────────────────────────────
@@ -392,6 +438,7 @@ export async function getAdminReviews(
     authorName: review.authorName,
     reply: review.reply,
     status: isReviewStatus(review.status) ? review.status : "pendiente",
+    source: reviewSource(review.source),
     createdLabel: fullDayFormat.format(review.createdAt),
     productKey: product.key,
     productTitle: titleOf(product),

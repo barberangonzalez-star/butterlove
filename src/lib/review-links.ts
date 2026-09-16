@@ -90,6 +90,33 @@ function requestLinks(
   };
 }
 
+/**
+ * El enlace que puede abrir cualquiera. No lleva firma ni número porque no es
+ * de nadie: sirve para la historia de Instagram, el sticker de la caja o un
+ * grupo, y quien llega escribe su nombre, sus estrellas y su comentario.
+ *
+ * Por eso sus reseñas nunca salen como compra verificada: nada acá dice que
+ * quien opinó compró.
+ */
+export const GENERAL_REVIEW_URL = `${SITE_URL}/opinar`;
+
+export function generalReviewLinks(): ReviewRequestLinks {
+  const message = [
+    "¡Hola! Gracias por comprar en Butter Love 🧈",
+    "¿Qué tal te pareció tu Butter Love? Tu opinión nos ayuda muchísimo y toma menos de un minuto:",
+    GENERAL_REVIEW_URL,
+  ].join("\n");
+
+  return {
+    url: GENERAL_REVIEW_URL,
+    message,
+    // Sin número: WhatsApp abre con el mensaje escrito y pregunta a quién
+    // mandárselo, que es justo lo que hace falta con un enlace que no es de
+    // nadie en particular.
+    whatsappHref: `https://wa.me/?text=${encodeURIComponent(message)}`,
+  };
+}
+
 export function reviewRequestLinks(sale: {
   id: number;
   customerName: string | null;

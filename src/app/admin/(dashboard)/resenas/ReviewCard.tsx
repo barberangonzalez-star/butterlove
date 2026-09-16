@@ -99,6 +99,7 @@ export default function ReviewCard({ review }: { review: AdminReview }) {
         {!review.customerName && review.inviteName && (
           <> · enlace para {review.inviteName}</>
         )}
+        {review.source === "general" && <> · enlace general</>}
       </p>
 
       {review.comment ? (

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Check, Copy, Link2, MessageCircle, Plus, X } from "lucide-react";
+import { Check, Link2, MessageCircle, Plus, X } from "lucide-react";
+import CopyButton from "./CopyButton";
 import { createReviewInviteAction, type CreatedInvite } from "./actions";
 
 const inputClass =
@@ -11,29 +12,6 @@ const buttonClass =
   "h-9 inline-flex items-center justify-center gap-1.5 rounded-md border border-black/15 px-3 text-sm text-[#37352f] hover:bg-black/5 disabled:opacity-50";
 const primaryClass =
   "h-9 inline-flex items-center justify-center gap-1.5 rounded-md bg-[#37352f] px-4 text-sm font-medium text-white hover:opacity-90 disabled:opacity-50";
-
-function CopyButton({ text, label }: { text: string; label: string }) {
-  const [copied, setCopied] = useState(false);
-  return (
-    <button
-      type="button"
-      onClick={async () => {
-        try {
-          await navigator.clipboard.writeText(text);
-          setCopied(true);
-          setTimeout(() => setCopied(false), 2000);
-        } catch {
-          // Sin permiso de portapapeles queda el enlace a la vista para
-          // copiarlo a mano.
-        }
-      }}
-      className={buttonClass}
-    >
-      {copied ? <Check size={15} aria-hidden="true" /> : <Copy size={15} aria-hidden="true" />}
-      {copied ? "Copiado" : label}
-    </button>
-  );
-}
 
 /**
  * Crear un enlace para opinar a mano, para alguien que compró pero no está en

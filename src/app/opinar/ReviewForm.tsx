@@ -8,6 +8,7 @@ import { submitReviewsAction } from "./actions";
 import {
   RATING_LABELS,
   REVIEW_COMMENT_MAX,
+  REVIEW_COMMENT_MIN,
   REVIEW_NAME_MAX,
   type ReviewableProduct,
 } from "@/lib/reviews";
@@ -109,6 +110,15 @@ function Closing({ title, text }: { title: string; text: string }) {
   );
 }
 
+/**
+ * El formulario de /opinar, el mismo para el enlace general y los personales.
+ *
+ * Lo que cambia entre los dos es cuánto se sabe de quien llega. Con enlace
+ * personal hay una compra detrás, así que el nombre viene propuesto y el
+ * comentario es opcional: las estrellas solas ya dicen algo. El general no sabe
+ * nada de nadie, y entonces pide las tres cosas —nombre, estrellas y
+ * comentario—, que es lo único que hace que la reseña valga.
+ */
 export default function ReviewForm({
   token,
   firstName,
@@ -116,13 +126,15 @@ export default function ReviewForm({
   products,
   choose,
 }: {
-  token: string;
+  /** Null en el enlace general, que no es de nadie y no lleva firma. */
+  token: string | null;
   firstName: string | null;
   defaultAuthorName: string;
   products: ReviewableProduct[];
   /** Si primero tiene que marcar qué productos probó. */
   choose: boolean;
 }) {
+  const general = token === null;
   const [selected, setSelected] = useState<Set<number>>(() => new Set());
   const [ratings, setRatings] = useState<Record<number, number>>({});
   const [comments, setComments] = useState<Record<number, string>>({});
@@ -136,11 +148,18 @@ export default function ReviewForm({
   // reseñados; cuando la persona elige, sólo los que marcó.
   const cards = choose ? open.filter((p) => selected.has(p.id)) : products;
   const rated = cards.filter((p) => !p.reviewed && ratings[p.id]);
+  // En el general el comentario es obligatorio, así que se sabe de antemano a
+  // cuáles les falta: el botón lo dice antes de intentar enviar.
+  const missing = general
+    ? rated.filter((p) => (comments[p.id] ?? "").trim().length < REVIEW_COMMENT_MIN)
+    : [];
 
   if (sent) {
+    // En el general el único nombre que hay es el que escribió.
+    const name = firstName ?? authorName.trim().split(/\s+/)[0];
     return (
       <Closing
-        title={`¡Gracias${firstName ? `, ${firstName}` : ""}!`}
+        title={`¡Gracias${name ? `, ${name}` : ""}!`}
         text="Recibimos tu opinión. La publicamos en la tienda en cuanto la leamos."
       />
     );
@@ -150,7 +169,11 @@ export default function ReviewForm({
     return (
       <Closing
         title="No hay nada que reseñar"
-        text="Los productos de este enlace ya no están en nuestro catálogo. ¡Gracias igual por escribirnos!"
+        text={
+          general
+            ? "Ahora mismo no tenemos sabores en la vitrina. ¡Gracias igual por escribirnos!"
+            : "Los productos de este enlace ya no están en nuestro catálogo. ¡Gracias igual por escribirnos!"
+        }
       />
     );
   }
@@ -183,8 +206,20 @@ export default function ReviewForm({
       );
       return;
     }
+    if (missing.length > 0) {
+      setError(
+        missing.length === 1
+          ? `Cuéntanos qué te pareció ${missing[0].title}, aunque sea en una frase.`
+          : "Cuéntanos qué te pareció cada uno, aunque sea en una frase.",
+      );
+      return;
+    }
     if (!authorName.trim()) {
-      setError("Escribe el nombre con el que quieres aparecer.");
+      setError(
+        general
+          ? "Escribe tu primer nombre."
+          : "Escribe el nombre con el que quieres aparecer.",
+      );
       return;
     }
 
@@ -301,7 +336,7 @@ export default function ReviewForm({
                     {rating > 0 && (
                       <label className="mt-2 block">
                         <span className="block text-sm text-ink-soft mb-1.5">
-                          ¿Qué te gustó? (opcional)
+                          {general ? "¿Qué te pareció?" : "¿Qué te gustó? (opcional)"}
                         </span>
                         <textarea
                           rows={3}
@@ -328,18 +363,20 @@ export default function ReviewForm({
 
       <label className="mt-6 block">
         <span className="block text-sm font-semibold text-ink mb-1.5">
-          Tu nombre como aparecerá
+          {general ? "Tu primer nombre" : "Tu nombre como aparecerá"}
         </span>
         <input
           value={authorName}
           onChange={(e) => setAuthorName(e.target.value)}
           maxLength={REVIEW_NAME_MAX}
-          autoComplete="name"
-          placeholder="María G."
+          autoComplete={general ? "given-name" : "name"}
+          placeholder={general ? "María" : "María G."}
           className="w-full h-12 rounded-full border border-ink/15 bg-page px-5 text-base text-ink placeholder:text-ink-soft/60 outline-none focus:border-ink"
         />
         <span className="mt-1.5 block text-xs text-ink-soft leading-relaxed">
-          Tu teléfono no se muestra. Publicamos la reseña después de leerla.
+          {general
+            ? "Es lo único que se muestra con tu reseña. Si escribes tu apellido, sale como inicial. Publicamos la reseña después de leerla."
+            : "Tu teléfono no se muestra. Publicamos la reseña después de leerla."}
         </span>
       </label>
 

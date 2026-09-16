@@ -1,7 +1,7 @@
 /**
  * Crea las tablas de reseñas: `review_invites` (enlaces hechos a mano),
  * `review_requests` (a qué ventas ya se les pidió) y `reviews` (lo que
- * opinaron).
+ * opinaron), y le agrega a `reviews` la columna `source` si le falta.
  *
  * Tiene que correr ANTES de publicar el código de reseñas: la home, las fichas
  * de producto y el panel las consultan, y sin ellas el build falla.
@@ -71,6 +71,17 @@ async function main() {
       END IF;
     END $$
   `;
+
+  // De dónde salió cada reseña. Las que ya existen son de un enlace personal:
+  // las de `invite_id` lleno salieron de uno hecho a mano y el resto de una
+  // venta. El default sólo sirve para rellenarlas y después se quita, así que
+  // un insert que se olvide de poner la columna falla en vez de colarse como
+  // compra verificada.
+  await sql`
+    ALTER TABLE reviews ADD COLUMN IF NOT EXISTS source text NOT NULL DEFAULT 'venta'
+  `;
+  await sql`UPDATE reviews SET source = 'enlace' WHERE invite_id IS NOT NULL AND source = 'venta'`;
+  await sql`ALTER TABLE reviews ALTER COLUMN source DROP DEFAULT`;
 
   await sql`
     CREATE UNIQUE INDEX IF NOT EXISTS reviews_sale_product_idx

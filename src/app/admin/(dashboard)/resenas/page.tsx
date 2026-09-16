@@ -5,7 +5,11 @@ import {
   getReviewInvites,
   getReviewRequestCandidates,
 } from "@/lib/reviews-data";
-import { inviteRequestLinks, reviewRequestLinks } from "@/lib/review-links";
+import {
+  generalReviewLinks,
+  inviteRequestLinks,
+  reviewRequestLinks,
+} from "@/lib/review-links";
 import { getAdminProducts } from "@/lib/products-data";
 import { productTitle } from "@/lib/products";
 import {
@@ -17,6 +21,7 @@ import ReviewCard from "./ReviewCard";
 import RequestList, { type RequestRow } from "./RequestList";
 import InviteCreator from "./InviteCreator";
 import InviteList, { type InviteRow } from "./InviteList";
+import GeneralLinkCard from "./GeneralLinkCard";
 import ReviewSearch from "./ReviewSearch";
 
 type Tab = ReviewStatus | "pedir";
@@ -176,6 +181,7 @@ async function RequestTab({ query }: { query: string }) {
 
   return (
     <>
+      <GeneralLinkCard links={generalReviewLinks()} />
       <InviteCreator products={productOptions} />
       {inviteRows.length > 0 && <InviteList rows={inviteRows} />}
       <p className="text-sm text-[#787774] mb-3">

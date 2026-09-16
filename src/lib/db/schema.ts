@@ -489,14 +489,18 @@ export const reviewInvites = pgTable("review_invites", {
 });
 
 /**
- * Lo que opinó alguien que compró. Cada reseña sale de un enlace personal:
- * el de una venta real o uno hecho a mano (`reviewInvites`). La pareja enlace
- * y producto es única, así que el mismo enlace no sirve para dejar veinte
- * reseñas del mismo frasco. Entra como `pendiente` y no se ve en la tienda
- * hasta publicarla.
+ * Lo que opinó alguien que compró. Cada reseña sale de un enlace: el personal
+ * de una venta real, uno hecho a mano (`reviewInvites`) o el general, que es
+ * público y no identifica a nadie. La pareja enlace y producto es única en los
+ * dos primeros casos, así que el mismo enlace personal no sirve para dejar
+ * veinte reseñas del mismo frasco; el general no puede limitarse así porque no
+ * hay a quién contarle las reseñas. Entra como `pendiente` y no se ve en la
+ * tienda hasta publicarla.
  *
  * Si se borra la venta la reseña queda: lo que opinó esa persona no deja de
- * ser cierto porque se haya corregido el registro de la venta.
+ * ser cierto porque se haya corregido el registro de la venta. Por eso de
+ * dónde salió vive en `source` y no en cuál de las dos columnas de enlace está
+ * llena.
  */
 export const reviews = pgTable(
   "reviews",
@@ -514,6 +518,12 @@ export const reviews = pgTable(
     comment: text("comment"),
     /** Como pidió aparecer: "María G.", no el nombre completo de la venta. */
     authorName: text("author_name").notNull(),
+    /**
+     * "venta", "enlace" o "general", de `REVIEW_SOURCES`. Sin default a
+     * propósito: un insert que se olvide de ponerlo falla en vez de pasar por
+     * compra verificada.
+     */
+    source: text("source").notNull(),
     /** "pendiente", "publicada" u "oculta", de `REVIEW_STATUSES`. */
     status: text("status").notNull().default("pendiente"),
     /** La respuesta pública de Butter Love, debajo de la reseña. */

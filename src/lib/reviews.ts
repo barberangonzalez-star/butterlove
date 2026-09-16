@@ -19,6 +19,12 @@ export function isReviewStatus(value: unknown): value is ReviewStatus {
 export const REVIEWS_MIN_TO_SHOW = 3;
 
 export const REVIEW_COMMENT_MAX = 600;
+/**
+ * Lo mínimo que tiene que decir un comentario donde es obligatorio, que es el
+ * enlace general. Sin mínimo, un "ok" contaría como opinión y ocuparía en la
+ * ficha del producto el mismo espacio que una que sí dice algo.
+ */
+export const REVIEW_COMMENT_MIN = 10;
 export const REVIEW_NAME_MAX = 40;
 export const REVIEW_REPLY_MAX = 600;
 /** Nombre y apellido juntos, en un enlace hecho a mano. */
@@ -31,6 +37,31 @@ export const INVITE_NAME_MAX = 60;
 export interface ReviewRef {
   kind: "sale" | "invite";
   id: number;
+}
+
+/**
+ * Quién está opinando, desde el punto de vista del formulario: el enlace
+ * personal de alguien —de una venta o hecho a mano— o el enlace general, que
+ * es uno solo, no lleva firma y lo abre cualquiera.
+ */
+export type ReviewOrigin = ReviewRef | { kind: "general" };
+
+/**
+ * De dónde salió una reseña, tal como queda guardada.
+ *
+ * Se guarda en la fila en vez de deducirse de `sale_id` e `invite_id` porque
+ * borrar una venta pone su `sale_id` en null, y esa reseña sigue siendo de
+ * alguien que compró: sin esta columna pasaría a presentarse igual que una del
+ * enlace general, que no respalda ninguna compra.
+ */
+export const REVIEW_SOURCES = ["venta", "enlace", "general"] as const;
+export type ReviewSource = (typeof REVIEW_SOURCES)[number];
+
+/** La columna saneada. Lo que no se reconozca cuenta como venta, que es de donde salieron las primeras. */
+export function reviewSource(value: unknown): ReviewSource {
+  return REVIEW_SOURCES.includes(value as ReviewSource)
+    ? (value as ReviewSource)
+    : "venta";
 }
 
 /** Lo que dice el formulario debajo de las estrellas elegidas. */
@@ -56,7 +87,8 @@ export interface PublicReview {
   reply: string | null;
   /**
    * Si salió del enlace de una venta registrada. Las de enlaces hechos a mano
-   * no se presentan como compra verificada: nada en el sistema lo respalda.
+   * y las del enlace general no se presentan como compra verificada: nada en
+   * el sistema lo respalda.
    */
   verified: boolean;
   /** "septiembre de 2026", ya formateado en el servidor. */
@@ -93,6 +125,7 @@ export interface AdminReview {
   authorName: string;
   reply: string | null;
   status: ReviewStatus;
+  source: ReviewSource;
   /** DD/MM/YYYY, ya formateado en el servidor. */
   createdLabel: string;
   productKey: string;
