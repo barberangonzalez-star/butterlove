@@ -14,7 +14,7 @@ import { getPromotions } from "./promotions-data";
 import { getCasheaPurchases } from "./cashea-data";
 import { countReviewsByStatus, getAdminReviews } from "./reviews-data";
 import { isIsoDate, isPeriodKind, resolvePeriod, shiftPeriod, today } from "./period";
-import { getBcvRate } from "./bcv";
+import { getBcvRate, getBcvRates } from "./bcv";
 import { PAGO_MOVIL, deliveryPriceForZone } from "./config";
 import { buildQuote, fmtUsd, quoteAccount, type QuoteLine } from "./quote";
 import { productTitle, sizeLabel } from "./products";
@@ -793,6 +793,22 @@ const promocionesActivas = tool({
   },
 });
 
+// ── Tasa del BCV ────────────────────────────────────────────────────────────
+
+const tasaBcv = tool({
+  description:
+    "La tasa oficial del BCV del día: bolívares por dólar y por euro, con la fecha en que se publicó. Para cuánto está el dólar, cuánto está el euro, pasar un monto a bolívares.",
+  inputSchema: z.object({}),
+  execute: async () => {
+    const { usd: dolar, eur: euro } = await getBcvRates();
+    // Cada moneda viene por su lado: si una falla, la otra se sigue dando.
+    return {
+      usd: dolar ? { bsPorUnidad: dolar.rate, actualizada: dolar.updatedAt } : null,
+      eur: euro ? { bsPorUnidad: euro.rate, actualizada: euro.updatedAt } : null,
+    };
+  },
+});
+
 export const adminAgentTools = {
   ventasDelPeriodo,
   reporteFinanciero,
@@ -806,4 +822,5 @@ export const adminAgentTools = {
   gastosDelPeriodo,
   opinionesDeClientes,
   promocionesActivas,
+  tasaBcv,
 };

@@ -9,7 +9,7 @@ import {
 } from "ai";
 import { hasValidSession } from "@/lib/admin-session";
 import { adminAgentTools } from "@/lib/admin-agent-tools";
-import { getBcvRate } from "@/lib/bcv";
+import { getBcvRates, type BcvRates } from "@/lib/bcv";
 import { today } from "@/lib/period";
 import { WHATSAPP_LINK } from "@/lib/config";
 
@@ -23,12 +23,12 @@ export const maxDuration = 30;
  */
 const MAX_STEPS = 6;
 
-function buildSystemPrompt(rate: number | null) {
+function buildSystemPrompt({ usd, eur }: BcvRates) {
   const hoy = today();
 
   return `Te llamas Bruno y eres el asistente interno del panel de Butter Love, una marca venezolana de mantequillas artesanales de maní, pistacho, almendras y merey que vende en Caracas. Hablas con el dueño del negocio, no con un cliente. Si te preguntan quién eres, dilo en una frase y sigue; no te presentes cada vez ni firmes las respuestas.
 
-Hoy es ${hoy}.${rate ? ` La tasa BCV es 1 USD = Bs. ${rate}.` : " La tasa BCV no está disponible ahora mismo."}
+Hoy es ${hoy}.${usd ? ` La tasa BCV es 1 USD = Bs. ${usd.rate}.` : " La tasa BCV del dólar no está disponible ahora mismo."}${eur ? ` 1 EUR = Bs. ${eur.rate}.` : ""} Si preguntan por la tasa del dólar o del euro, o cuándo se actualizó, usa tasaBcv.
 
 DE DÓNDE SACAS LAS CIFRAS
 
@@ -44,7 +44,7 @@ Para preguntas de qué días se vende más, usa patronPorDia y compara el promed
 
 DE QUÉ HABLAS Y DE QUÉ NO
 
-Sólo del negocio: ventas, clientes, inventario, precios, costos, gastos, finanzas, reseñas, pedidos, promociones, y mensajes para clientes. Fuera queda todo lo demás: escribir o corregir código, páginas web, tareas, traducciones, cultura general, noticias, política y deportes. Si te piden algo de fuera, dilo en una frase y ofrece ayudar con el negocio, sin sermón.
+Sólo del negocio: ventas, clientes, inventario, precios, costos, gastos, finanzas, la tasa del BCV, reseñas, pedidos, promociones, y mensajes para clientes. Fuera queda todo lo demás: escribir o corregir código, páginas web, tareas, traducciones, cultura general, noticias, política y deportes. Si te piden algo de fuera, dilo en una frase y ofrece ayudar con el negocio, sin sermón.
 
 COTIZACIONES
 
@@ -85,11 +85,11 @@ export async function POST(req: Request) {
   }
 
   const { messages }: { messages: UIMessage[] } = await req.json();
-  const bcv = await getBcvRate();
+  const bcv = await getBcvRates();
 
   const result = streamText({
     model: deepseek("deepseek-chat"),
-    system: buildSystemPrompt(bcv?.rate ?? null),
+    system: buildSystemPrompt(bcv),
     tools: adminAgentTools,
     stopWhen: isStepCount(MAX_STEPS),
     messages: await convertToModelMessages(messages),
