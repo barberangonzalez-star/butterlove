@@ -195,7 +195,7 @@ export default function BrunoMascot({ onOpen }: { onOpen: () => void }) {
             esconder();
           }}
           aria-label={`Esconder a ${ASSISTANT_NAME}`}
-          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-black/10 bg-white text-[#9a9895] opacity-0 shadow-sm transition-opacity hover:text-[#37352f] focus:opacity-100 group-hover:opacity-100"
+          className="bruno-esconder absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-black/10 bg-white text-[#9a9895] opacity-0 shadow-sm transition-opacity hover:text-[#37352f] focus:opacity-100 group-hover:opacity-100"
         >
           <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
             <path d="M1 1l8 8M9 1l-8 8" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -252,6 +252,12 @@ export default function BrunoMascot({ onOpen }: { onOpen: () => void }) {
         @media (prefers-reduced-motion: reduce) {
           .bruno-anda, .bruno-cuerpo, .bruno-pata-i, .bruno-pata-d,
           .bruno-ojos, .bruno-oreja-i, .bruno-oreja-d { animation: none; }
+        }
+        /* En pantallas táctiles no hay cursor que revele la ✕ de esconder, así
+           que ahí se queda siempre a la vista (discreta) para poder ocultar a
+           Bruno con el dedo. En PC sigue apareciendo sólo al pasar el cursor. */
+        @media (hover: none) {
+          .bruno-esconder { opacity: 1; }
         }
       `}</style>
     </div>
