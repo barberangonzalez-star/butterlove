@@ -175,7 +175,7 @@ export default function BrunoMascot({ onOpen }: { onOpen: () => void }) {
         </div>
       )}
 
-      <div className="group relative">
+      <div className="bruno-anda group relative">
         <button
           type="button"
           onClick={onOpen}
@@ -208,9 +208,31 @@ export default function BrunoMascot({ onOpen }: { onOpen: () => void }) {
           from { opacity: 0; transform: translateY(6px) scale(0.96); }
           to   { opacity: 1; transform: translateY(0) scale(1); }
         }
-        @keyframes bruno-respira {
-          0%, 100% { transform: translateY(0) rotate(0deg); }
-          50%      { transform: translateY(-2px) rotate(-0.6deg); }
+        /* El paseo: se aleja despacio hacia la izquierda y vuelve, sin salirse
+           de la esquina. Como es un bulldog, camina poco y sin prisa. */
+        @keyframes bruno-paseo {
+          0%   { transform: translateX(0); }
+          40%  { transform: translateX(-40px); }
+          55%  { transform: translateX(-40px); }
+          95%  { transform: translateX(0); }
+          100% { transform: translateX(0); }
+        }
+        /* El contoneo: se mece de lado a lado con un rebotecito, el andar
+           bamboleante del bulldog. Va al mismo compás que los pasos. */
+        @keyframes bruno-contoneo {
+          0%, 100% { transform: translateY(0) rotate(-2.2deg); }
+          25%      { transform: translateY(-1.6px) rotate(0deg); }
+          50%      { transform: translateY(0) rotate(2.2deg); }
+          75%      { transform: translateY(-1.6px) rotate(0deg); }
+        }
+        /* Las patitas, alternadas: cuando una sube la otra baja. */
+        @keyframes bruno-paso-a {
+          0%, 100% { transform: translateY(0); }
+          50%      { transform: translateY(-3px); }
+        }
+        @keyframes bruno-paso-b {
+          0%, 100% { transform: translateY(-3px); }
+          50%      { transform: translateY(0); }
         }
         @keyframes bruno-parpadeo {
           0%, 92%, 100% { transform: scaleY(1); }
@@ -220,12 +242,16 @@ export default function BrunoMascot({ onOpen }: { onOpen: () => void }) {
           0%, 88%, 100% { transform: rotate(0deg); }
           94%           { transform: rotate(6deg); }
         }
-        .bruno-cuerpo { animation: bruno-respira 4.2s ease-in-out infinite; transform-origin: 50% 100%; }
-        .bruno-ojos   { animation: bruno-parpadeo 5.5s ease-in-out infinite; transform-origin: 50% 46%; }
+        .bruno-anda    { animation: bruno-paseo 11s ease-in-out infinite; }
+        .bruno-cuerpo  { animation: bruno-contoneo 0.9s ease-in-out infinite; transform-origin: 50% 100%; }
+        .bruno-pata-i  { animation: bruno-paso-a 0.9s ease-in-out infinite; }
+        .bruno-pata-d  { animation: bruno-paso-b 0.9s ease-in-out infinite; }
+        .bruno-ojos    { animation: bruno-parpadeo 5.5s ease-in-out infinite; transform-origin: 50% 46%; }
         .bruno-oreja-i { animation: bruno-oreja 6.3s ease-in-out infinite; transform-origin: 34% 24%; }
         .bruno-oreja-d { animation: bruno-oreja 7.1s ease-in-out infinite; transform-origin: 66% 24%; }
         @media (prefers-reduced-motion: reduce) {
-          .bruno-cuerpo, .bruno-ojos, .bruno-oreja-i, .bruno-oreja-d { animation: none; }
+          .bruno-anda, .bruno-cuerpo, .bruno-pata-i, .bruno-pata-d,
+          .bruno-ojos, .bruno-oreja-i, .bruno-oreja-d { animation: none; }
         }
       `}</style>
     </div>
@@ -240,8 +266,8 @@ export default function BrunoMascot({ onOpen }: { onOpen: () => void }) {
 function BulldogIngles() {
   return (
     <svg
-      width="72"
-      height="72"
+      width="88"
+      height="88"
       viewBox="0 0 100 100"
       fill="none"
       className="drop-shadow-[0_6px_10px_rgba(55,53,47,0.28)]"
@@ -254,9 +280,14 @@ function BulldogIngles() {
         {/* Cuerpo sentado, con el pecho y las patitas más claros */}
         <path d="M25 94c-3-15 2-28 8-33 6-5 28-5 34 0 6 5 11 18 8 33z" fill="#d9a86c" />
         <path d="M39 94c-1-10 0-17 3-21 3-3 13-3 16 0 3 4 4 11 3 21z" fill="#f3ead9" />
-        <ellipse cx="37" cy="92" rx="7" ry="4.6" fill="#f3ead9" />
-        <ellipse cx="63" cy="92" rx="7" ry="4.6" fill="#f3ead9" />
-        <path d="M33.5 92h7M59 92h7" stroke="#c8955a" strokeWidth="1.1" strokeLinecap="round" />
+        <g className="bruno-pata-i">
+          <ellipse cx="37" cy="92" rx="7" ry="4.6" fill="#f3ead9" />
+          <path d="M33.5 92h7" stroke="#c8955a" strokeWidth="1.1" strokeLinecap="round" />
+        </g>
+        <g className="bruno-pata-d">
+          <ellipse cx="63" cy="92" rx="7" ry="4.6" fill="#f3ead9" />
+          <path d="M59 92h7" stroke="#c8955a" strokeWidth="1.1" strokeLinecap="round" />
+        </g>
 
         {/* Collar oscuro con la placa: guiño a Butter Love */}
         <path d="M33 64c6 6 28 6 34 0l-2 6c-7 4-23 4-30 0z" fill="#37352f" />
