@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useSyncExternalStore } from "react";
 import AdminAssistant from "./AdminAssistant";
-import { ASSISTANT_EMOJI, ASSISTANT_NAME } from "./assistant-identity";
+import BrunoMascot from "./BrunoMascot";
 
 const STORAGE_KEY = "butterlove:asistente-abierto";
 
@@ -112,33 +112,10 @@ export default function AdminAssistantShell({
           <AdminAssistant onClose={() => writeOpen(false)} />
         </div>
 
-        {!open && (
-          <button
-            type="button"
-            onClick={() => writeOpen(true)}
-            aria-label={`Abrir a ${ASSISTANT_NAME}`}
-            className="lg:hidden fixed bottom-5 right-5 z-40 w-14 h-14 flex items-center justify-center rounded-full bg-[#37352f] text-2xl shadow-lg active:scale-95 transition-transform"
-          >
-            <span aria-hidden="true">{ASSISTANT_EMOJI}</span>
-          </button>
-        )}
-
-        {/* En PC, con el panel contraído, queda una pestaña discreta al borde:
-            sin ella el asistente sólo se abriría desde el menú. */}
-        {!open && (
-          <button
-            type="button"
-            onClick={() => writeOpen(true)}
-            className="hidden lg:flex fixed right-0 top-1/2 -translate-y-1/2 z-30 flex-col items-center gap-1.5 rounded-l-lg border border-r-0 border-black/10 bg-white py-3 pl-3 pr-2 text-xs font-medium text-[#5f5e5b] shadow-sm hover:bg-black/[0.03]"
-          >
-            <span className="text-sm leading-none" aria-hidden="true">
-              {ASSISTANT_EMOJI}
-            </span>
-            <span className="[writing-mode:vertical-rl] rotate-180">
-              {ASSISTANT_NAME}
-            </span>
-          </button>
-        )}
+        {/* Con el panel cerrado, Bruno mismo —el bulldog— es lo que queda a la
+            vista, igual en teléfono y en PC. Reemplazó al botón redondo y a la
+            pestaña del borde: los dos abrían el chat, pero ninguno tenía cara. */}
+        {!open && <BrunoMascot onOpen={() => writeOpen(true)} />}
       </div>
     </AssistantContext.Provider>
   );
