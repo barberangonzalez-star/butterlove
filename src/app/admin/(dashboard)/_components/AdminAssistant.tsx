@@ -2,7 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport, getToolName, isToolUIPart } from "ai";
+import {
+  DefaultChatTransport,
+  getToolName,
+  isToolUIPart,
+  lastAssistantMessageIsCompleteWithApprovalResponses,
+  type UIMessage,
+} from "ai";
 import { ArrowUp, PanelRightClose } from "lucide-react";
 import CopyButton from "./CopyButton";
 import { ASSISTANT_EMOJI, ASSISTANT_NAME } from "./assistant-identity";
@@ -18,6 +24,8 @@ const TOOL_LABELS: Record<string, string> = {
   listarVentas: "Buscando las ventas…",
   patronPorDia: "Cruzando las ventas por día…",
   armarCotizacion: "Armando la cotización…",
+  prepararVenta: "Armando la venta…",
+  registrarVenta: "Registrando la venta…",
   cliente: "Buscando el cliente…",
   mejoresClientes: "Revisando los clientes…",
   inventarioYPrecios: "Revisando el inventario…",
@@ -25,6 +33,7 @@ const TOOL_LABELS: Record<string, string> = {
   gastosDelPeriodo: "Revisando los gastos…",
   opinionesDeClientes: "Leyendo las reseñas…",
   promocionesActivas: "Viendo las promociones…",
+  tasaBcv: "Consultando la tasa…",
 };
 
 /** Lo que se ofrece con el chat en blanco, para no arrancar de cero. */
@@ -53,10 +62,155 @@ const textOf = (message: { parts: { type: string }[] }) =>
     .join("\n")
     .trim();
 
+/** Lo que `registrarVenta` recibe: el borrador que armó `prepararVenta`. */
+interface SaleDraftView {
+  fecha: string;
+  canal: "detal" | "mayor";
+  cliente?: string;
+  telefono?: string;
+  metodoPago: string;
+  entrega?: string;
+  proveedorEntrega?: string;
+  cobroEntregaUsd?: number;
+  lineas: { producto: string; cantidad: number; precioUnitarioUsd: number }[];
+  totalUsd: number;
+  notas?: string;
+}
+
+interface SaleResultView {
+  registrada: boolean;
+  numero?: number | null;
+  numeroDelMes?: number | null;
+  error?: string;
+}
+
+type SalePart = {
+  toolCallId: string;
+  state: string;
+  input?: unknown;
+  output?: unknown;
+  errorText?: string;
+  approval?: { id: string; approved?: boolean };
+};
+
+/** Las ventas que Bruno propuso en este mensaje. */
+const saleParts = (message: UIMessage): SalePart[] =>
+  message.parts
+    .filter(isToolUIPart)
+    .filter((part) => getToolName(part) === "registrarVenta") as SalePart[];
+
+const money = (n: number) => `$${n.toFixed(2)}`;
+
+const longDate = (iso: string) =>
+  new Date(`${iso}T00:00:00Z`).toLocaleDateString("es-VE", {
+    timeZone: "UTC",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+
+/**
+ * La venta que Bruno quiere registrar, tal como se va a guardar.
+ *
+ * Es el único punto donde el asistente escribe en la base, así que no alcanza
+ * con que el modelo diga "¿la registro?": la tarjeta pinta el mismo borrador
+ * que recibe el servidor, y nada se guarda hasta tocar "Registrar".
+ */
+function SaleApprovalCard({
+  part,
+  onRespond,
+}: {
+  part: SalePart;
+  onRespond: (approved: boolean) => void;
+}) {
+  const draft = part.input as SaleDraftView | undefined;
+  if (!draft?.lineas) return null;
+
+  const result = part.output as SaleResultView | undefined;
+  const status =
+    part.state === "approval-requested"
+      ? null
+      : part.state === "output-available"
+        ? result?.registrada
+          ? `Registrada${result.numero ? ` · #${result.numero}` : ""}${result.numeroDelMes ? ` · ${result.numeroDelMes}.ª del mes` : ""}`
+          : `No se registró: ${result?.error ?? "error desconocido"}`
+        : part.state === "output-error"
+          ? `No se registró: ${part.errorText ?? "error desconocido"}`
+          : part.state === "output-denied" || part.approval?.approved === false
+            ? "Cancelada: no se guardó."
+            : "Registrando…";
+
+  const delivery = [draft.entrega, draft.proveedorEntrega].filter(Boolean).join(" · ");
+
+  return (
+    <div className="rounded-2xl border border-black/15 bg-[#fbfaf8] px-3 py-2.5">
+      <p className="text-[11px] uppercase tracking-wide text-[#787774]">
+        Registrar venta{draft.canal === "mayor" ? " al mayor" : ""}
+      </p>
+      <p className="mt-0.5 font-medium first-letter:uppercase">{longDate(draft.fecha)}</p>
+      {(draft.cliente || draft.telefono) && (
+        <p className="text-[#5f5e5b]">
+          {[draft.cliente, draft.telefono].filter(Boolean).join(" · ")}
+        </p>
+      )}
+      <ul className="mt-2 space-y-0.5">
+        {draft.lineas.map((line, i) => (
+          <li key={i} className="flex justify-between gap-3">
+            <span>
+              {line.cantidad}× {line.producto}
+            </span>
+            <span className="text-[#5f5e5b] tabular-nums">
+              {money(line.cantidad * line.precioUnitarioUsd)}
+            </span>
+          </li>
+        ))}
+        {typeof draft.cobroEntregaUsd === "number" && draft.cobroEntregaUsd > 0 && (
+          <li className="flex justify-between gap-3">
+            <span>Delivery</span>
+            <span className="text-[#5f5e5b] tabular-nums">{money(draft.cobroEntregaUsd)}</span>
+          </li>
+        )}
+      </ul>
+      <div className="mt-2 pt-2 border-t border-black/10 flex justify-between gap-3">
+        <span className="text-[#5f5e5b]">
+          {draft.metodoPago}
+          {delivery && ` · ${delivery}`}
+        </span>
+        <span className="font-semibold tabular-nums">{money(draft.totalUsd)}</span>
+      </div>
+      {draft.notas && <p className="mt-1 text-xs text-[#787774]">{draft.notas}</p>}
+
+      {status === null ? (
+        <div className="mt-3 flex gap-2">
+          <button
+            type="button"
+            onClick={() => onRespond(true)}
+            className="flex-1 h-9 rounded-full bg-[#37352f] text-white text-sm font-medium"
+          >
+            Registrar
+          </button>
+          <button
+            type="button"
+            onClick={() => onRespond(false)}
+            className="flex-1 h-9 rounded-full border border-black/15 text-sm text-[#5f5e5b] hover:bg-black/5"
+          >
+            Cancelar
+          </button>
+        </div>
+      ) : (
+        <p className="mt-2 text-xs font-medium text-[#5f5e5b]">{status}</p>
+      )}
+    </div>
+  );
+}
+
 export default function AdminAssistant({ onClose }: { onClose: () => void }) {
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status } = useChat({
+  const { messages, sendMessage, status, addToolApprovalResponse } = useChat({
     transport: new DefaultChatTransport({ api: "/api/admin/chat" }),
+    // Al aprobar o rechazar una venta, la conversación sigue sola: el servidor
+    // la guarda (o no) y Bruno contesta, sin que haya que escribir nada.
+    sendAutomaticallyWhen: lastAssistantMessageIsCompleteWithApprovalResponses,
   });
   const endRef = useRef<HTMLDivElement>(null);
 
@@ -107,8 +261,8 @@ export default function AdminAssistant({ onClose }: { onClose: () => void }) {
           <div>
             <p className="text-[#787774]">
               Soy {ASSISTANT_NAME}. Pregúntame por tus ventas, clientes,
-              inventario o cuentas, o pídeme una cotización. Leo los datos
-              reales del panel.
+              inventario o cuentas, pídeme una cotización o dime una venta
+              para registrarla. Leo los datos reales del panel.
             </p>
             <div className="mt-3 flex flex-wrap gap-1.5">
               {SUGGESTIONS.map((suggestion) => (
@@ -127,7 +281,8 @@ export default function AdminAssistant({ onClose }: { onClose: () => void }) {
 
         {messages.map((message) => {
           const text = textOf(message);
-          if (!text) return null;
+          const sales = message.role === "assistant" ? saleParts(message) : [];
+          if (!text && sales.length === 0) return null;
 
           if (message.role === "user") {
             return (
@@ -140,15 +295,29 @@ export default function AdminAssistant({ onClose }: { onClose: () => void }) {
           }
 
           return (
-            <div key={message.id} className="group">
+            <div key={message.id} className="group space-y-2">
+              {sales.map((part) => (
+                <SaleApprovalCard
+                  key={part.toolCallId}
+                  part={part}
+                  onRespond={(approved) =>
+                    part.approval &&
+                    addToolApprovalResponse({ id: part.approval.id, approved })
+                  }
+                />
+              ))}
+              {text && (
               <div className="rounded-2xl rounded-bl-sm bg-white border border-black/10 px-3 py-2 whitespace-pre-wrap break-words">
                 {formatted(text)}
               </div>
+              )}
               {/* Copiar es el gesto principal: la mitad de lo que se le pide son
                   mensajes para mandarle a un cliente por WhatsApp. */}
-              <div className="mt-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
-                <CopyButton text={text} label="Copiar" className="h-7 px-2 text-xs" />
-              </div>
+              {text && (
+                <div className="mt-1 opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity">
+                  <CopyButton text={text} label="Copiar" className="h-7 px-2 text-xs" />
+                </div>
+              )}
             </div>
           );
         })}

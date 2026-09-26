@@ -5,7 +5,7 @@ import { getRangeSummary, getSales } from "./sales-data";
 import { getProductSales, getRangeReport } from "./finance-data";
 import { getCustomers } from "./customers-data";
 import { foldText } from "./customers";
-import { getAdminProducts, type AdminProduct } from "./products-data";
+import { getAdminProducts } from "./products-data";
 import { getSupplyItems } from "./inventory-data";
 import { getWholesaleCatalog } from "./wholesale-data";
 import { getPendingOrders } from "./pending-orders-data";
@@ -18,14 +18,17 @@ import { getBcvRate, getBcvRates } from "./bcv";
 import { PAGO_MOVIL, deliveryPriceForZone } from "./config";
 import { buildQuote, fmtUsd, quoteAccount, type QuoteLine } from "./quote";
 import { productTitle, sizeLabel } from "./products";
+import { matchProduct } from "./product-match";
+import { draftSale, recordSale } from "./agent-sale";
 
 /**
  * Lo que el asistente del panel puede consultar.
  *
- * Todas leen; ninguna escribe. Es a propósito: un modelo que entiende mal una
- * frase devuelve una respuesta equivocada, que se nota y se corrige, en vez de
- * mover una venta o un inventario, que no se nota hasta que cuadran mal las
- * cuentas del mes.
+ * Todas leen menos una: registrarVenta. Es a propósito: un modelo que entiende
+ * mal una frase devuelve una respuesta equivocada, que se nota y se corrige,
+ * en vez de mover una venta o un inventario, que no se nota hasta que cuadran
+ * mal las cuentas del mes. Por eso registrarVenta no corre sola: el chat
+ * muestra la venta tal como se va a guardar y espera a que el dueño la apruebe.
  *
  * Cada una envuelve una función que ya usa alguna pantalla del panel, así que
  * las cifras del asistente son las mismas que las de esa pantalla. Lo que se
@@ -486,45 +489,6 @@ const inventarioYPrecios = tool({
 
 // ── Cotizaciones ────────────────────────────────────────────────────────────
 
-/**
- * El sabor que quiso decir quien cotiza.
- *
- * El nombre llega como se habla —"maní", "dúo maní", "mantequilla de
- * pistacho"—, así que no alcanza con buscar el primero que contenga la
- * palabra: "dúo maní" contiene "maní", y a la primera coincidencia le tocaría
- * el frasco suelto en vez del dúo. Se puntúan todos y gana el más específico.
- */
-function matchProduct(name: string | undefined, catalog: AdminProduct[]) {
-  const term = foldText(name ?? "").trim();
-  if (!term) return undefined;
-
-  const scored = catalog
-    .map((row) => {
-      const title = foldText(productTitle(row));
-      const plain = foldText(row.name);
-
-      // Un nombre exacto gana siempre. Después, que el título contenga lo
-      // pedido. Y de último que lo pedido contenga el nombre del producto, que
-      // es la más floja: ahí gana el nombre más largo, o sea el más específico.
-      const score =
-        title === term || plain === term
-          ? 100
-          : title.includes(term)
-            ? 60 + term.length
-            : term.includes(plain)
-              ? 20 + plain.length
-              : plain.includes(term)
-                ? 10 + term.length
-                : 0;
-
-      return { row, score, length: plain.length };
-    })
-    .filter((candidate) => candidate.score > 0)
-    .sort((a, b) => b.score - a.score || b.length - a.length);
-
-  return scored[0]?.row;
-}
-
 const armarCotizacion = tool({
   description:
     "Arma una cotización lista para pegarle al cliente: líneas con precios, delivery, total en dólares y bolívares, y los datos de Pago Móvil. Los precios los pone el catálogo, no hay que dárselos. Para cotízame tantos de tal sabor, cuánto le sale a alguien tal pedido.",
@@ -793,6 +757,105 @@ const promocionesActivas = tool({
   },
 });
 
+// ── Registrar ventas ────────────────────────────────────────────────────────
+
+const draftLineShape = z.object({
+  productoId: z.number().int(),
+  producto: z.string(),
+  gramos: z.number().int(),
+  cantidad: z.number().int(),
+  precioUnitarioUsd: z.number(),
+});
+
+const saleDraftShape = z.object({
+  fecha: z.string(),
+  canal: z.enum(["detal", "mayor"]),
+  cliente: z.string().optional(),
+  telefono: z.string().optional(),
+  metodoPago: z.string(),
+  entrega: z.string().optional(),
+  proveedorEntrega: z.string().optional(),
+  zona: z.string().optional(),
+  estado: z.string().optional(),
+  cobroEntregaUsd: z.number().optional(),
+  lineas: z.array(draftLineShape),
+  totalUsd: z.number(),
+  notas: z.string().optional(),
+});
+
+const prepararVenta = tool({
+  description:
+    "Arma el borrador de una venta para registrarla: reconoce los productos, pone precios de catálogo, calcula el total y resuelve la fecha. No guarda nada. Siempre va antes de registrarVenta.",
+  inputSchema: z.object({
+    productos: z
+      .array(
+        z.object({
+          producto: z.string().describe("El sabor como lo dijo la persona: maní, dúo maní, chocomaní."),
+          gramos: z.number().int().optional().describe("Tamaño en gramos, si lo dijo."),
+          cantidad: z.number().int().describe("Cuántos frascos."),
+          precioUnitario: z
+            .number()
+            .optional()
+            .describe("Sólo si se cobró un precio distinto al de catálogo."),
+        }),
+      )
+      .describe("Lo que se vendió."),
+    fecha: z
+      .string()
+      .optional()
+      .describe("Fecha exacta YYYY-MM-DD, sólo si la dijeron con día y mes."),
+    haceDias: z
+      .number()
+      .int()
+      .optional()
+      .describe("0 hoy (por defecto), 1 ayer, 2 anteayer. Usa esto en vez de calcular la fecha."),
+    diaDeLaSemana: z
+      .string()
+      .optional()
+      .describe("'lunes', 'martes'…: el último que ya pasó, hoy incluido."),
+    metodoPago: z.string().describe("Pago Móvil, USD en efectivo o Binance."),
+    cliente: z.string().optional().describe("Nombre del cliente."),
+    telefono: z.string().optional(),
+    canal: z.enum(["detal", "mayor"]).optional().describe("Detal por defecto."),
+    entrega: z.string().optional().describe("Pickup, Delivery o Envío nacional."),
+    proveedorEntrega: z
+      .string()
+      .optional()
+      .describe("Quién lo llevó: Ridery, Yummy, Nosotros; o la agencia del envío nacional (MRW, Zoom…)."),
+    zona: z.string().optional().describe("Zona de Caracas del cliente, si la dijeron."),
+    estado: z.string().optional().describe("Estado de destino, sólo en envío nacional."),
+    cobroEntregaUsd: z
+      .number()
+      .optional()
+      .describe("Lo que se le cobró por el delivery, sólo cuando lo llevamos nosotros."),
+    totalUsd: z
+      .number()
+      .optional()
+      .describe("Sólo si el total cobrado no es el de los precios (un descuento, un redondeo)."),
+    notas: z.string().optional(),
+  }),
+  execute: async (input) => draftSale(input),
+});
+
+const registrarVenta = tool({
+  description:
+    "Guarda en el panel la venta que armó prepararVenta. Pásale el campo venta tal cual vino, sin cambiarle nada. El dueño la ve y la aprueba antes de que se guarde.",
+  inputSchema: saleDraftShape,
+  // Es la única herramienta que escribe: no corre hasta que el dueño toca
+  // "Registrar" en la tarjeta que muestra la venta.
+  needsApproval: true,
+  execute: async (venta) => {
+    try {
+      return { registrada: true, ...(await recordSale(venta)) };
+    } catch (error) {
+      return {
+        registrada: false,
+        error: error instanceof Error ? error.message : "No se pudo registrar la venta.",
+      };
+    }
+  },
+});
+
 // ── Tasa del BCV ────────────────────────────────────────────────────────────
 
 const tasaBcv = tool({
@@ -815,6 +878,8 @@ export const adminAgentTools = {
   listarVentas,
   patronPorDia,
   armarCotizacion,
+  prepararVenta,
+  registrarVenta,
   cliente,
   mejoresClientes,
   inventarioYPrecios,
