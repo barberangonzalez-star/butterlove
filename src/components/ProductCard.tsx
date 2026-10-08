@@ -102,30 +102,36 @@ export default function ProductCard({
 
       </div>
 
-      {/* Pie de la tarjeta: nombre, precio y el botón, todo en un renglón. El
-          gramaje no se nombra —es siempre el mismo— y así el precio queda
-          pegado al nombre, que es como se pregunta en la calle: "¿a cómo la
-          de maní?". */}
-      <div className="px-4 pt-3 pb-4 flex items-center justify-between gap-2">
-        <Link
-          href={`/productos/${product.key}`}
-          className="min-w-0 font-display font-700 text-base lg:text-[17px] leading-tight text-ink hover:underline"
-        >
-          {title}{" "}
-          {/* El precio va un punto más chico que el nombre: manda el nombre,
-              y con los dos al mismo cuerpo el renglón no alcanza. */}
-          <span className="whitespace-nowrap text-sm lg:text-base">
-            ${size.price.toFixed(2)}
-          </span>
-        </Link>
-        {/* En el teléfono el botón va más chico para que el nombre más largo
-            ("Dúo Pistacho + Almendras $38.00") siga cabiendo en el renglón. */}
-        <button
-          onClick={() => addItem(product.key, size.grams, size.price)}
-          className="shrink-0 rounded-full bg-ink text-cream px-3 py-1.5 text-xs font-semibold hover:opacity-85 transition-opacity"
-        >
-          Agregar
-        </button>
+      {/* Pie de la tarjeta: el nombre arriba y, debajo, el precio frente al
+          botón. Van en dos renglones para que el precio tenga cuerpo propio:
+          pegado al nombre y más chico se perdía, y es lo primero que busca
+          quien está viendo la vitrina —"¿a cómo la de maní?"—. El gramaje no
+          se nombra porque es siempre el mismo.
+          El fondo es el color del sabor aclarado con un velo blanco: el pie
+          se lee como parte de la misma tarjeta y el nombre deja de flotar
+          sobre el blanco de la página. */}
+      <div className={`${product.bgClass} flex-1`}>
+        <div className="h-full bg-white/60 px-4 pt-3 pb-4 flex flex-col gap-1.5">
+          <Link
+            href={`/productos/${product.key}`}
+            className="font-display font-700 text-lg lg:text-xl leading-tight text-ink hover:underline"
+          >
+            {title}
+          </Link>
+          <div className="flex items-center justify-between gap-2">
+            <span className="font-display font-700 text-2xl leading-none text-ink">
+              ${size.price.toFixed(2)}
+            </span>
+            {/* Con el renglón para él solo, el botón crece a un tamaño cómodo
+                para el pulgar. */}
+            <button
+              onClick={() => addItem(product.key, size.grams, size.price)}
+              className="shrink-0 rounded-full bg-ink text-cream px-4 py-2 text-sm font-semibold hover:opacity-85 transition-opacity"
+            >
+              Agregar
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   );
