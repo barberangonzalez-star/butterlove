@@ -12,6 +12,7 @@ import {
 } from "@/lib/config";
 import PromoVideo from "./_components/PromoVideo";
 import PromoBuy from "./_components/PromoBuy";
+import PromoCountdown from "./_components/PromoCountdown";
 import ReviewList from "@/components/ReviewList";
 import StarRating from "@/components/StarRating";
 import { getProductReviews } from "@/lib/reviews-data";
@@ -130,6 +131,7 @@ export default async function LandingPromoMani() {
   return (
     // El espacio de abajo es del botón flotante: sin él, tapa el cierre.
     <div className="mx-auto max-w-xl pb-32">
+      <PromoCountdown />
       {/* Abre con la pieza del precio: dice el antes y el después del frasco
           en números grandes, que es lo primero que alguien quiere saber cuando
           llega desde un anuncio de descuento. Va en 4:5 —su proporción real—

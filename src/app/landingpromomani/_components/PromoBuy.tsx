@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Check, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { productTitle } from "@/lib/products";
 import { trackViewContent } from "@/lib/pixel";
 import { LANDING_FREE_DELIVERY } from "@/lib/config";
-import type { Pack, Upsell } from "../packs";
+import { UNIT_KEY, type Pack, type Upsell } from "../packs";
+import { usePromoClock } from "./usePromoClock";
 
 /** Cuántos frascos se dibujan como mucho; el resto se cuenta con un número. */
 const MAX_JARS_DRAWN = 3;
@@ -27,6 +29,8 @@ export default function PromoBuy({
   upsells: Upsell[];
 }) {
   const { addItem, openCart, totalItems, isOpen, items, setPromo } = useCart();
+  const remaining = usePromoClock();
+  const expired = remaining !== null && remaining <= 0;
   const [upsellOpen, setUpsellOpen] = useState(false);
   // Arranca en el pack destacado: es la oferta que la página viene contando
   // desde el titular, y llegar acá con otra cosa marcada la contradice.
@@ -70,6 +74,46 @@ export default function PromoBuy({
   }, []);
 
   if (!pack) return null;
+
+  // Se acabó la hora: los combos dejan de ofrecerse. Lo que ya estaba en el
+  // pedido se respeta —se armó a tiempo— y se puede terminar.
+  if (expired) {
+    return (
+      <section id="combos" className="px-4 py-14 sm:py-20 scroll-mt-4">
+        <div className="rounded-[34px] bg-surface px-6 py-8 text-center">
+          <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">
+            Promo terminada
+          </p>
+          <h2 className="mt-2 font-display font-700 text-3xl text-ink">
+            Tu hora de promo se acabó
+          </h2>
+          <p className="mt-3 text-ink-soft leading-relaxed">
+            Los precios de combo eran por una hora desde que llegaste. La
+            mantequilla de maní sigue en la tienda, a su precio de siempre.
+          </p>
+          {totalItems > 0 && (
+            <button
+              type="button"
+              onClick={openCart}
+              className="mt-6 w-full rounded-full bg-ink text-cream px-6 py-4 font-bold hover:opacity-85 transition-opacity"
+            >
+              Terminar mi pedido
+            </button>
+          )}
+          <Link
+            href={`/productos/${UNIT_KEY}`}
+            className={`mt-3 block w-full rounded-full px-6 py-4 font-bold transition-opacity ${
+              totalItems > 0
+                ? "ring-1 ring-ink/20 text-ink hover:bg-ink/5"
+                : "bg-ink text-cream hover:opacity-85"
+            }`}
+          >
+            Ver en la tienda
+          </Link>
+        </div>
+      </section>
+    );
+  }
 
   /**
    * Mete el combo al pedido, con lo que se haya sumado de la oferta. La marca
