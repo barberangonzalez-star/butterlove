@@ -50,17 +50,17 @@ export default function PromoBuy({
     undefined,
   );
 
-  // Le avisa a Meta que alguien está viendo la promo. Se reporta el frasco
-  // suelto, que es el producto del que habla la página; los packs se reportan
-  // solos cuando se agregan al pedido.
+  // Le avisa a Meta que alguien está viendo la promo. Se reporta el pack
+  // destacado, que es la oferta con la que abre la página; los demás se
+  // reportan solos cuando se agregan al pedido.
   useEffect(() => {
-    const unit = packs.find((p) => p.jars === 1) ?? packs[0];
-    if (!unit) return;
+    const shown = packs.find((p) => p.featured) ?? packs[0];
+    if (!shown) return;
     trackViewContent({
-      key: unit.product.key,
-      grams: unit.grams,
-      name: productTitle(unit.product),
-      price: unit.price,
+      key: shown.product.key,
+      grams: shown.grams,
+      name: productTitle(shown.product),
+      price: shown.price,
     });
   }, [packs]);
 

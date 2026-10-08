@@ -155,7 +155,7 @@ export function deliveryPriceForZone(zone: string | null | undefined) {
  */
 export const LANDING_FREE_DELIVERY = {
   id: "landing-mani",
-  packKeys: ["mani", "duo-mani", "trio-mani", "pack-familiar-mani"],
+  packKeys: ["trio-mani", "pack-familiar-mani"],
   zones: ["El Marqués", "La Urbina", "Sebucán", "Los Palos Grandes"],
 };
 

@@ -1,15 +1,20 @@
 import type { Product } from "@/lib/products";
 
 /**
- * Los tres packs que vende la landing, en el orden en que se muestran.
+ * Los packs que vende la landing, en el orden en que se muestran.
  *
- * Cada uno es un producto real del catálogo: el frasco suelto y los dos combos
- * de maní. El precio no se escribe acá —sale de la base de datos, como en la
- * tienda— para que subir un precio siga siendo un solo cambio en el panel y no
- * dos verdades distintas. Lo que sí vive acá es cómo se cuenta la oferta:
- * cuántos frascos trae, cómo se llama y qué promesa carga.
+ * Son sólo los combos grandes: el frasco suelto y el dúo se sacaron porque la
+ * landing existe para subir el ticket, y ofrecer uno o dos frascos le daba al
+ * cliente una salida barata justo en el momento de decidir. Quien quiera uno
+ * solo lo sigue encontrando en la tienda.
  *
- * `duo-mani` está en la vitrina; `trio-mani` no, y por eso la landing pide sus
+ * Cada uno es un producto real del catálogo. El precio no se escribe acá —sale
+ * de la base de datos, como en la tienda— para que subir un precio siga siendo
+ * un solo cambio en el panel y no dos verdades distintas. Lo que sí vive acá es
+ * cómo se cuenta la oferta: cuántos frascos trae, cómo se llama y qué promesa
+ * carga.
+ *
+ * Ninguno de los dos está en la vitrina, y por eso la landing pide sus
  * productos por `key` en vez de por la lista de la tienda.
  */
 export interface PackDef {
@@ -22,18 +27,6 @@ export interface PackDef {
 }
 
 export const PACKS: PackDef[] = [
-  {
-    key: "mani",
-    jars: 1,
-    title: "1 frasco",
-    pitch: "Para conocerla.",
-  },
-  {
-    key: "duo-mani",
-    jars: 2,
-    title: "2 frascos",
-    pitch: "Uno en casa, uno en la oficina.",
-  },
   {
     key: "trio-mani",
     jars: 3,
@@ -107,6 +100,9 @@ export const PACK_KEYS = PACKS.map((p) => p.key);
  * las líneas del pedido.
  */
 export const LANDING_KEYS = [
+  // El frasco suelto ya no se vende acá, pero su precio es contra el que se
+  // calcula el ahorro de cada pack, y las reseñas que se muestran son suyas.
+  "mani",
   ...PACK_KEYS,
   ...UPSELLS.flatMap((u) => [u.key, u.regularKey]),
 ];

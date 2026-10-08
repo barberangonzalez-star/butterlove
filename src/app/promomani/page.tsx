@@ -30,7 +30,7 @@ import { buildPacks, buildUpsells, LANDING_KEYS, UNIT_KEY } from "./packs";
 export const metadata: Metadata = {
   title: "Promo mantequilla de maní",
   description:
-    "Mantequilla de maní 100% natural, un solo ingrediente. Combos de 2, 3 y 6 frascos con descuento, solo por este enlace.",
+    "Mantequilla de maní 100% natural, un solo ingrediente. Combos de 3 y 6 frascos con descuento, solo por este enlace.",
   // La promo se reparte por anuncio y por link, no por buscador: indexarla
   // competiría con la ficha del producto por la misma búsqueda y pondría un
   // precio de campaña en los resultados mucho después de que la campaña
@@ -91,7 +91,7 @@ const uses = [
 const steps = [
   {
     title: "Elige tu combo",
-    text: "1, 2, 3 o 6 frascos. El descuento se aplica solo.",
+    text: "3 o 6 frascos. El descuento se aplica solo.",
   },
   {
     title: "Confirma por WhatsApp",
