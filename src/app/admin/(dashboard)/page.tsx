@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp } from "lucide-react";
-import { getRangeSummary } from "@/lib/sales-data";
+import { getRangeSummary, getSales } from "@/lib/sales-data";
 import { getRangeReport } from "@/lib/finance-data";
 import { getBcvRates } from "@/lib/bcv";
 import {
@@ -13,6 +13,10 @@ import {
 } from "@/lib/period";
 import BcvConverterWidget from "./_components/BcvConverterWidget";
 import PeriodPicker from "./_components/PeriodPicker";
+import SalesDetail, {
+  isDetailKind,
+  type DetailKind,
+} from "./_components/SalesDetail";
 
 const fmtUsd = (n: number) => `$${n.toFixed(2)}`;
 const fmtBs = (n: number) =>
@@ -22,9 +26,15 @@ const fmtCount = (n: number) => String(n);
 export default async function AdminDashboardPage({
   searchParams,
 }: {
-  searchParams: Promise<{ vista?: string; fecha?: string; hasta?: string }>;
+  searchParams: Promise<{
+    vista?: string;
+    fecha?: string;
+    hasta?: string;
+    detalle?: string;
+  }>;
 }) {
-  const { vista, fecha, hasta } = await searchParams;
+  const { vista, fecha, hasta, detalle } = await searchParams;
+  const detail = isDetailKind(detalle) ? detalle : null;
 
   // Sin nada en la URL el dashboard abre en el mes en curso, que es lo que
   // mostraba antes de poder elegir.
@@ -36,19 +46,36 @@ export default async function AdminDashboardPage({
   );
   const before = comparisonPeriod(period);
 
-  const [summary, bcv, report, prevSummary, prevReport] = await Promise.all([
+  // Tocar una tarjeta abre su resumen y tocarla de nuevo lo cierra. Vive en la
+  // URL, como el período, para que el botón de atrás lo cierre.
+  const periodQuery = new URLSearchParams({ vista: period.kind, fecha: period.anchor });
+  if (period.kind === "rango") periodQuery.set("hasta", period.to);
+  const detailHref = (kind: DetailKind | null) => {
+    const query = new URLSearchParams(periodQuery);
+    if (kind) query.set("detalle", kind);
+    return `/admin?${query}`;
+  };
+  const toggleHref = (kind: DetailKind) => detailHref(detail === kind ? null : kind);
+
+  const [summary, bcv, report, prevSummary, prevReport, detailSales] = await Promise.all([
     getRangeSummary(period.from, period.to),
     getBcvRates(),
     getRangeReport(period.from, period.to),
     getRangeSummary(before.from, before.to),
     getRangeReport(before.from, before.to),
+    // Las ventas una por una sólo hacen falta con un resumen abierto.
+    detail ? getSales({ from: period.from, to: period.to }) : Promise.resolve([]),
   ]);
 
   return (
     <div>
       <h1 className="text-xl font-semibold mb-3">Dashboard</h1>
       <div className="mb-2">
-        <PeriodPicker period={period} base="/admin" />
+        <PeriodPicker
+          period={period}
+          base="/admin"
+          params={detail ? { detalle: detail } : {}}
+        />
       </div>
       {/* El período de comparación se dice una vez acá y no en cada tarjeta,
           que repetirlo seis veces sería ruido. */}
@@ -98,6 +125,8 @@ export default async function AdminDashboardPage({
             current={summary.totalUsd}
             previous={prevSummary.totalUsd}
             format={fmtUsd}
+            href={toggleHref("ventas")}
+            active={detail === "ventas"}
           />
           <StatCard
             label="Ventas (Bs.)"
@@ -105,6 +134,8 @@ export default async function AdminDashboardPage({
             current={summary.totalBs}
             previous={prevSummary.totalBs}
             format={fmtBs}
+            href={toggleHref("ventas")}
+            active={detail === "ventas"}
           />
           <StatCard
             label="Pedidos registrados"
@@ -112,6 +143,8 @@ export default async function AdminDashboardPage({
             current={summary.count}
             previous={prevSummary.count}
             format={fmtCount}
+            href={toggleHref("pedidos")}
+            active={detail === "pedidos"}
           />
           <StatCard label="Producto más vendido" value={summary.topProduct ?? "—"} />
           {/* Las dos tasas son las de hoy, no las del período: son el cambio al
@@ -128,6 +161,17 @@ export default async function AdminDashboardPage({
 
         <BcvConverterWidget />
       </div>
+
+      {detail && (
+        <SalesDetail
+          kind={detail}
+          sales={detailSales}
+          from={period.from}
+          to={period.to}
+          label={period.label}
+          closeHref={detailHref(null)}
+        />
+      )}
     </div>
   );
 }
@@ -186,6 +230,8 @@ function StatCard({
   current,
   previous,
   format,
+  href,
+  active = false,
 }: {
   label: string;
   value: string;
@@ -193,9 +239,16 @@ function StatCard({
   current?: number;
   previous?: number;
   format?: (n: number) => string;
+  /** Si la tarjeta abre un resumen al tocarla. */
+  href?: string;
+  active?: boolean;
 }) {
-  return (
-    <div className="border border-black/10 rounded-lg bg-white p-4">
+  const body = (
+    <div
+      className={`border rounded-lg bg-white p-4 h-full ${
+        href ? "hover:bg-black/[0.02] transition-colors" : ""
+      } ${active ? "border-[#37352f]" : "border-black/10"}`}
+    >
       <p className="text-xs font-medium text-[#787774] uppercase tracking-wide mb-1">
         {label}
       </p>
@@ -205,6 +258,17 @@ function StatCard({
           <Delta current={current} previous={previous} format={format} />
         </p>
       )}
+      {href && (
+        <p className="text-[11px] text-[#787774] mt-1">
+          {active ? "Ocultar resumen" : "Ver resumen"}
+        </p>
+      )}
     </div>
+  );
+  if (!href) return body;
+  return (
+    <Link href={href} scroll={false} aria-expanded={active} className="block">
+      {body}
+    </Link>
   );
 }
