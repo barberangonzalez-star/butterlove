@@ -39,11 +39,77 @@ export const PACKS: PackDef[] = [
     jars: 3,
     title: "3 frascos",
     pitch: "Para que no se acabe.",
+  },
+  {
+    key: "pack-familiar-mani",
+    jars: 6,
+    title: "6 frascos",
+    pitch: "Pack familiar, para los que ya saben que no dura.",
+    // El destacado es el que sube el ticket: la página arranca con él
+    // elegido, y es el que más ahorra por frasco.
     featured: true,
   },
 ];
 
+/**
+ * Lo que se ofrece sumar al pedido después de elegir un combo, cada uno con
+ * el sabor de la tienda contra el que se compara su precio. El precio de
+ * promo y el de "antes" salen los dos de la base de datos: escrito acá, el
+ * "antes" quedaría viejo el día que suba el frasco en la tienda.
+ */
+export interface UpsellDef {
+  key: string;
+  /** El frasco de la tienda del que este es la versión rebajada. */
+  regularKey: string;
+  name: string;
+}
+
+export const UPSELLS: UpsellDef[] = [
+  { key: "chocomani-promo", regularKey: "chocomani", name: "Chocomaní" },
+  { key: "merey-promo", regularKey: "merey", name: "Merey" },
+];
+
+export interface Upsell extends UpsellDef {
+  product: Product;
+  grams: number;
+  price: number;
+  /** Lo que cuesta el mismo frasco en la tienda. */
+  regularPrice: number;
+}
+
+export function buildUpsells(products: Product[]): Upsell[] {
+  return UPSELLS.flatMap((def) => {
+    const product = products.find((p) => p.key === def.key);
+    const size = product?.sizes.find((s) => s.grams === UNIT_GRAMS);
+    const regular = products
+      .find((p) => p.key === def.regularKey)
+      ?.sizes.find((s) => s.grams === UNIT_GRAMS);
+    // Sin el producto de promo, o si no sale más barato que el de la tienda,
+    // no hay oferta que mostrar.
+    if (!product || !size || !regular || size.price >= regular.price) return [];
+    return [
+      {
+        ...def,
+        product,
+        grams: size.grams,
+        price: size.price,
+        regularPrice: regular.price,
+      },
+    ];
+  });
+}
+
 export const PACK_KEYS = PACKS.map((p) => p.key);
+
+/**
+ * Todo lo que la landing necesita del catálogo: los packs, los agregados y los
+ * sabores contra los que se comparan. El carrito también lo usa para nombrar
+ * las líneas del pedido.
+ */
+export const LANDING_KEYS = [
+  ...PACK_KEYS,
+  ...UPSELLS.flatMap((u) => [u.key, u.regularKey]),
+];
 
 /** El frasco suelto de 230g: la vara con la que se mide el ahorro. */
 export const UNIT_KEY = "mani";

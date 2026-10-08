@@ -139,6 +139,46 @@ export function deliveryPriceForZone(zone: string | null | undefined) {
   return match?.price ?? null;
 }
 
+/**
+ * Delivery gratis para los pedidos que salen de la landing del maní, en las
+ * zonas que quedan de camino.
+ *
+ * La landing marca el carrito con `id` al agregar un combo, y el checkout
+ * ofrece estas zonas en $0 sólo si el pedido trae además uno de sus packs: la
+ * marca sola no alcanza, porque queda guardada aunque después se vacíe el
+ * pedido y se arme otro desde la tienda. El servidor repite la misma cuenta,
+ * así que un navegador no puede reclamar la promo sin el pack.
+ *
+ * Los Palos Grandes también está en la lista de precios, agrupada con Miranda
+ * y La Castellana a $3: con la promo aparece aparte y gratis, y esas dos
+ * siguen cobrando lo de siempre.
+ */
+export const LANDING_FREE_DELIVERY = {
+  id: "landing-mani",
+  packKeys: ["mani", "duo-mani", "trio-mani", "pack-familiar-mani"],
+  zones: ["El Marqués", "La Urbina", "Sebucán", "Los Palos Grandes"],
+};
+
+/** Si un pedido con esta marca y estos productos lleva el delivery gratis. */
+export function hasFreeDeliveryPromo(
+  promo: string | null | undefined,
+  itemKeys: string[],
+) {
+  return (
+    promo === LANDING_FREE_DELIVERY.id &&
+    itemKeys.some((key) => LANDING_FREE_DELIVERY.packKeys.includes(key))
+  );
+}
+
+/** Las zonas que se le ofrecen a un pedido: las gratis de la promo van primero. */
+export function deliveryZonesFor(freeDelivery: boolean): DeliveryZone[] {
+  if (!freeDelivery) return DELIVERY_ZONES;
+  return [
+    ...LANDING_FREE_DELIVERY.zones.map((name) => ({ name, price: 0 })),
+    ...DELIVERY_ZONES,
+  ];
+}
+
 export interface CaracasZone {
   name: string;
   municipality: string;

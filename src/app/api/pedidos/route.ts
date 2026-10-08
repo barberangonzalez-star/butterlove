@@ -9,8 +9,10 @@ import { sendAdminPush } from "@/lib/push";
 import {
   DELIVERY_ZONES,
   NATIONAL_COURIERS,
+  LANDING_FREE_DELIVERY,
   PAYMENT_METHODS,
   deliveryPriceForZone,
+  hasFreeDeliveryPromo,
 } from "@/lib/config";
 
 /**
@@ -155,9 +157,21 @@ export async function POST(request: Request) {
       ? DELIVERY_ZONES.find((z) => z.name === zoneName)?.name ?? zoneName
       : null;
   // La tarifa es la de la lista, no la que diga el navegador. Una zona sin
-  // tarifa publicada queda en null y se cobra al confirmar.
-  const deliveryFeeUsd =
-    deliveryKey === "delivery" ? deliveryPriceForZone(zone) : null;
+  // tarifa publicada queda en null y se cobra al confirmar. La promo de la
+  // landing se recalcula acá con los productos que de verdad trae el pedido.
+  const freeDelivery =
+    deliveryKey === "delivery" &&
+    zone !== null &&
+    LANDING_FREE_DELIVERY.zones.includes(zone) &&
+    hasFreeDeliveryPromo(
+      text(payload.promo),
+      items.map((item) => item.key),
+    );
+  const deliveryFeeUsd = freeDelivery
+    ? 0
+    : deliveryKey === "delivery"
+      ? deliveryPriceForZone(zone)
+      : null;
 
   const courierRaw = text(payload.courier);
   const courier =

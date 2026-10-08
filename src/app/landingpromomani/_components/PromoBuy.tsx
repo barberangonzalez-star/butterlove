@@ -2,11 +2,15 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import { ShoppingBag } from "lucide-react";
+import { Check, ShoppingBag, X } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { productTitle } from "@/lib/products";
 import { trackViewContent } from "@/lib/pixel";
-import type { Pack } from "../packs";
+import { LANDING_FREE_DELIVERY } from "@/lib/config";
+import type { Pack, Upsell } from "../packs";
+
+/** Cuántos frascos se dibujan como mucho; el resto se cuenta con un número. */
+const MAX_JARS_DRAWN = 3;
 
 /**
  * Los combos y el botón flotante, en un mismo componente.
@@ -15,8 +19,15 @@ import type { Pack } from "../packs";
  * botón de abajo no es otro botón —es el mismo pedido, siguiéndote por la
  * página—, y con el estado acá no hace falta un contexto para dos vecinos.
  */
-export default function PromoBuy({ packs }: { packs: Pack[] }) {
-  const { addItem, openCart, totalItems, isOpen } = useCart();
+export default function PromoBuy({
+  packs,
+  upsells,
+}: {
+  packs: Pack[];
+  upsells: Upsell[];
+}) {
+  const { addItem, openCart, totalItems, isOpen, items, setPromo } = useCart();
+  const [upsellOpen, setUpsellOpen] = useState(false);
   // Arranca en el pack destacado: es la oferta que la página viene contando
   // desde el titular, y llegar acá con otra cosa marcada la contradice.
   const [selectedKey, setSelectedKey] = useState(
@@ -60,7 +71,26 @@ export default function PromoBuy({ packs }: { packs: Pack[] }) {
 
   if (!pack) return null;
 
-  const add = () => addItem(pack.product.key, pack.grams, pack.price, 1);
+  /**
+   * Mete el combo al pedido, con lo que se haya sumado de la oferta. La marca
+   * de promo es la que le dice al checkout que este pedido tiene el delivery
+   * gratis en las zonas de la landing.
+   */
+  const addPack = (extras: Upsell[] = []) => {
+    setPromo(LANDING_FREE_DELIVERY.id);
+    addItem(pack.product.key, pack.grams, pack.price, 1);
+    for (const extra of extras) {
+      addItem(extra.product.key, extra.grams, extra.price, 1);
+    }
+  };
+
+  // La oferta sale una vez por pedido: si ya se llevó uno de los agregados, o
+  // no hay ninguno disponible, el botón agrega directo.
+  const alreadyUpsold = items.some((i) => upsells.some((u) => u.key === i.key));
+  const add = () => {
+    if (upsells.length === 0 || alreadyUpsold) addPack();
+    else setUpsellOpen(true);
+  };
 
   return (
     <>
@@ -103,17 +133,26 @@ export default function PromoBuy({ packs }: { packs: Pack[] }) {
                 {/* Los frascos que trae, dibujados. Es la parte que se
                     entiende sin leer. */}
                 <span className="shrink-0 flex items-end -space-x-5 sm:-space-x-4">
-                  {Array.from({ length: p.jars }).map((_, i) => (
-                    <Image
-                      key={i}
-                      src="/products/mani.webp"
-                      alt=""
-                      aria-hidden="true"
-                      width={72}
-                      height={72}
-                      className="w-11 h-11 sm:w-14 sm:h-14 object-contain drop-shadow"
-                    />
-                  ))}
+                  {Array.from({ length: Math.min(p.jars, MAX_JARS_DRAWN) }).map(
+                    (_, i) => (
+                      <Image
+                        key={i}
+                        src="/products/mani.webp"
+                        alt=""
+                        aria-hidden="true"
+                        width={72}
+                        height={72}
+                        className="w-11 h-11 sm:w-14 sm:h-14 object-contain drop-shadow"
+                      />
+                    ),
+                  )}
+                  {/* Seis frascos dibujados no caben en el teléfono: se
+                      dibujan tres y el resto lo dice el número. */}
+                  {p.jars > MAX_JARS_DRAWN && (
+                    <span className="relative z-10 ml-1 self-center rounded-full bg-ink px-1.5 py-0.5 text-[11px] font-bold text-cream">
+                      ×{p.jars / MAX_JARS_DRAWN}
+                    </span>
+                  )}
                 </span>
 
                 <span className="min-w-0 flex-1">
@@ -209,6 +248,150 @@ export default function PromoBuy({ packs }: { packs: Pack[] }) {
           </button>
         </div>
       </div>
+
+      {upsellOpen && (
+        <UpsellSheet
+          pack={pack}
+          upsells={upsells}
+          onClose={() => setUpsellOpen(false)}
+          onConfirm={(extras) => {
+            setUpsellOpen(false);
+            addPack(extras);
+          }}
+        />
+      )}
     </>
+  );
+}
+
+/**
+ * La oferta de sumar otro sabor, entre el botón y el carrito.
+ *
+ * Es una hoja que sube desde abajo y no un modal centrado: en el teléfono los
+ * botones quedan al alcance del pulgar. Sin marcar nada, el botón agrega sólo
+ * el combo —la oferta no puede ser un obstáculo entre el cliente y lo que ya
+ * eligió—; cerrar la hoja no agrega nada, para quien se arrepintió.
+ */
+function UpsellSheet({
+  pack,
+  upsells,
+  onClose,
+  onConfirm,
+}: {
+  pack: Pack;
+  upsells: Upsell[];
+  onClose: () => void;
+  onConfirm: (extras: Upsell[]) => void;
+}) {
+  const [picked, setPicked] = useState<string[]>([]);
+  const extras = upsells.filter((u) => picked.includes(u.key));
+  const total = pack.price + extras.reduce((sum, u) => sum + u.price, 0);
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onClose]);
+
+  const toggle = (key: string) =>
+    setPicked((prev) =>
+      prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key],
+    );
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
+      <button
+        type="button"
+        aria-label="Cerrar"
+        onClick={onClose}
+        className="absolute inset-0 bg-ink/40"
+      />
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="upsell-titulo"
+        className="relative w-full max-w-md rounded-t-[32px] sm:rounded-[32px] bg-page px-5 pt-6 pb-[max(1.25rem,env(safe-area-inset-bottom))] shadow-2xl"
+      >
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="Cerrar"
+          className="absolute top-3 right-3 w-11 h-11 rounded-full flex items-center justify-center text-ink-soft hover:bg-ink/5"
+        >
+          <X className="w-5 h-5" aria-hidden="true" />
+        </button>
+
+        <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">
+          Sólo con tu combo
+        </p>
+        <h2
+          id="upsell-titulo"
+          className="mt-1 pr-10 font-display font-700 text-2xl text-ink"
+        >
+          ¿Le sumamos otro sabor?
+        </h2>
+
+        <div className="mt-5 space-y-3">
+          {upsells.map((u) => {
+            const on = picked.includes(u.key);
+            return (
+              <button
+                key={u.key}
+                type="button"
+                onClick={() => toggle(u.key)}
+                aria-pressed={on}
+                className={`w-full rounded-3xl p-3 flex items-center gap-3 text-left transition-colors ${
+                  on
+                    ? "bg-surface ring-2 ring-ink"
+                    : "ring-1 ring-ink/15 hover:ring-ink/35"
+                }`}
+              >
+                <Image
+                  src={u.product.image}
+                  alt=""
+                  aria-hidden="true"
+                  width={64}
+                  height={64}
+                  className="w-14 h-14 shrink-0 rounded-2xl object-cover"
+                />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-display font-700 text-ink">
+                    {u.name}
+                  </span>
+                  <span className="block text-sm text-ink-soft">
+                    <span className="font-semibold text-ink">
+                      ${u.price.toFixed(2)}
+                    </span>{" "}
+                    <span className="line-through">
+                      ${u.regularPrice.toFixed(2)}
+                    </span>
+                  </span>
+                </span>
+                <span
+                  aria-hidden="true"
+                  className={`w-7 h-7 shrink-0 rounded-full flex items-center justify-center ${
+                    on ? "bg-ink text-cream" : "ring-1 ring-ink/25"
+                  }`}
+                >
+                  {on && <Check className="w-4 h-4" />}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        <button
+          type="button"
+          onClick={() => onConfirm(extras)}
+          className="mt-6 w-full rounded-full bg-ink text-cream px-6 py-4 text-base font-bold hover:opacity-85 transition-opacity"
+        >
+          {extras.length > 0
+            ? `Agregar todo · $${total.toFixed(2)}`
+            : `Sólo el combo · $${pack.price.toFixed(2)}`}
+        </button>
+      </div>
+    </div>
   );
 }

@@ -7,15 +7,21 @@ import {
   PAYMENT_METHODS,
   DELIVERY_METHODS,
   NATIONAL_COURIERS,
+  DELIVERY_ZONES,
+  LANDING_FREE_DELIVERY,
 } from "@/lib/config";
 import PromoVideo from "./_components/PromoVideo";
 import PromoBuy from "./_components/PromoBuy";
-import { buildPacks, PACK_KEYS } from "./packs";
+import ReviewList from "@/components/ReviewList";
+import StarRating from "@/components/StarRating";
+import { getProductReviews } from "@/lib/reviews-data";
+import { formatRating, reviewCountLabel } from "@/lib/reviews";
+import { buildPacks, buildUpsells, LANDING_KEYS, UNIT_KEY } from "./packs";
 
 export const metadata: Metadata = {
   title: "Promo mantequilla de maní",
   description:
-    "Mantequilla de maní 100% natural, un solo ingrediente. Combos de 2 y 3 frascos con descuento, solo por este enlace.",
+    "Mantequilla de maní 100% natural, un solo ingrediente. Combos de 2, 3 y 6 frascos con descuento, solo por este enlace.",
   // La promo se reparte por anuncio y por link, no por buscador: indexarla
   // competiría con la ficha del producto por la misma búsqueda y pondría un
   // precio de campaña en los resultados mucho después de que la campaña
@@ -64,7 +70,7 @@ const uses = [
 const steps = [
   {
     title: "Elige tu combo",
-    text: "1, 2 o 3 frascos. El descuento se aplica solo.",
+    text: "1, 2, 3 o 6 frascos. El descuento se aplica solo.",
   },
   {
     title: "Confirma por WhatsApp",
@@ -94,6 +100,10 @@ const faqs = [
     a: "Es vegana, y el maní no tiene gluten. Contiene maní: si eres alérgico a los frutos secos o al maní, esta no es para ti.",
   },
   {
+    q: "¿Cuánto cuesta el delivery?",
+    a: `Con tu combo es gratis en ${new Intl.ListFormat("es", { type: "conjunction" }).format(LANDING_FREE_DELIVERY.zones)}. En el resto de Caracas va desde ${Math.min(...DELIVERY_ZONES.map((z) => z.price)).toFixed(2)} según tu zona, y el pickup no cuesta nada.`,
+  },
+  {
     q: "¿Hacen envíos fuera de Caracas?",
     a: `Sí, por encomienda: ${NATIONAL_COURIERS.join(", ")}. En Caracas hay delivery por zona y punto de encuentro.`,
   },
@@ -104,8 +114,12 @@ const faqs = [
 ];
 
 export default async function LandingPromoMani() {
-  const products = await getProductsByKeys(PACK_KEYS);
+  const [products, reviews] = await Promise.all([
+    getProductsByKeys(LANDING_KEYS),
+    getProductReviews(UNIT_KEY),
+  ]);
   const packs = buildPacks(products);
+  const upsells = buildUpsells(products);
   // El pack que más plata ahorra, sacado de los precios reales: es el que
   // firma el botón del argumento y el que cierra la página.
   const topSaver = packs.reduce<(typeof packs)[number] | undefined>(
@@ -123,14 +137,14 @@ export default async function LandingPromoMani() {
 
           Ojo al mantenerla: los números de la imagen están escritos a mano
           adentro y los de la página salen de la base de datos. Hoy coinciden
-          —$5.66 el frasco llevando tres, contra $6.99 suelto—, pero si cambia
+          —$5.00 el frasco llevando seis, contra $6.99 suelto—, pero si cambia
           un precio en el panel la página se actualiza sola y la imagen no.
           Cualquier cambio de precio obliga a rehacer esta pieza. */}
       <section className="px-3 pt-3">
         <div className="relative overflow-hidden torn-card aspect-[4/5]">
           <Image
-            src="/hero/promo-mani-precio.jpg"
-            alt="20% de descuento en mantequilla de maní Butter Love: antes $7, ahora $5.66 el frasco por la compra de tres unidades"
+            src="/hero/promo-mani-precio-28.jpg"
+            alt="28% de descuento en mantequilla de maní Butter Love: antes $7, ahora $5 el frasco por la compra de seis unidades"
             fill
             priority
             sizes="(max-width: 640px) 100vw, 576px"
@@ -185,7 +199,7 @@ export default async function LandingPromoMani() {
       {/* Los combos, arriba del todo: la oferta se cierra antes de pedirle a
           nadie que siga leyendo. Lo que sigue es la prueba de por qué vale la
           pena, para quien todavía no ha decidido. */}
-      <PromoBuy packs={packs} />
+      <PromoBuy packs={packs} upsells={upsells} />
 
       {/* El video, justo después del precio. Acá estaba la foto de los frascos
           sobre la tabla, que es la misma toma con la que está armado el anuncio
@@ -293,6 +307,28 @@ export default async function LandingPromoMani() {
         </p>
       </section>
 
+      {/* Lo que dicen los que ya la compraron, justo cuando el argumento
+          termina: después de leer por qué conviene, la duda que queda es si
+          es verdad. Son las reseñas publicadas del frasco de maní, las mismas
+          de su ficha, y si todavía no llegan al mínimo el bloque no sale. */}
+      {reviews && (
+        <section id="resenas" className="px-4 pb-14 scroll-mt-4">
+          <h2 className="font-display font-700 text-3xl text-ink">
+            Lo que dicen
+          </h2>
+          <div className="mt-3 mb-6 flex items-center gap-3">
+            <StarRating value={reviews.summary.average} size={18} />
+            <p className="text-sm text-ink-soft">
+              <span className="font-semibold text-ink">
+                {formatRating(reviews.summary.average)}
+              </span>{" "}
+              · {reviewCountLabel(reviews.summary.count)}
+            </p>
+          </div>
+          <ReviewList reviews={reviews.reviews} />
+        </section>
+      )}
+
       {/* La segunda pieza de la campaña, donde termina el argumento y empieza
           el uso diario: quien bajó leyendo se reencuentra con la promo justo
           antes del último tramo, sin tener que volver arriba a recordarla.
@@ -303,8 +339,8 @@ export default async function LandingPromoMani() {
       <section className="px-3 pb-14">
         <div className="relative overflow-hidden torn-card aspect-[4/5]">
           <Image
-            src="/hero/promo-mani-20.jpg"
-            alt="Promo mantequilla de maní Butter Love: ahorra hasta 20% en tu compra"
+            src="/hero/promo-mani-28.jpg"
+            alt="Promo mantequilla de maní Butter Love: ahorra hasta 28% en tu compra"
             fill
             sizes="(max-width: 640px) 100vw, 576px"
             className="object-cover"

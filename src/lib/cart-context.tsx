@@ -32,6 +32,13 @@ interface CartContextValue {
   removeItem: (key: FlavorKey, grams: number) => void;
   updateQty: (key: FlavorKey, grams: number, qty: number) => void;
   clearCart: () => void;
+  /**
+   * De qué promo viene el pedido, si viene de una: la pone la landing al
+   * agregar un combo y el checkout la lee para ofrecer lo que esa promo
+   * incluye. Se borra junto con el carrito.
+   */
+  promo: string | null;
+  setPromo: (promo: string | null) => void;
   totalItems: number;
   totalPrice: number;
 }
@@ -39,10 +46,12 @@ interface CartContextValue {
 const CartContext = createContext<CartContextValue | null>(null);
 
 const STORAGE_KEY = "butterlove-cart";
+const PROMO_KEY = "butterlove-promo";
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [promo, setPromo] = useState<string | null>(null);
   const [hydrated, setHydrated] = useState(false);
 
   useEffect(() => {
@@ -51,6 +60,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from localStorage, not a render loop
       if (raw) setItems(JSON.parse(raw));
+      setPromo(window.localStorage.getItem(PROMO_KEY));
     } catch {
       // ignore corrupt storage
     }
@@ -61,6 +71,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
     if (!hydrated) return;
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
+
+  // Vaciar el pedido termina la promo: lo que se arme después ya no viene de
+  // la landing, aunque sea en la misma visita.
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- se apaga una vez, al quedar vacío
+    if (hydrated && items.length === 0) setPromo(null);
+  }, [items, hydrated]);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    if (promo) window.localStorage.setItem(PROMO_KEY, promo);
+    else window.localStorage.removeItem(PROMO_KEY);
+  }, [promo, hydrated]);
 
   // La cantidad llega desde la ficha del producto, que deja elegir cuántos
   // frascos antes de agregar. Llamar al botón N veces también funcionaría,
@@ -98,7 +121,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
     );
   };
 
-  const clearCart = () => setItems([]);
+  const clearCart = () => {
+    setItems([]);
+    setPromo(null);
+  };
 
   const totalItems = useMemo(
     () => items.reduce((sum, i) => sum + i.qty, 0),
@@ -118,6 +144,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
     removeItem,
     updateQty,
     clearCart,
+    promo,
+    setPromo,
     totalItems,
     totalPrice,
   };

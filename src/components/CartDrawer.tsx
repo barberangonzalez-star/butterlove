@@ -15,8 +15,10 @@ import {
   PAYMENT_METHODS,
   PAGO_MOVIL,
   BINANCE,
-  DELIVERY_ZONES,
   NATIONAL_COURIERS,
+  LANDING_FREE_DELIVERY,
+  deliveryZonesFor,
+  hasFreeDeliveryPromo,
 } from "@/lib/config";
 
 type Step = "cart" | "info" | "payment" | "summary";
@@ -163,7 +165,9 @@ function buildWhatsAppMessage({
   const totalLines = isDelivery
     ? [
         `Subtotal: $${subtotal.toFixed(2)}`,
-        `Delivery (${zone}): $${deliveryCost.toFixed(2)}`,
+        deliveryCost > 0
+          ? `Delivery (${zone}): $${deliveryCost.toFixed(2)}`
+          : `Delivery (${zone}): Gratis por promo`,
         `Total: $${total.toFixed(2)}`,
       ]
     : [`Total: $${total.toFixed(2)}`];
@@ -224,8 +228,14 @@ export default function CartDrawer() {
     removeItem,
     totalPrice,
     totalItems,
+    promo,
   } = useCart();
   const products = useProducts();
+  const freeDeliveryPromo = hasFreeDeliveryPromo(
+    promo,
+    items.map((i) => i.key),
+  );
+  const zones = deliveryZonesFor(freeDeliveryPromo);
 
   const [step, setStep] = useState<Step>("cart");
   const [name, setName] = useState("");
@@ -257,7 +267,7 @@ export default function CartDrawer() {
 
   const isDelivery = deliveryMethod === "delivery";
   const isNacional = deliveryMethod === "nacional";
-  const zone = DELIVERY_ZONES.find((z) => z.name === zoneName) ?? null;
+  const zone = zones.find((z) => z.name === zoneName) ?? null;
   const deliveryCost = isDelivery && zone ? zone.price : 0;
   const grandTotal = totalPrice + deliveryCost;
 
@@ -343,6 +353,8 @@ export default function CartDrawer() {
       agency,
       paymentMethod,
       paymentClaimed: requiresProof && paymentConfirmed,
+      // El servidor decide si la promo aplica; esto sólo dice de dónde viene.
+      promo,
     });
 
     if (lastSent.current === payload) return;
@@ -504,16 +516,20 @@ export default function CartDrawer() {
                     className="mt-1 w-full rounded-xl border border-ink/15 bg-surface px-4 py-2.5 text-sm outline-none focus:border-ink/40"
                   >
                     <option value="">Selecciona tu zona...</option>
-                    {DELIVERY_ZONES.map((z) => (
-                      <option key={z.name} value={z.name}>
-                        {z.name} — ${z.price.toFixed(2)}
+                    {zones.map((z) => (
+                      <option key={`${z.name}-${z.price}`} value={z.name}>
+                        {z.name} — {z.price === 0 ? "Gratis 🎉" : `$${z.price.toFixed(2)}`}
                       </option>
                     ))}
                   </select>
                   <span className="mt-1.5 block text-xs text-ink-soft">
                     {zone
-                      ? `Se suman $${zone.price.toFixed(2)} de delivery a tu total.`
-                      : "El costo del delivery se suma al total de tu pedido."}
+                      ? zone.price === 0
+                        ? "Tu delivery va por nuestra cuenta, por tu combo."
+                        : `Se suman $${zone.price.toFixed(2)} de delivery a tu total.`
+                      : freeDeliveryPromo
+                        ? `Con tu combo, el delivery es gratis en ${new Intl.ListFormat("es", { type: "conjunction" }).format(LANDING_FREE_DELIVERY.zones)}.`
+                        : "El costo del delivery se suma al total de tu pedido."}
                   </span>
                 </label>
               )}
@@ -806,10 +822,14 @@ export default function CartDrawer() {
                       </li>
                     );
                   })}
-                  {deliveryCost > 0 && (
+                  {isDelivery && zone && (
                     <li className="flex justify-between gap-3">
-                      <span>Delivery — {zone?.name}</span>
-                      <span>${deliveryCost.toFixed(2)}</span>
+                      <span>Delivery — {zone.name}</span>
+                      <span>
+                        {deliveryCost > 0
+                          ? `$${deliveryCost.toFixed(2)}`
+                          : "Gratis"}
+                      </span>
                     </li>
                   )}
                 </ul>

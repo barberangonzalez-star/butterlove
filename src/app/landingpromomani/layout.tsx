@@ -5,7 +5,7 @@ import CartDrawer from "@/components/CartDrawer";
 import MetaPixel from "@/components/MetaPixel";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { META_PIXEL_ID, GA_MEASUREMENT_ID } from "@/lib/config";
-import { PACK_KEYS } from "./packs";
+import { LANDING_KEYS } from "./packs";
 
 /**
  * La landing va fuera del grupo `(site)` a propósito: sin barra, sin pie y sin
@@ -13,15 +13,16 @@ import { PACK_KEYS } from "./packs";
  * salida. Lo único que se trae de la tienda es el carrito, para que el pedido
  * termine en el mismo WhatsApp de siempre.
  *
- * Los productos se piden por `key` y no con `getProducts()`: el trío no está
- * en la vitrina y esa lista no lo traería.
+ * Los productos se piden por `key` y no con `getProducts()`: el trío, el pack
+ * familiar y los agregados de promo no están en la vitrina, y esa lista no
+ * los traería.
  */
 export default async function LandingPromoManiLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const products = await getProductsByKeys(PACK_KEYS);
+  const products = await getProductsByKeys(LANDING_KEYS);
 
   return (
     <ProductsProvider products={products}>
