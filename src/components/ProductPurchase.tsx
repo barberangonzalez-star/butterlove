@@ -7,7 +7,19 @@ import { useCart } from "@/lib/cart-context";
 import { useProducts } from "@/lib/products-context";
 import { comboSavings } from "@/lib/combo-components";
 import { trackViewContent } from "@/lib/pixel";
-import { DELIVERY_METHODS, PAYMENT_METHODS } from "@/lib/config";
+import {
+  DELIVERY_METHODS,
+  DELIVERY_ZONES,
+  NATIONAL_COURIERS,
+  PAYMENT_METHODS,
+} from "@/lib/config";
+
+/**
+ * El delivery más barato de la lista de zonas. Se calcula y no se escribe a
+ * mano para que, si cambian las tarifas en la configuración, el "desde" de la
+ * ficha cambie con ellas.
+ */
+const MIN_DELIVERY = Math.min(...DELIVERY_ZONES.map((z) => z.price));
 
 /**
  * La zona de compra: precio, tamaño, cantidad y el botón.
@@ -67,6 +79,16 @@ export default function ProductPurchase({ product }: { product: Product }) {
           / {sizeLabel(product, size)}
         </span>
       </div>
+
+      {/* Lo que cuesta que llegue, pegado al precio. Sin esto el delivery
+          aparecía recién en el segundo paso del pedido, y un costo que no se
+          esperaba ahí es una razón para cerrar la pestaña. */}
+      <p className="mt-2 flex items-center gap-1.5 text-sm text-ink-soft">
+        <Truck className="w-4 h-4 shrink-0" aria-hidden="true" />
+        <span>
+          Delivery en Caracas desde ${MIN_DELIVERY.toFixed(2)} · Pickup gratis
+        </span>
+      </p>
 
       {saved > 0 && (
         <p className="mt-2 inline-flex items-center rounded-full bg-mani-bg/40 px-3 py-1 text-sm font-semibold text-ink">
@@ -164,6 +186,9 @@ export default function ProductPurchase({ product }: { product: Product }) {
       <dl className="mt-6 pt-5 border-t border-ink/10 space-y-3 text-sm">
         <Detail icon={<Truck className="w-4 h-4" aria-hidden="true" />} label="Entrega">
           {DELIVERY_METHODS.join(" · ")}
+          <span className="block text-ink-soft">
+            Encomiendas: {NATIONAL_COURIERS.join(", ")}
+          </span>
         </Detail>
         <Detail icon={<Wallet className="w-4 h-4" aria-hidden="true" />} label="Pago">
           {PAYMENT_METHODS.join(" · ")}
