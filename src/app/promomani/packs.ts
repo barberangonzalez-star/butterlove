@@ -95,6 +95,24 @@ export function buildUpsells(products: Product[]): Upsell[] {
 export const PACK_KEYS = PACKS.map((p) => p.key);
 
 /**
+ * El precio de promo de un agregado se gana llevando un pack de la landing, y
+ * se ofrece una sola vez por pedido. Sin eso pasó (8/10/2026): alguien agregó
+ * pack + Chocomaní promo, quitó el pack en el carrito y se llevó el Chocomaní
+ * rebajado con un frasco suelto. El carrito y el servidor aplican esta misma
+ * regla: el carrito para que no se pueda armar, el servidor para que no se
+ * pueda cobrar aunque alguien arme el pedido a mano.
+ */
+export const UPSELL_MAX_QTY = 1;
+
+export function upsellFor(key: string): UpsellDef | undefined {
+  return UPSELLS.find((u) => u.key === key);
+}
+
+export function hasLandingPack(keys: string[]): boolean {
+  return keys.some((key) => PACK_KEYS.includes(key));
+}
+
+/**
  * Todo lo que la landing necesita del catálogo: los packs, los agregados y los
  * sabores contra los que se comparan. El carrito también lo usa para nombrar
  * las líneas del pedido.

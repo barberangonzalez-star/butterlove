@@ -10,6 +10,11 @@ import {
 } from "react";
 import { FlavorKey } from "./products";
 import { trackAddToCart } from "./pixel";
+import {
+  UPSELL_MAX_QTY,
+  hasLandingPack,
+  upsellFor,
+} from "@/app/promomani/packs";
 
 export interface CartItem {
   key: FlavorKey;
@@ -48,6 +53,20 @@ const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "butterlove-cart";
 const PROMO_KEY = "butterlove-promo";
 
+/**
+ * Los agregados de la landing a precio de promo sólo viven al lado de un pack:
+ * si el pack se va, se van con él, y nunca pasan de uno. La misma regla la
+ * vuelve a aplicar el servidor al recibir el pedido.
+ */
+function enforceLandingUpsells(items: CartItem[]): CartItem[] {
+  const packed = hasLandingPack(items.map((i) => i.key));
+  return items.flatMap((i) => {
+    if (!upsellFor(i.key)) return [i];
+    if (!packed) return [];
+    return [{ ...i, qty: Math.min(i.qty, UPSELL_MAX_QTY) }];
+  });
+}
+
 export function CartProvider({ children }: { children: ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -59,7 +78,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       const raw = window.localStorage.getItem(STORAGE_KEY);
       // eslint-disable-next-line react-hooks/set-state-in-effect -- one-time hydration from localStorage, not a render loop
-      if (raw) setItems(JSON.parse(raw));
+      if (raw) setItems(enforceLandingUpsells(JSON.parse(raw)));
       setPromo(window.localStorage.getItem(PROMO_KEY));
     } catch {
       // ignore corrupt storage
@@ -96,19 +115,25 @@ export function CartProvider({ children }: { children: ReactNode }) {
     setItems((prev) => {
       const existing = prev.find((i) => i.key === key && i.grams === grams);
       if (existing) {
-        return prev.map((i) =>
-          i.key === key && i.grams === grams
-            ? { ...i, qty: i.qty + amount }
-            : i
+        return enforceLandingUpsells(
+          prev.map((i) =>
+            i.key === key && i.grams === grams
+              ? { ...i, qty: i.qty + amount }
+              : i
+          )
         );
       }
-      return [...prev, { key, grams, price, qty: amount }];
+      return enforceLandingUpsells([...prev, { key, grams, price, qty: amount }]);
     });
     setIsOpen(true);
   };
 
   const removeItem: CartContextValue["removeItem"] = (key, grams) => {
-    setItems((prev) => prev.filter((i) => !(i.key === key && i.grams === grams)));
+    setItems((prev) =>
+      enforceLandingUpsells(
+        prev.filter((i) => !(i.key === key && i.grams === grams))
+      )
+    );
   };
 
   const updateQty: CartContextValue["updateQty"] = (key, grams, qty) => {
@@ -117,7 +142,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
       return;
     }
     setItems((prev) =>
-      prev.map((i) => (i.key === key && i.grams === grams ? { ...i, qty } : i))
+      enforceLandingUpsells(
+        prev.map((i) => (i.key === key && i.grams === grams ? { ...i, qty } : i))
+      )
     );
   };
 
