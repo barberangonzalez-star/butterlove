@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, ShoppingBag, X } from "lucide-react";
+import { Check, ShoppingBag, Truck, X } from "lucide-react";
 import { useCart } from "@/lib/cart-context";
 import { productTitle } from "@/lib/products";
 import { trackViewContent } from "@/lib/pixel";
@@ -143,12 +143,31 @@ export default function PromoBuy({
           Elige tu combo
         </p>
         <h2 className="font-display font-700 text-3xl sm:text-4xl text-ink mt-2">
-          Mientras más frascos, más barato sale cada uno
+          Mientras más frascos, más ahorras
         </h2>
-        <p className="mt-3 text-ink-soft leading-relaxed">
-          Todos son frascos de 230g de mantequilla de maní. El precio de combo
-          solo aplica desde este enlace.
-        </p>
+
+        {/* El delivery gratis va justo antes de elegir, porque es lo que
+            inclina la balanza en ese momento. "Delivery gratis" manda, pero
+            las zonas van nombradas en el mismo bloque y no en letra chica:
+            quien vive en otra zona tiene que saberlo antes del checkout, no
+            descubrirlo ahí. */}
+        <div className="mt-6 flex items-center gap-3 rounded-3xl bg-merey-bg px-4 py-3.5">
+          <span className="shrink-0 w-11 h-11 rounded-full bg-white/80 flex items-center justify-center">
+            <Truck className="w-5 h-5 text-ink" aria-hidden="true" />
+          </span>
+          <p className="min-w-0 text-sm text-ink leading-snug">
+            <span className="block font-display font-700 text-lg leading-tight">
+              Delivery gratis con tu pedido
+            </span>
+            Sólo en{" "}
+            <span className="font-semibold">
+              {new Intl.ListFormat("es", { type: "conjunction" }).format(
+                LANDING_FREE_DELIVERY.zones,
+              )}
+            </span>
+            .
+          </p>
+        </div>
 
         {/* El hueco entre tarjetas es el que aloja la cinta de ahorro: colgarla
             del borde superior la saca del renglón del título, que en un

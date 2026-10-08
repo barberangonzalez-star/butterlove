@@ -1,6 +1,14 @@
 import type { Metadata } from "next";
 import Image from "next/image";
-import { Check, X } from "lucide-react";
+import {
+  CandyOff,
+  Check,
+  Clock4,
+  Dumbbell,
+  Flame,
+  Sprout,
+  X,
+} from "lucide-react";
 import { getProductsByKeys } from "@/lib/products-data";
 import {
   WHATSAPP_LINK,
@@ -45,27 +53,39 @@ export const metadata: Metadata = {
  * de verdad lee entre un anuncio y un botón.
  */
 const reasons = [
-  { title: "Corta el antojo de las 4 pm", text: "Dos cucharadas y se apaga." },
   {
+    icon: Clock4,
+    title: "Corta el antojo de las 4 pm",
+    text: "Dos cucharadas y se apaga.",
+  },
+  {
+    icon: Sprout,
     title: "Sacia con proteína vegetal",
     text: "Un desayuno que te sostiene hasta el almuerzo.",
   },
-  { title: "Sin azúcar agregada", text: "Ni subidón, ni caída." },
+  { icon: CandyOff, title: "Sin azúcar agregada", text: "Ni subidón, ni caída." },
   {
+    icon: Flame,
     title: "Encaja en keto y low carb",
     text: "Grasas y proteína, pocos carbohidratos.",
   },
   {
+    icon: Dumbbell,
     title: "Pre y post entreno",
     text: "Energía antes, proteína después.",
   },
 ];
 
+/**
+ * Cada manera lleva el color de un sabor de la casa, en el orden de la
+ * vitrina: las franjas se leen como una sola familia y no como cuatro avisos
+ * sueltos.
+ */
 const uses = [
-  { emoji: "🥣", text: "En la avena de la mañana" },
-  { emoji: "🍞", text: "Sobre la tostada, con banana" },
-  { emoji: "🥤", text: "En el batido pre-entreno" },
-  { emoji: "🍎", text: "Con manzana, de merienda" },
+  { emoji: "🥣", text: "En la avena de la mañana", bg: "bg-mani-bg" },
+  { emoji: "🍞", text: "Sobre la tostada, con banana", bg: "bg-pistacho-bg" },
+  { emoji: "🥤", text: "En el batido pre-entreno", bg: "bg-almendras-bg" },
+  { emoji: "🍎", text: "Con manzana, de merienda", bg: "bg-merey-bg" },
 ];
 
 const steps = [
@@ -102,7 +122,7 @@ const faqs = [
   },
   {
     q: "¿Cuánto cuesta el delivery?",
-    a: `Con tu combo es gratis en ${new Intl.ListFormat("es", { type: "conjunction" }).format(LANDING_FREE_DELIVERY.zones)}. En el resto de Caracas va desde ${Math.min(...DELIVERY_ZONES.map((z) => z.price)).toFixed(2)} según tu zona, y el pickup no cuesta nada.`,
+    a: `Pidiendo desde esta promo es gratis en ${new Intl.ListFormat("es", { type: "conjunction" }).format(LANDING_FREE_DELIVERY.zones)}. En el resto de Caracas va desde $${Math.min(...DELIVERY_ZONES.map((z) => z.price)).toFixed(2)} según tu zona, y el pickup no cuesta nada.`,
   },
   {
     q: "¿Hacen envíos fuera de Caracas?",
@@ -270,39 +290,53 @@ export default async function LandingPromoMani() {
         </div>
       </section>
 
-      {/* Sin panel de color y sin recuadros: cinco renglones sobre el fondo de
-          la página. El argumento se sostiene con la negrita del primer trozo de
-          cada frase, y lo que antes hacía el fondo azul —separar esta parte del
-          resto— lo hace ahora el aire de arriba y abajo. */}
-      <section className="px-4 pb-14">
-        <h2 className="font-display font-700 text-3xl text-ink">
-          La mantequilla de maní juega a tu favor
-        </h2>
-        <p className="mt-3 text-ink-soft leading-relaxed">
-          Lo que arruina una dieta no es la comida: es el antojo de media tarde.
-        </p>
+      {/* El argumento central de la página, en el color del maní. Es el
+          único panel de color entero entre la portada y el cierre, y por eso
+          se nota: cada razón va en su propio renglón blanco con un ícono, que
+          se lee de un vistazo bajando con el pulgar. El aviso de salud queda
+          afuera del panel, en letra chica, porque no es parte de la venta. */}
+      <section className="px-3 pb-14">
+        <div className="torn-card bg-mani-bg px-4 py-8 sm:px-6">
+          <h2 className="px-1 font-display font-700 text-3xl text-ink">
+            La mantequilla de maní juega a tu favor
+          </h2>
+          <p className="mt-3 px-1 text-ink/75 leading-relaxed">
+            Lo que arruina una dieta no es la comida: es el antojo de media
+            tarde.
+          </p>
 
-        <ul className="mt-6 space-y-3">
-          {reasons.map((r) => (
-            <li key={r.title} className="text-ink-soft leading-relaxed">
-              <span className="font-semibold text-ink">{r.title}.</span>{" "}
-              {r.text}
-            </li>
-          ))}
-        </ul>
+          <ul className="mt-6 space-y-2.5">
+            {reasons.map(({ icon: Icon, title, text }) => (
+              <li
+                key={title}
+                className="flex items-center gap-3 rounded-2xl bg-white/75 p-3"
+              >
+                <span className="shrink-0 w-10 h-10 rounded-full bg-ink text-mani-bg flex items-center justify-center">
+                  <Icon className="w-5 h-5" aria-hidden="true" />
+                </span>
+                <span className="min-w-0 leading-snug">
+                  <span className="block font-display font-700 text-ink">
+                    {title}
+                  </span>
+                  <span className="block text-sm text-ink-soft">{text}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
 
-        {/* El que leyó hasta acá ya se convenció: el camino de vuelta a los
-            combos no puede ser desandar la página. */}
-        <a
-          href="#combos"
-          className="mt-7 block rounded-full bg-ink text-cream px-6 py-4 text-center font-bold hover:opacity-85 transition-opacity"
-        >
-          {topSaver && topSaver.jars > 1
-            ? `Quiero mi combo · ahorra $${topSaver.saved.toFixed(2)}`
-            : "Quiero el mío"}
-        </a>
+          {/* El que leyó hasta acá ya se convenció: el camino de vuelta a los
+              combos no puede ser desandar la página. */}
+          <a
+            href="#combos"
+            className="mt-7 block rounded-full bg-ink text-cream px-6 py-4 text-center font-bold hover:opacity-85 transition-opacity"
+          >
+            {topSaver && topSaver.jars > 1
+              ? `Quiero mi combo · ahorra $${topSaver.saved.toFixed(2)}`
+              : "Quiero el mío"}
+          </a>
+        </div>
 
-        <p className="mt-6 text-xs leading-relaxed text-ink-soft/80">
+        <p className="mt-4 px-1 text-xs leading-relaxed text-ink-soft/80">
           Una porción es una cucharada: es maní puro y rinde muchísimo. Es un
           alimento, no un tratamiento, y no sustituye la orientación de un
           profesional de la salud. Contiene maní.
@@ -350,19 +384,29 @@ export default async function LandingPromoMani() {
         </div>
       </section>
 
-      {/* Cuatro maneras, sin cuatro tarjetas: el emoji ya separa un renglón
-          del otro sin que haga falta pintarle un fondo detrás. */}
+      {/* Cuatro franjas, una por manera, cada una del color de un sabor. Van
+          apenas ladeadas, alternando, como etiquetas pegadas a mano: es la
+          parte juguetona de la página, y un renglón entero por idea deja que
+          el texto entre sin partirse en el teléfono. */}
       <section className="px-4 pb-14">
         <h2 className="font-display font-700 text-3xl text-ink">
           Cuatro maneras de acabártela
         </h2>
-        <ul className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5">
-          {uses.map((u) => (
-            <li key={u.text} className="flex flex-col gap-1.5">
-              <span className="text-3xl" aria-hidden="true">
+        <ul className="mt-6 space-y-3">
+          {uses.map((u, i) => (
+            <li
+              key={u.text}
+              className={`${u.bg} flex items-center gap-4 rounded-full px-5 py-3.5 shadow-sm ${
+                i % 2 === 0 ? "-rotate-1" : "rotate-1"
+              }`}
+            >
+              <span
+                className="shrink-0 w-11 h-11 rounded-full bg-white/70 flex items-center justify-center text-2xl"
+                aria-hidden="true"
+              >
                 {u.emoji}
               </span>
-              <span className="text-sm font-semibold text-ink leading-snug">
+              <span className="font-display font-700 text-lg text-ink leading-tight">
                 {u.text}
               </span>
             </li>

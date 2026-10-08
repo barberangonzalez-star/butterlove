@@ -525,10 +525,10 @@ export default function CartDrawer() {
                   <span className="mt-1.5 block text-xs text-ink-soft">
                     {zone
                       ? zone.price === 0
-                        ? "Tu delivery va por nuestra cuenta, por tu combo."
+                        ? "Tu delivery va por nuestra cuenta, por la promo."
                         : `Se suman $${zone.price.toFixed(2)} de delivery a tu total.`
                       : freeDeliveryPromo
-                        ? `Con tu combo, el delivery es gratis en ${new Intl.ListFormat("es", { type: "conjunction" }).format(LANDING_FREE_DELIVERY.zones)}.`
+                        ? `Con la promo, el delivery es gratis en ${new Intl.ListFormat("es", { type: "conjunction" }).format(LANDING_FREE_DELIVERY.zones)}.`
                         : "El costo del delivery se suma al total de tu pedido."}
                   </span>
                 </label>
