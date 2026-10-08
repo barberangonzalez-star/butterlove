@@ -1,5 +1,5 @@
 /**
- * Lo que la landing /landingpromomani suma al pedido: el Pack Familiar de seis
+ * Lo que la landing /promomani suma al pedido: el Pack Familiar de seis
  * frascos y los dos frascos que se ofrecen como agregado al elegir un combo.
  *
  * Los tres nacen fuera de la vitrina (`in_store = false`), igual que el Trío

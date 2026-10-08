@@ -13,6 +13,18 @@ const nextConfig: NextConfig = {
       "public/*.{html,js,webmanifest,svg,png,jpg,jpeg}",
     ],
   },
+  async redirects() {
+    return [
+      {
+        // La landing del maní vivía en /landingpromomani. Los anuncios y los
+        // links que ya circulan por WhatsApp apuntan ahí, así que la dirección
+        // vieja sigue llevando a la nueva, con sus parámetros de campaña.
+        source: "/landingpromomani",
+        destination: "/promomani",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

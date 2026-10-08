@@ -1,5 +1,5 @@
 /**
- * Los packs de maní de la landing /landingpromomani.
+ * Los packs de maní de la landing /promomani.
  *
  * Sube el Dúo Maní a $12.99 y agrega el Trío Maní a $16.99. El trío nace
  * fuera de la vitrina (`in_store = false`): la promo se vende sólo por el link
