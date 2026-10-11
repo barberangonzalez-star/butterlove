@@ -120,3 +120,17 @@ body {
     transition-duration: 0.001ms !important;
   }
 }
+
+/* Safari de iPad y iPhone dibuja los campos de fecha a su manera: no respetan
+   el ancho del contenedor, centran el texto y quedan más bajos cuando están
+   vacíos. Esto los deja comportarse como cualquier otro campo; la altura la
+   pone cada formulario. */
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  min-width: 0;
+}
+input[type="date"]::-webkit-date-and-time-value {
+  text-align: left;
+  margin: 0;
+}

@@ -41,9 +41,12 @@ export default function SalesFilters({
   return (
     <form
       method="get"
-      className="grid grid-cols-2 gap-3 mb-4 sm:flex sm:flex-wrap sm:items-end"
+      // Tres columnas en tablet (iPad en vertical): Desde | Hasta | Mes arriba y
+      // Producto | Canal | Filtrar abajo. La fila flexible queda para pantallas
+      // anchas, donde cada fecha tiene su ancho fijo.
+      className="grid grid-cols-2 gap-3 mb-4 sm:grid-cols-3 lg:flex lg:flex-wrap lg:items-end"
     >
-      <label className="block">
+      <label className="block min-w-0 lg:w-40">
         <span className="text-xs font-medium text-[#787774] uppercase tracking-wide">
           Desde
         </span>
@@ -55,10 +58,10 @@ export default function SalesFilters({
             setFromValue(e.target.value);
             if (e.target.value) setMonthValue("");
           }}
-          className="mt-1 block w-full rounded-md border border-black/15 px-3 py-2 text-sm sm:py-1.5"
+          className="mt-1 block w-full min-w-0 h-10 lg:h-9 rounded-md border border-black/15 bg-white px-3 text-sm"
         />
       </label>
-      <label className="block">
+      <label className="block min-w-0 lg:w-40">
         <span className="text-xs font-medium text-[#787774] uppercase tracking-wide">
           Hasta
         </span>
@@ -70,10 +73,10 @@ export default function SalesFilters({
             setToValue(e.target.value);
             if (e.target.value) setMonthValue("");
           }}
-          className="mt-1 block w-full rounded-md border border-black/15 px-3 py-2 text-sm sm:py-1.5"
+          className="mt-1 block w-full min-w-0 h-10 lg:h-9 rounded-md border border-black/15 bg-white px-3 text-sm"
         />
       </label>
-      <label className="block col-span-2 sm:col-auto">
+      <label className="block col-span-2 sm:col-span-1 min-w-0">
         <span className="text-xs font-medium text-[#787774] uppercase tracking-wide">
           Mes
         </span>
@@ -87,7 +90,7 @@ export default function SalesFilters({
               setToValue("");
             }
           }}
-          className="mt-1 block w-full rounded-md border border-black/15 px-3 py-2 text-sm sm:py-1.5 sm:min-w-[160px] capitalize"
+          className="mt-1 block w-full h-10 lg:h-9 rounded-md border border-black/15 bg-white px-3 text-sm lg:min-w-[160px] capitalize"
         >
           <option value="">Todos</option>
           {months.map((m) => (
@@ -97,14 +100,14 @@ export default function SalesFilters({
           ))}
         </select>
       </label>
-      <label className="block col-span-2 sm:col-auto">
+      <label className="block col-span-2 sm:col-span-1 min-w-0">
         <span className="text-xs font-medium text-[#787774] uppercase tracking-wide">
           Producto
         </span>
         <select
           name="productId"
           defaultValue={productId ?? ""}
-          className="mt-1 block w-full rounded-md border border-black/15 px-3 py-2 text-sm sm:py-1.5 sm:min-w-[160px]"
+          className="mt-1 block w-full h-10 lg:h-9 rounded-md border border-black/15 bg-white px-3 text-sm lg:min-w-[160px]"
         >
           <option value="">Todos</option>
           {products.map((p) => (
@@ -114,14 +117,14 @@ export default function SalesFilters({
           ))}
         </select>
       </label>
-      <label className="block col-span-2 sm:col-auto">
+      <label className="block col-span-2 sm:col-span-1 min-w-0">
         <span className="text-xs font-medium text-[#787774] uppercase tracking-wide">
           Canal
         </span>
         <select
           name="channel"
           defaultValue={channel ?? ""}
-          className="mt-1 block w-full rounded-md border border-black/15 px-3 py-2 text-sm sm:py-1.5 sm:min-w-[110px]"
+          className="mt-1 block w-full h-10 lg:h-9 rounded-md border border-black/15 bg-white px-3 text-sm lg:min-w-[110px]"
         >
           <option value="">Todos</option>
           {SALE_CHANNELS.map((c) => (
@@ -131,17 +134,17 @@ export default function SalesFilters({
           ))}
         </select>
       </label>
-      <div className="col-span-2 flex items-center gap-2 sm:contents">
+      <div className="col-span-2 sm:col-span-1 flex items-end gap-2 lg:contents">
         <button
           type="submit"
-          className="flex-1 rounded-md border border-black/15 px-3.5 py-2 text-sm font-medium hover:bg-black/5 sm:flex-none sm:py-1.5"
+          className="flex-1 h-10 lg:h-9 rounded-md border border-black/15 px-3.5 text-sm font-medium hover:bg-black/5 lg:flex-none"
         >
           Filtrar
         </button>
         {hasFilters && (
           <a
             href="/admin/ventas"
-            className="shrink-0 text-sm text-[#787774] hover:text-[#37352f] px-3 py-2 sm:py-1.5"
+            className="shrink-0 inline-flex items-center h-10 lg:h-9 text-sm text-[#787774] hover:text-[#37352f] px-3"
           >
             Limpiar
           </a>

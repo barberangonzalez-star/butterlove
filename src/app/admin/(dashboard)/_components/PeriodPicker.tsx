@@ -3,7 +3,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { PERIOD_KINDS, shiftPeriod, today, type Period } from "@/lib/period";
 
 const dateInputClass =
-  "rounded-md border border-black/15 px-2 py-1 text-xs text-[#37352f] outline-none focus:border-[#37352f]";
+  "h-7 min-w-0 rounded-md border border-black/15 bg-white px-2 text-xs text-[#37352f] outline-none focus:border-[#37352f]";
 
 /**
  * Elegir con qué lente se miran los números: un día, una semana, un mes, un
@@ -136,7 +136,7 @@ export default function PeriodPicker({
         )}
         <button
           type="submit"
-          className="rounded-md border border-black/15 px-2.5 py-1 text-xs font-medium text-[#5f5e5b] hover:bg-black/5"
+          className="h-7 rounded-md border border-black/15 px-2.5 text-xs font-medium text-[#5f5e5b] hover:bg-black/5"
         >
           Ver
         </button>
