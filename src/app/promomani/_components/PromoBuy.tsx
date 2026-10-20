@@ -24,12 +24,29 @@ const MAX_JARS_DRAWN = 3;
 export default function PromoBuy({
   packs,
   upsells,
+  clockKey,
+  promo = LANDING_FREE_DELIVERY.id,
+  kicker = "Elige tu combo",
+  title = "Mientras más frascos, más ahorras",
+  perk,
 }: {
   packs: Pack[];
   upsells: Upsell[];
+  /** La llave de la hora de esta landing; ver `usePromoClock`. */
+  clockKey?: string;
+  /**
+   * La marca que se le pone al carrito, o null si la landing no necesita
+   * ninguna. La de /promomani es la que activa su delivery gratis por zonas;
+   * el envío pagado de /envio-gratis-mani lo da el combo solo.
+   */
+  promo?: string | null;
+  kicker?: string;
+  title?: string;
+  /** Lo que se ofrece además del precio, justo antes de elegir. */
+  perk?: { title: string; text: React.ReactNode };
 }) {
   const { addItem, openCart, totalItems, isOpen, items, setPromo } = useCart();
-  const remaining = usePromoClock();
+  const remaining = usePromoClock(clockKey);
   const expired = remaining !== null && remaining <= 0;
   const [upsellOpen, setUpsellOpen] = useState(false);
   // Arranca en el pack destacado: es la oferta que la página viene contando
@@ -121,7 +138,7 @@ export default function PromoBuy({
    * gratis en las zonas de la landing.
    */
   const addPack = (extras: Upsell[] = []) => {
-    setPromo(LANDING_FREE_DELIVERY.id);
+    if (promo) setPromo(promo);
     addItem(pack.product.key, pack.grams, pack.price, 1);
     for (const extra of extras) {
       addItem(extra.product.key, extra.grams, extra.price, 1);
@@ -140,10 +157,10 @@ export default function PromoBuy({
     <>
       <section id="combos" className="px-4 py-14 sm:py-20 scroll-mt-4">
         <p className="text-xs font-bold uppercase tracking-widest text-ink-soft">
-          Elige tu combo
+          {kicker}
         </p>
         <h2 className="font-display font-700 text-3xl sm:text-4xl text-ink mt-2">
-          Mientras más frascos, más ahorras
+          {title}
         </h2>
 
         {/* El delivery gratis va justo antes de elegir, porque es lo que
@@ -157,15 +174,19 @@ export default function PromoBuy({
           </span>
           <p className="min-w-0 text-sm text-ink leading-snug">
             <span className="block font-display font-700 text-lg leading-tight">
-              Delivery gratis con tu pedido
+              {perk?.title ?? "Delivery gratis con tu pedido"}
             </span>
-            Sólo en{" "}
-            <span className="font-semibold">
-              {new Intl.ListFormat("es", { type: "conjunction" }).format(
-                LANDING_FREE_DELIVERY.zones,
-              )}
-            </span>
-            .
+            {perk?.text ?? (
+              <>
+                Sólo en{" "}
+                <span className="font-semibold">
+                  {new Intl.ListFormat("es", { type: "conjunction" }).format(
+                    LANDING_FREE_DELIVERY.zones,
+                  )}
+                </span>
+                .
+              </>
+            )}
           </p>
         </div>
 
@@ -226,8 +247,10 @@ export default function PromoBuy({
                     {p.pitch}
                   </span>
                   {/* En el frasco suelto sobra: el precio del pack y el del
-                      frasco son el mismo número dos veces. */}
-                  {p.jars > 1 && (
+                      frasco son el mismo número dos veces. Y en un pack que
+                      no ahorra —el de envío pagado lleva el flete adentro—
+                      sólo serviría para compararlo mal con el suelto. */}
+                  {p.jars > 1 && p.saved > 0 && (
                     <span className="block text-sm font-semibold text-ink-soft">
                       ${p.perJar.toFixed(2)} c/u
                     </span>
@@ -295,7 +318,10 @@ export default function PromoBuy({
 
           <div className="min-w-0 flex-1">
             <p className="text-[11px] leading-tight text-cream/70 truncate">
-              {pack.title} · ${pack.perJar.toFixed(2)} c/u
+              {pack.title} ·{" "}
+              {pack.saved > 0
+                ? `$${pack.perJar.toFixed(2)} c/u`
+                : pack.pitch.replace(/\.$/, "")}
             </p>
             <p className="font-display font-700 text-lg leading-tight">
               ${pack.price.toFixed(2)}

@@ -35,6 +35,7 @@ export const COMBO_COMPONENTS: Record<string, ComboComponent[]> = {
   ],
   "trio-mani": [{ productKey: "mani", grams: 230, quantity: 3 }],
   "pack-familiar-mani": [{ productKey: "mani", grams: 230, quantity: 6 }],
+  "combo-nacional-mani": [{ productKey: "mani", grams: 230, quantity: 2 }],
   // Los agregados de la landing: el mismo frasco de la tienda a otro precio,
   // así que el stock sale del frasco de siempre.
   "chocomani-promo": [{ productKey: "chocomani", grams: 230, quantity: 1 }],

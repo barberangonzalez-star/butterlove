@@ -170,8 +170,32 @@ export function hasFreeDeliveryPromo(
   );
 }
 
-/** Las zonas que se le ofrecen a un pedido: las gratis de la promo van primero. */
-export function deliveryZonesFor(freeDelivery: boolean): DeliveryZone[] {
+/**
+ * Los combos que traen el envío pagado: con uno de estos en el pedido, el
+ * delivery en Caracas sale en $0 en cualquier zona y la encomienda al resto
+ * del país la despachamos pagada, en vez de "por cobrar en destino".
+ *
+ * Lo da el producto y no una marca de la landing: el combo sólo se vende con
+ * el envío incluido —por eso cuesta lo que cuesta—, así que el pedido que lo
+ * trae lo lleva gratis venga de donde venga. Si el pedido trae además otros
+ * frascos, viajan en el mismo paquete y también van incluidos.
+ */
+export const FREE_SHIPPING_KEYS = ["combo-nacional-mani"];
+
+/** Si el pedido trae un combo con el envío pagado. */
+export function hasFreeShipping(itemKeys: string[]) {
+  return itemKeys.some((key) => FREE_SHIPPING_KEYS.includes(key));
+}
+
+/**
+ * Las zonas que se le ofrecen a un pedido: las gratis de la promo van primero.
+ * Con el envío incluido son las de siempre, todas en $0.
+ */
+export function deliveryZonesFor(
+  freeDelivery: boolean,
+  freeShipping = false,
+): DeliveryZone[] {
+  if (freeShipping) return DELIVERY_ZONES.map((z) => ({ ...z, price: 0 }));
   if (!freeDelivery) return DELIVERY_ZONES;
   return [
     ...LANDING_FREE_DELIVERY.zones.map((name) => ({ name, price: 0 })),

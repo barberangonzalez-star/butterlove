@@ -19,6 +19,7 @@ import {
   LANDING_FREE_DELIVERY,
   deliveryZonesFor,
   hasFreeDeliveryPromo,
+  hasFreeShipping,
 } from "@/lib/config";
 
 type Step = "cart" | "info" | "payment" | "summary";
@@ -33,28 +34,37 @@ type DeliveryMethod = "pickup" | "delivery" | "nacional";
  * diferencia entre las tres no está en el nombre sino en lo que cuestan y en
  * quién las lleva. Esa es la duda que el cliente trae, así que se contesta
  * antes de que elija y no después.
+ *
+ * Con un combo de envío pagado, la respuesta a esa duda cambia: el delivery y
+ * la encomienda salen gratis, y decirlo acá es lo que el cliente vino a ver.
  */
-const DELIVERY_OPTIONS: {
+function deliveryOptions(freeShipping: boolean): {
   value: DeliveryMethod;
   label: string;
   hint: string;
-}[] = [
-  {
-    value: "delivery",
-    label: "Delivery en Caracas",
-    hint: "Te lo llevamos. El costo depende de tu zona.",
-  },
-  {
-    value: "pickup",
-    label: "Pickup",
-    hint: "Nos encontramos en un punto acordado. Sin costo.",
-  },
-  {
-    value: "nacional",
-    label: "Envío nacional",
-    hint: `Por encomienda: ${NATIONAL_COURIERS.join(", ")}. El flete lo pagas al retirar.`,
-  },
-];
+}[] {
+  return [
+    {
+      value: "delivery",
+      label: "Delivery en Caracas",
+      hint: freeShipping
+        ? "Te lo llevamos gratis, en cualquier zona."
+        : "Te lo llevamos. El costo depende de tu zona.",
+    },
+    {
+      value: "pickup",
+      label: "Pickup",
+      hint: "Nos encontramos en un punto acordado. Sin costo.",
+    },
+    {
+      value: "nacional",
+      label: "Envío nacional",
+      hint: freeShipping
+        ? `Por encomienda: ${NATIONAL_COURIERS.join(", ")}. El envío va pagado por nosotros.`
+        : `Por encomienda: ${NATIONAL_COURIERS.join(", ")}. El flete lo pagas al retirar.`,
+    },
+  ];
+}
 
 const METHODS_REQUIRING_PROOF = ["Pago Móvil", "Binance"];
 
@@ -116,6 +126,7 @@ function buildWhatsAppMessage({
   paymentMethod,
   paymentConfirmed,
   bsTotal,
+  freeShipping,
 }: {
   items: CartItem[];
   products: Product[];
@@ -133,6 +144,7 @@ function buildWhatsAppMessage({
   paymentMethod: string;
   paymentConfirmed: boolean;
   bsTotal: number | null;
+  freeShipping: boolean;
 }) {
   const lines = items.map((i) => {
     const product = products.find((p) => p.key === i.key);
@@ -167,7 +179,7 @@ function buildWhatsAppMessage({
         `Subtotal: $${subtotal.toFixed(2)}`,
         deliveryCost > 0
           ? `Delivery (${zone}): $${deliveryCost.toFixed(2)}`
-          : `Delivery (${zone}): Gratis por promo`,
+          : `Delivery (${zone}): ${freeShipping ? "Gratis, envío incluido" : "Gratis por promo"}`,
         `Total: $${total.toFixed(2)}`,
       ]
     : [`Total: $${total.toFixed(2)}`];
@@ -186,7 +198,11 @@ function buildWhatsAppMessage({
       ...paymentLines,
       "",
       `Entrega: Envío nacional — ${courier}`,
-      "Flete: por cobrar en destino",
+      // Con el combo de envío pagado, el paquete sale pagado: quien despacha
+      // lo lee acá y no lo manda por cobrar.
+      freeShipping
+        ? "Flete: pagado por Butter Love (envío incluido)"
+        : "Flete: por cobrar en destino",
       "",
       "DATOS DE QUIEN RECIBE",
       `Nombre completo: ${name}`,
@@ -235,7 +251,8 @@ export default function CartDrawer() {
     promo,
     items.map((i) => i.key),
   );
-  const zones = deliveryZonesFor(freeDeliveryPromo);
+  const freeShipping = hasFreeShipping(items.map((i) => i.key));
+  const zones = deliveryZonesFor(freeDeliveryPromo, freeShipping);
 
   const [step, setStep] = useState<Step>("cart");
   const [name, setName] = useState("");
@@ -316,6 +333,7 @@ export default function CartDrawer() {
     paymentMethod: paymentMethod ?? "",
     paymentConfirmed,
     bsTotal,
+    freeShipping,
   });
   const waLink = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(
     message
@@ -465,6 +483,14 @@ export default function CartDrawer() {
                     </li>
                   );
                 })}
+                {/* Va con el pedido y no en el paso de entrega: el envío
+                    pagado es por lo que se eligió el combo, y verlo
+                    confirmado antes de seguir es lo que hace seguir. */}
+                {freeShipping && (
+                  <li className="rounded-2xl bg-pistacho-bg px-4 py-3 text-sm font-semibold text-ink">
+                    🎉 ¡Felicidades! Tu envío a toda Venezuela ya está incluido.
+                  </li>
+                )}
               </ul>
             ))}
 
@@ -475,7 +501,7 @@ export default function CartDrawer() {
                   ¿Cómo lo recibes?
                 </span>
                 <div className="mt-1.5 space-y-2">
-                  {DELIVERY_OPTIONS.map((option) => {
+                  {deliveryOptions(freeShipping).map((option) => {
                     const selected = deliveryMethod === option.value;
                     return (
                       <button
@@ -525,9 +551,13 @@ export default function CartDrawer() {
                   <span className="mt-1.5 block text-xs text-ink-soft">
                     {zone
                       ? zone.price === 0
-                        ? "Tu delivery va por nuestra cuenta, por la promo."
+                        ? freeShipping
+                          ? "Tu delivery va por nuestra cuenta: tu combo trae el envío incluido."
+                          : "Tu delivery va por nuestra cuenta, por la promo."
                         : `Se suman $${zone.price.toFixed(2)} de delivery a tu total.`
-                      : freeDeliveryPromo
+                      : freeShipping
+                        ? "Tu combo trae el envío incluido: el delivery es gratis en cualquier zona."
+                        : freeDeliveryPromo
                         ? `Con la promo, el delivery es gratis en ${new Intl.ListFormat("es", { type: "conjunction" }).format(LANDING_FREE_DELIVERY.zones)}.`
                         : "El costo del delivery se suma al total de tu pedido."}
                   </span>
@@ -551,8 +581,9 @@ export default function CartDrawer() {
                     ))}
                   </select>
                   <span className="mt-1.5 block text-xs text-ink-soft">
-                    El flete no va en este total: lo pagas en la agencia al
-                    retirar el paquete.
+                    {freeShipping
+                      ? "Tu combo trae el envío incluido: lo despachamos pagado y no pagas nada al retirar."
+                      : "El flete no va en este total: lo pagas en la agencia al retirar el paquete."}
                   </span>
                 </label>
               )}
@@ -855,7 +886,9 @@ export default function CartDrawer() {
                 )}
                 {isNacional && (
                   <p className="text-ink-soft mt-1">
-                    El flete lo pagas en la agencia al retirar.
+                    {freeShipping
+                      ? "Envío incluido: no pagas nada al retirar."
+                      : "El flete lo pagas en la agencia al retirar."}
                   </p>
                 )}
               </div>

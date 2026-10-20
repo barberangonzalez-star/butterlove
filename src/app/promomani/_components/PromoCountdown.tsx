@@ -11,8 +11,13 @@ import { PROMO_WARNING_MS, formatClock, usePromoClock } from "./usePromoClock";
  * tono de alerta suave; al llegar a cero desaparece, y lo que pasa con la
  * promo lo dice el bloque de combos.
  */
-export default function PromoCountdown() {
-  const remaining = usePromoClock();
+export default function PromoCountdown({
+  clockKey,
+}: {
+  /** La llave de la hora de esta landing; ver `usePromoClock`. */
+  clockKey?: string;
+}) {
+  const remaining = usePromoClock(clockKey);
   if (remaining === null || remaining <= 0) return null;
 
   const urgent = remaining <= PROMO_WARNING_MS;

@@ -8,7 +8,12 @@ export const PROMO_DURATION_MS = 60 * 60 * 1000;
 /** Desde aquí el contador cambia de color: quedan los últimos minutos. */
 export const PROMO_WARNING_MS = 5 * 60 * 1000;
 
-const START_KEY = "butterlove-promo-mani-inicio";
+/**
+ * Dónde se guarda la llegada del visitante. Cada landing pasa la suya: con
+ * una sola, quien agotó la hora en una llegaría a la otra con la promo ya
+ * vencida.
+ */
+export const PROMO_CLOCK_KEY = "butterlove-promo-mani-inicio";
 
 /**
  * Cuánto le queda de promo a quien está viendo la landing.
@@ -22,15 +27,15 @@ const START_KEY = "butterlove-promo-mani-inicio";
  * Mientras no se haya leído el navegador devuelve `null`: en el servidor no se
  * sabe cuándo llegó nadie, y la página se dibuja con la promo abierta.
  */
-export function usePromoClock(): number | null {
+export function usePromoClock(storageKey = PROMO_CLOCK_KEY): number | null {
   const [remaining, setRemaining] = useState<number | null>(null);
 
   useEffect(() => {
     let start = Date.now();
     try {
-      const saved = Number(window.localStorage.getItem(START_KEY));
+      const saved = Number(window.localStorage.getItem(storageKey));
       if (saved > 0 && saved <= start) start = saved;
-      else window.localStorage.setItem(START_KEY, String(start));
+      else window.localStorage.setItem(storageKey, String(start));
     } catch {
       // Sin almacenamiento (modo privado estricto) la hora corre desde que
       // abrió esta pestaña.
@@ -41,7 +46,7 @@ export function usePromoClock(): number | null {
     tick();
     const id = window.setInterval(tick, 1000);
     return () => window.clearInterval(id);
-  }, []);
+  }, [storageKey]);
 
   return remaining;
 }

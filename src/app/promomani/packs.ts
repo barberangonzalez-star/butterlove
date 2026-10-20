@@ -45,6 +45,29 @@ export const PACKS: PackDef[] = [
 ];
 
 /**
+ * El pack de la landing /envio-gratis-mani: dos frascos con el envío pagado a
+ * cualquier parte del país.
+ *
+ * Vive acá y no en su carpeta porque el carrito y el servidor cuentan los
+ * packs de las dos landings como uno solo: los dos dan derecho a los
+ * agregados de promo, y un carrito armado en una landing tiene que poder
+ * nombrar sus líneas si el cliente termina el pedido en la otra.
+ *
+ * Su argumento no es el precio por frasco —sale más caro que dos sueltos—
+ * sino el flete, que sin él se paga aparte en la agencia. Por eso la landing
+ * no muestra el "c/u" de este pack.
+ */
+export const SHIPPING_PACKS: PackDef[] = [
+  {
+    key: "combo-nacional-mani",
+    jars: 2,
+    title: "2 frascos",
+    pitch: "Con el envío pagado a toda Venezuela.",
+    featured: true,
+  },
+];
+
+/**
  * Lo que se ofrece sumar al pedido después de elegir un combo, cada uno con
  * el sabor de la tienda contra el que se compara su precio. El precio de
  * promo y el de "antes" salen los dos de la base de datos: escrito acá, el
@@ -92,7 +115,7 @@ export function buildUpsells(products: Product[]): Upsell[] {
   });
 }
 
-export const PACK_KEYS = PACKS.map((p) => p.key);
+export const PACK_KEYS = [...PACKS, ...SHIPPING_PACKS].map((p) => p.key);
 
 /**
  * El precio de promo de un agregado se gana llevando un pack de la landing, y
@@ -148,12 +171,15 @@ export interface Pack extends PackDef {
  * landing se puede publicar antes de correr `scripts/add-mani-promo-packs.ts`
  * y muestra los packs que sí están, en vez de romperse entera por uno.
  */
-export function buildPacks(products: Product[]): Pack[] {
+export function buildPacks(
+  products: Product[],
+  defs: PackDef[] = PACKS,
+): Pack[] {
   const unit = products.find((p) => p.key === UNIT_KEY);
   const unitPrice =
     unit?.sizes.find((s) => s.grams === UNIT_GRAMS)?.price ?? 0;
 
-  return PACKS.flatMap((def) => {
+  return defs.flatMap((def) => {
     const product = products.find((p) => p.key === def.key);
     if (!product) return [];
     // El combo tiene una sola presentación; el frasco suelto tiene 230g y

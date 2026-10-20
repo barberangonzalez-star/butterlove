@@ -13,6 +13,7 @@ import {
   PAYMENT_METHODS,
   deliveryPriceForZone,
   hasFreeDeliveryPromo,
+  hasFreeShipping,
 } from "@/lib/config";
 import {
   UPSELL_MAX_QTY,
@@ -216,11 +217,17 @@ export async function POST(request: Request) {
       text(payload.promo),
       items.map((item) => item.key),
     );
-  const deliveryFeeUsd = freeDelivery
-    ? 0
-    : deliveryKey === "delivery"
-      ? deliveryPriceForZone(zone)
-      : null;
+  // Un combo con el envío pagado deja en $0 el delivery y también la
+  // encomienda, que en los demás pedidos queda en null: el flete lo cobra la
+  // agencia al retirar y no pasa por nosotros.
+  const freeShipping =
+    deliveryKey !== "pickup" && hasFreeShipping(items.map((item) => item.key));
+  const deliveryFeeUsd =
+    freeDelivery || freeShipping
+      ? 0
+      : deliveryKey === "delivery"
+        ? deliveryPriceForZone(zone)
+        : null;
 
   const courierRaw = text(payload.courier);
   const courier =
