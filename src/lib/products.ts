@@ -41,6 +41,23 @@ export function productTitle(product: { name: string; kind: ProductKind }) {
 export const COMBO_JAR_GRAMS = 230;
 
 /**
+ * Los tamaños que se ofrecen en la tienda. Hoy el sabor suelto se vende sólo
+ * en el frasco de 230g: el de 350g sigue en la base de datos —tiene ventas y
+ * costos guardados— pero no hay, y ofrecerlo en la ficha es venderle a alguien
+ * algo que después hay que explicarle por WhatsApp que no existe.
+ *
+ * Un combo tiene una sola presentación y pasa entero. Un sabor que no tenga
+ * 230g conserva lo que tenga, en vez de quedarse sin nada que vender.
+ */
+export function storeSizes<T extends { grams: number }>(
+  product: { kind: ProductKind; sizes: T[] },
+): T[] {
+  if (isCombo(product)) return product.sizes;
+  const jar = product.sizes.filter((s) => s.grams === COMBO_JAR_GRAMS);
+  return jar.length > 0 ? jar : product.sizes;
+}
+
+/**
  * Etiqueta de tamaño: los combos se miden en frascos, no en gramos totales.
  * El número de frascos sale del peso —460g son dos, 690g son tres— para que
  * agregar un combo nuevo no obligue a tocar esto.

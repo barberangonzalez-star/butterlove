@@ -1,7 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { HandHeart, Minus, Plus, Truck, Wallet } from "lucide-react";
+import {
+  Check,
+  HandHeart,
+  Minus,
+  Plus,
+  ShoppingBag,
+  Truck,
+  Wallet,
+} from "lucide-react";
 import { Product, isCombo, productTitle, sizeLabel } from "@/lib/products";
 import { useCart } from "@/lib/cart-context";
 import { useProducts } from "@/lib/products-context";
@@ -67,7 +75,21 @@ export default function ProductPurchase({ product }: { product: Product }) {
     });
   }, [product]);
 
-  const add = () => addItem(product.key, size.grams, size.price, qty);
+  // "Agregar" deja seguir mirando y confirma en el mismo botón; "Comprar
+  // ahora" agrega y abre el pedido. Antes había uno solo y abría siempre, y
+  // quien quería llevar dos sabores tenía que cerrar la gaveta para seguir.
+  const [added, setAdded] = useState(false);
+  useEffect(() => {
+    if (!added) return;
+    const timer = setTimeout(() => setAdded(false), 1800);
+    return () => clearTimeout(timer);
+  }, [added]);
+
+  const add = () => {
+    addItem(product.key, size.grams, size.price, qty, { open: false });
+    setAdded(true);
+  };
+  const buyNow = () => addItem(product.key, size.grams, size.price, qty);
 
   return (
     <div>
@@ -131,16 +153,24 @@ export default function ProductPurchase({ product }: { product: Product }) {
           </div>
         </fieldset>
       ) : (
-        <p className="mt-4 text-sm text-ink-soft">
-          Presentación de {sizeLabel(product, size)}
-        </p>
+        // Una sola presentación, pero dicha como opción elegida y no como
+        // nota al pie: así se lee qué se está comprando de un vistazo.
+        <div className="mt-6">
+          <p className="text-sm text-ink-soft mb-2">Tamaño</p>
+          <span className="inline-flex rounded-full bg-ink text-cream px-5 py-2.5 text-base font-semibold">
+            {sizeLabel(product, size)}
+          </span>
+        </div>
       )}
 
-      <div className="mt-6 flex items-center justify-between gap-3">
-        <span className="text-sm text-ink-soft">Cantidad</span>
+      <div className="mt-6 flex items-center gap-3">
         {/* Botones de 44px: es lo que mide un dedo, y el de "quitar" queda al
             lado del de "agregar" sin que se toque el equivocado. */}
-        <div className="flex items-center gap-1 rounded-full ring-1 ring-ink/15 p-1">
+        <div
+          role="group"
+          aria-label="Cantidad"
+          className="flex shrink-0 items-center gap-1 rounded-full ring-1 ring-ink/15 p-1"
+        >
           <button
             onClick={() => setQty((q) => Math.max(1, q - 1))}
             disabled={qty === 1}
@@ -163,18 +193,38 @@ export default function ProductPurchase({ product }: { product: Product }) {
             <Plus className="w-4 h-4" aria-hidden="true" />
           </button>
         </div>
+
+        <button
+          onClick={add}
+          className="flex-1 min-w-0 inline-flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full ring-1 ring-ink text-ink px-3 py-3.5 text-sm font-semibold hover:bg-ink/5 transition-colors"
+        >
+          {added ? (
+            <>
+              <Check className="w-4 h-4" aria-hidden="true" />
+              Agregado
+            </>
+          ) : (
+            <>
+              <ShoppingBag className="w-4 h-4 lg:hidden" aria-hidden="true" />
+              Agregar al pedido
+            </>
+          )}
+        </button>
       </div>
+      <span className="sr-only" aria-live="polite">
+        {added ? "Agregado al pedido" : ""}
+      </span>
 
       <button
         ref={ctaRef}
-        onClick={add}
-        className="mt-6 w-full rounded-full bg-ink text-cream px-6 py-4 text-base font-semibold hover:opacity-85 transition-opacity"
+        onClick={buyNow}
+        className="mt-3 w-full rounded-full bg-ink text-cream px-6 py-4 text-base font-semibold hover:opacity-85 transition-opacity"
       >
-        Agregar al pedido
+        Comprar ahora
         {qty > 1 && ` · $${subtotal.toFixed(2)}`}
       </button>
 
-      <BuyBar visible={scrolledPast} onAdd={add} subtotal={subtotal} qty={qty} />
+      <BuyBar visible={scrolledPast} onAdd={buyNow} subtotal={subtotal} qty={qty} />
 
       <p className="mt-3 text-sm leading-relaxed text-ink-soft">
         Se confirma por WhatsApp: allí se acuerda la entrega y se envían los
@@ -182,8 +232,11 @@ export default function ProductPurchase({ product }: { product: Product }) {
       </p>
 
       {/* Cómo llega y cómo se paga. Sale de la misma configuración que usa el
-          checkout, para que no se prometa acá un método que allá no existe. */}
-      <dl className="mt-6 pt-5 border-t border-ink/10 space-y-3 text-sm">
+          checkout, para que no se prometa acá un método que allá no existe.
+          En el teléfono esto mismo va más abajo, en las secciones que se
+          despliegan (`ProductMoreInfo`): acá empujaba la descripción fuera de
+          la pantalla. */}
+      <dl className="hidden lg:block mt-6 pt-5 border-t border-ink/10 space-y-3 text-sm">
         <Detail icon={<Truck className="w-4 h-4" aria-hidden="true" />} label="Entrega">
           {DELIVERY_METHODS.join(" · ")}
           <span className="block text-ink-soft">
@@ -307,7 +360,7 @@ function BuyBar({
           tabIndex={visible ? 0 : -1}
           className="flex-1 rounded-full bg-ink text-cream px-6 py-3.5 text-base font-semibold hover:opacity-85 transition-opacity"
         >
-          Agregar al pedido
+          Comprar ahora
         </button>
       </div>
     </div>

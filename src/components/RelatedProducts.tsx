@@ -4,7 +4,7 @@ import { Star } from "lucide-react";
 import { getProducts } from "@/lib/products-data";
 import { getRatingSummaries } from "@/lib/reviews-data";
 import { formatRating } from "@/lib/reviews";
-import { isCombo, productTitle, type Product } from "@/lib/products";
+import { isCombo, productTitle, storeSizes, type Product } from "@/lib/products";
 
 /**
  * "Otros productos de la tienda", al pie de la ficha. Sin historial de compras
@@ -34,20 +34,23 @@ export default async function RelatedProducts({
   return (
     <section className="mx-auto max-w-7xl px-5 sm:px-8 pb-12 sm:pb-16">
       <h2 className="font-display font-700 text-2xl text-ink mb-5">
-        Otros productos de la tienda
+        También te va a encantar
       </h2>
 
-      {/* Fila que se arrastra con el dedo en el teléfono y se ve completa en
-          pantalla grande, como el carrusel de recomendados de una tienda. */}
-      <ul className="flex gap-4 overflow-x-auto snap-x snap-mandatory pb-2 -mx-5 px-5 sm:mx-0 sm:px-0 no-scrollbar">
+      {/* En el teléfono, dos por fila y a lo ancho: en la fila que se
+          arrastraba cabía uno y medio, y lo que no se ve no se compra. Ahí van
+          seis, que son tres filas; más era una lista que no se acababa. Desde
+          `sm` vuelve la fila con los ocho. */}
+      <ul className="grid grid-cols-2 gap-x-3 gap-y-6 sm:flex sm:gap-4 sm:overflow-x-auto sm:snap-x sm:snap-mandatory sm:pb-2 no-scrollbar">
         {suggestions.map((p) => {
           const title = productTitle(p);
-          const from = Math.min(...p.sizes.map((s) => s.price));
+          const sizes = storeSizes(p);
+          const from = Math.min(...sizes.map((s) => s.price));
           const rating = ratings[p.key];
           return (
             <li
               key={p.key}
-              className="snap-start shrink-0 w-40 sm:w-48"
+              className="max-sm:nth-[n+7]:hidden sm:snap-start sm:shrink-0 sm:w-48"
             >
               <Link href={`/productos/${p.key}`} className="group block">
                 <div
@@ -59,7 +62,7 @@ export default async function RelatedProducts({
                     src={p.image}
                     alt={`${title} Butter Love`}
                     fill
-                    sizes="(max-width: 640px) 160px, 192px"
+                    sizes="(max-width: 640px) 46vw, 192px"
                     className={
                       isCombo(p)
                         ? "object-cover"
@@ -72,7 +75,7 @@ export default async function RelatedProducts({
                 </p>
                 <p className="flex items-center gap-1 text-xs text-ink-soft">
                   <span>
-                    {p.sizes.length > 1 ? "Desde " : ""}${from.toFixed(2)}
+                    {sizes.length > 1 ? "Desde " : ""}${from.toFixed(2)}
                   </span>
                   {rating && (
                     <>

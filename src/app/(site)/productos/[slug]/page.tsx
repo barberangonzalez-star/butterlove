@@ -3,12 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Check } from "lucide-react";
 import { getProducts, getProduct } from "@/lib/products-data";
-import { isCombo, productTitle, sizeLabel } from "@/lib/products";
+import { isCombo, productTitle, sizeLabel, storeSizes } from "@/lib/products";
 import { comboContents, productShots } from "@/lib/product-media";
 import { posts } from "@/lib/posts";
 import ProductGallery from "@/components/ProductGallery";
 import ProductPurchase from "@/components/ProductPurchase";
 import RelatedProducts from "@/components/RelatedProducts";
+import ProductMoreInfo from "@/components/ProductMoreInfo";
 import JsonLd from "@/components/JsonLd";
 import ProductReviews from "@/components/ProductReviews";
 import StarRating from "@/components/StarRating";
@@ -72,8 +73,12 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const product = await getProduct(slug);
-  if (!product) notFound();
+  const found = await getProduct(slug);
+  if (!found) notFound();
+  // Sólo lo que se vende hoy: la caja de compra, la tabla de detalles y el
+  // precio que lee Google salen todos de acá, así que el 350g no aparece en
+  // ninguno.
+  const product = { ...found, sizes: storeSizes(found) };
 
   const title = productTitle(product);
   const productPosts = posts.filter((p) => p.productKey === product.key);
@@ -118,9 +123,11 @@ export default async function ProductPage({
 
       {/* Las mismas migas que declara el JSON-LD, pero visibles: dicen dónde
           está parada la persona y devuelven al catálogo sin el botón atrás. */}
+      {/* En el teléfono no van: la ficha abre con la foto de borde a borde,
+          y la barra de arriba ya tiene cómo volver a la tienda. */}
       <nav
         aria-label="Migas de pan"
-        className="mx-auto max-w-7xl px-5 sm:px-8 pt-6"
+        className="hidden sm:block mx-auto max-w-7xl px-5 sm:px-8 pt-6"
       >
         <ol className="flex flex-wrap items-center gap-1.5 text-xs text-ink-soft">
           <li>
@@ -144,13 +151,18 @@ export default async function ProductPage({
       {/* Tres columnas como en una tienda grande: fotos, detalle y la caja de
           compra. Las piezas se colocan por fila y columna en vez de dejarlas
           fluir, porque el orden bueno en el teléfono no es el mismo que en
-          pantalla ancha: abajo se apila nombre → foto → precio → detalle, para
-          saber qué se está viendo antes de ver la foto, y decidir antes de leer
-          el texto largo. */}
-      <section className="mx-auto max-w-7xl px-5 sm:px-8 pt-6 pb-12 sm:pb-16">
-        <div className="grid gap-x-8 gap-y-6 lg:gap-y-8 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)_300px] lg:grid-rows-[auto_1fr] lg:items-start">
-          <header className="order-1 lg:col-start-2 lg:row-start-1">
-            <h1 className="font-display font-700 text-3xl sm:text-4xl text-ink">
+          pantalla ancha: abajo se apila foto → nombre → precio y botones →
+          descripción, como en las tiendas que se compran desde Instagram. La
+          foto ocupa la primera pantalla y el nombre y el precio quedan justo
+          debajo, a un pulgar de distancia. */}
+      <section className="mx-auto max-w-7xl px-5 sm:px-8 sm:pt-6 pb-12 sm:pb-16">
+        {/* `minmax(0,1fr)` en el teléfono y no la columna por defecto: esa se
+            estira hasta lo que mida su contenido más ancho, y la cinta de
+            `ProductMoreInfo` mide miles de píxeles. La página entera quedaba
+            más ancha que la pantalla. */}
+        <div className="grid grid-cols-[minmax(0,1fr)] gap-x-8 gap-y-6 lg:gap-y-8 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)_300px] lg:grid-rows-[auto_1fr] lg:items-start">
+          <header className="order-2 lg:col-start-2 lg:row-start-1">
+            <h1 className="font-display font-700 text-4xl text-ink">
               {title}
             </h1>
             <p className="mt-2 text-base text-ink-soft">{product.tagline}</p>
@@ -183,12 +195,11 @@ export default async function ProductPage({
                 las tres razones por las que alguien compra esto y ahora se
                 cuentan como tres, no como una frase larga.
 
-                En el teléfono van en un solo renglón que se corre con el dedo:
-                envueltas en dos filas empujaban la foto media pantalla hacia
-                abajo, y lo primero que tiene que verse de un producto es el
-                producto. */}
+                En el teléfono no van acá: se separaban el nombre y el precio,
+                que es lo que se busca primero. Bajan a su propia tarjeta en
+                `ProductMoreInfo`. */}
             {product.badges.length > 0 && (
-              <ul className="mt-4 flex gap-2 overflow-x-auto -mx-5 px-5 lg:mx-0 lg:px-0 lg:flex-wrap no-scrollbar">
+              <ul className="mt-4 hidden lg:flex lg:flex-wrap gap-2">
                 {product.badges.map((badge) => (
                   <li
                     key={badge}
@@ -208,7 +219,7 @@ export default async function ProductPage({
           {/* Entre el teléfono y el escritorio la página sigue siendo de una
               sola columna, y sin tope la foto cuadrada se comía una pantalla
               de tablet entera. Desde `lg` manda la columna de la cuadrícula. */}
-          <div className="order-2 sm:max-w-[520px] lg:max-w-none lg:col-start-1 lg:row-start-1 lg:row-span-2">
+          <div className="order-1 -mx-5 sm:mx-0 sm:max-w-[520px] lg:max-w-none lg:col-start-1 lg:row-start-1 lg:row-span-2">
             <ProductGallery shots={shots} title={title} />
           </div>
 
@@ -230,7 +241,8 @@ export default async function ProductPage({
               </p>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-ink/10">
+            {/* En el teléfono la tabla va plegada dentro de `ProductMoreInfo`. */}
+            <div className="hidden lg:block mt-6 pt-6 border-t border-ink/10">
               <h2 className="font-display font-700 text-2xl text-ink mb-3">
                 Detalles
               </h2>
@@ -246,6 +258,10 @@ export default async function ProductPage({
                 ))}
               </dl>
             </div>
+          </div>
+
+          <div className="order-5 lg:hidden pt-4">
+            <ProductMoreInfo product={product} details={details} />
           </div>
         </div>
       </section>

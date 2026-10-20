@@ -61,9 +61,40 @@ export default function ProductGallery({
 
   return (
     <div className="flex flex-col-reverse gap-3 sm:flex-row sm:gap-4">
+      {/* Los puntos del teléfono, debajo de la foto y no encima: sobre la
+          foto le caían a la etiqueta del frasco. Van primero porque la
+          columna está invertida. Cada uno es un botón de 28px aunque el punto
+          mida 8, para que el dedo le atine. */}
       {many && (
+        <div className="sm:hidden -mt-1.5 flex justify-center">
+          {shots.map((shot, i) => (
+            <button
+              key={`${shot.kind}-${shot.src}`}
+              type="button"
+              onClick={() => goTo(i)}
+              aria-label={
+                shot.kind === "video"
+                  ? `Ver el video de ${title}`
+                  : `Ver la foto ${i + 1} de ${title}`
+              }
+              aria-current={i === active}
+              className="w-7 h-7 flex items-center justify-center"
+            >
+              <span
+                className={`block w-2 h-2 rounded-full transition-colors ${
+                  i === active ? "bg-ink" : "bg-ink/25"
+                }`}
+              />
+            </button>
+          ))}
+        </div>
+      )}
+
+      {many && (
+        // En el teléfono las miniaturas no van: la foto ocupa el ancho entero
+        // y los puntos de abajo dicen cuántas hay. Desde `sm` vuelven.
         <div
-          className="flex sm:flex-col gap-2 sm:gap-3 overflow-x-auto sm:overflow-visible -mx-5 px-5 sm:mx-0 sm:px-0 no-scrollbar"
+          className="hidden sm:flex sm:flex-col gap-3 sm:overflow-visible"
           role="tablist"
           aria-label={`Fotos y video de ${title}`}
         >
@@ -114,7 +145,7 @@ export default function ProductGallery({
         <div
           ref={trackRef}
           onScroll={syncActive}
-          className="torn-card flex overflow-x-auto snap-x snap-mandatory overscroll-x-contain aspect-square no-scrollbar"
+          className="torn-card gallery-bleed flex overflow-x-auto snap-x snap-mandatory overscroll-x-contain aspect-square no-scrollbar"
         >
           {shots.map((shot, i) =>
             shot.kind === "video" ? (
@@ -140,7 +171,7 @@ export default function ProductGallery({
                   // navegador la descubra. Las demás esperan a que alguien
                   // llegue a ellas arrastrando.
                   preload={i === 0}
-                  sizes="(max-width: 640px) 92vw, 400px"
+                  sizes="(max-width: 640px) 100vw, 400px"
                   className={
                     shot.cutout
                       ? "object-contain p-8 drop-shadow-xl"
@@ -162,15 +193,6 @@ export default function ProductGallery({
 
         {many && (
           <>
-            <span
-              aria-hidden="true"
-              // Arriba y no abajo: abajo a la derecha están los botones del
-              // video, y el contador les caía encima.
-              className="sm:hidden absolute top-3 right-3 rounded-full bg-ink/70 text-cream text-xs font-semibold tabular-nums px-2.5 py-1.5 backdrop-blur-sm"
-            >
-              {active + 1} / {shots.length}
-            </span>
-
             {/* En pantalla grande no hay dedo que arrastre. */}
             <button
               type="button"

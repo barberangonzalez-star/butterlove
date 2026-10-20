@@ -33,6 +33,12 @@ interface CartContextValue {
     grams: number,
     price: number,
     qty?: number,
+    /**
+     * Si se abre el pedido después de agregar. Por defecto sí; la ficha lo
+     * apaga en "Agregar al pedido" para que se pueda seguir mirando, y deja
+     * "Comprar ahora" como el botón que lleva directo a pedir.
+     */
+    options?: { open?: boolean },
   ) => void;
   removeItem: (key: FlavorKey, grams: number) => void;
   updateQty: (key: FlavorKey, grams: number, qty: number) => void;
@@ -107,7 +113,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
   // La cantidad llega desde la ficha del producto, que deja elegir cuántos
   // frascos antes de agregar. Llamar al botón N veces también funcionaría,
   // pero le reportaría a Meta N adiciones sueltas en vez de una sola de N.
-  const addItem: CartContextValue["addItem"] = (key, grams, price, qty = 1) => {
+  const addItem: CartContextValue["addItem"] = (
+    key,
+    grams,
+    price,
+    qty = 1,
+    { open = true } = {},
+  ) => {
     const amount = Math.max(1, Math.floor(qty));
     // El aviso a Meta va acá y no en los botones: es el único camino para
     // meter algo al pedido, así que ningún botón nuevo se olvida de avisar.
@@ -125,7 +137,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       return enforceLandingUpsells([...prev, { key, grams, price, qty: amount }]);
     });
-    setIsOpen(true);
+    if (open) setIsOpen(true);
   };
 
   const removeItem: CartContextValue["removeItem"] = (key, grams) => {
