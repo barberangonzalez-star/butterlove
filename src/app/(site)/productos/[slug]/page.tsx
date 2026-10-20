@@ -157,9 +157,9 @@ export default async function ProductPage({
           debajo, a un pulgar de distancia. */}
       <section className="mx-auto max-w-7xl px-5 sm:px-8 sm:pt-6 pb-12 sm:pb-16">
         {/* `minmax(0,1fr)` en el teléfono y no la columna por defecto: esa se
-            estira hasta lo que mida su contenido más ancho, y la cinta de
-            `ProductMoreInfo` mide miles de píxeles. La página entera quedaba
-            más ancha que la pantalla. */}
+            estira hasta lo que mida su contenido más ancho, y con una fila
+            que no se parte (pasó con una cinta de texto corrido) la página
+            entera quedaba más ancha que la pantalla. */}
         <div className="grid grid-cols-[minmax(0,1fr)] gap-x-8 gap-y-6 lg:gap-y-8 lg:grid-cols-[minmax(0,400px)_minmax(0,1fr)_300px] lg:grid-rows-[auto_1fr] lg:items-start">
           <header className="order-2 lg:col-start-2 lg:row-start-1">
             <h1 className="font-display font-700 text-4xl text-ink">

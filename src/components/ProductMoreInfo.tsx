@@ -10,8 +10,7 @@ import {
 
 /**
  * Lo que va debajo de la descripción en el teléfono: lo que trae el frasco,
- * una cinta con lo que nos distingue, la foto grande y las preguntas de
- * siempre plegadas.
+ * la foto grande y las preguntas de siempre plegadas.
  *
  * Antes todo esto era texto corrido —los detalles en una tabla, la entrega y
  * el pago debajo del botón— y en una pantalla angosta se leía como una
@@ -22,15 +21,6 @@ import {
  * tabla de detalles y su columna de compra con la entrega y el pago, y
  * repetirlos ahí sería decir todo dos veces.
  */
-
-/** Lo que vale para todos los frascos. Son las mismas promesas que hace la historia de la home. */
-const MARQUEE = [
-  "Sin azúcar",
-  "Hecho a mano",
-  "Tandas pequeñas",
-  "Sin rellenos",
-  "Frutos venezolanos",
-];
 
 const MIN_DELIVERY = Math.min(...DELIVERY_ZONES.map((z) => z.price));
 
@@ -50,7 +40,7 @@ export default function ProductMoreInfo({
           className={`torn-card ${isCombo(product) ? "bg-surface" : product.bgClass} px-6 py-8`}
         >
           <h2 className="font-display font-700 text-lg text-ink">
-            Lo que trae cada frasco
+            {isCombo(product) ? "Lo que trae este combo" : "Lo que trae cada frasco"}
           </h2>
           <ul className="mt-3 space-y-1.5">
             {product.badges.map((badge) => (
@@ -61,35 +51,6 @@ export default function ProductMoreInfo({
           </ul>
         </section>
       )}
-
-      {/* La cinta va de borde a borde, saliéndose del margen de la página:
-          contenida en la columna parecía un botón ancho. */}
-      <div
-        className="-mx-5 sm:-mx-8 overflow-hidden py-4"
-        style={{ backgroundColor: product.accentHex }}
-      >
-        <div className="flex w-max animate-marquee">
-          {[0, 1].map((copy) => (
-            <ul
-              key={copy}
-              aria-hidden={copy === 1}
-              className="flex shrink-0 items-center"
-            >
-              {MARQUEE.map((item) => (
-                <li
-                  key={item}
-                  className="flex items-center font-display font-700 text-3xl text-ink whitespace-nowrap"
-                >
-                  <span className="px-5">{item}</span>
-                  <span aria-hidden="true" className="text-xl">
-                    ✦
-                  </span>
-                </li>
-              ))}
-            </ul>
-          ))}
-        </div>
-      </div>
 
       <section>
         {/* La foto de ambiente es apaisada y los frascos caen a la derecha:

@@ -108,22 +108,6 @@ body {
   }
 }
 
-/* La cinta de la ficha. El contenido va dos veces seguido, así que correrlo
-   la mitad de su ancho deja la segunda copia donde estaba la primera y el
-   salto no se ve. */
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.animate-marquee {
-  animation: marquee 22s linear infinite;
-}
-
 @keyframes float-jar {
   0%,
   100% {
