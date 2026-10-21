@@ -179,10 +179,14 @@ export function hasFreeDeliveryPromo(
  * el envío incluido —por eso cuesta lo que cuesta—, así que el pedido que lo
  * trae lo lleva gratis venga de donde venga. Si el pedido trae además otros
  * frascos, viajan en el mismo paquete y también van incluidos.
+ *
+ * Merey promo (21 Oct 2026): the 230g jar sells at $15 with shipping included,
+ * so it sits here alongside the combo. When the promo ends, take it out of this
+ * list and put its price back in the admin panel.
  */
-export const FREE_SHIPPING_KEYS = ["combo-nacional-mani"];
+export const FREE_SHIPPING_KEYS = ["combo-nacional-mani", "merey"];
 
-/** Si el pedido trae un combo con el envío pagado. */
+/** Si el pedido trae un producto con el envío pagado. */
 export function hasFreeShipping(itemKeys: string[]) {
   return itemKeys.some((key) => FREE_SHIPPING_KEYS.includes(key));
 }

@@ -20,6 +20,7 @@ import {
   DELIVERY_ZONES,
   NATIONAL_COURIERS,
   PAYMENT_METHODS,
+  hasFreeShipping,
 } from "@/lib/config";
 
 /**
@@ -53,6 +54,7 @@ export default function ProductPurchase({ product }: { product: Product }) {
   const multiSize = product.sizes.length > 1;
   const subtotal = size.price * qty;
   const saved = isCombo(product) ? comboSavings(product, catalog) : 0;
+  const freeShipping = hasFreeShipping([product.key]);
 
   // El tamaño que más rinde. Entre 230g y 350g la diferencia por gramo es de
   // un cuarto del precio, y en la ficha eso no se ve: son dos números sueltos
@@ -105,12 +107,16 @@ export default function ProductPurchase({ product }: { product: Product }) {
       {/* Lo que cuesta que llegue, pegado al precio. Sin esto el delivery
           aparecía recién en el segundo paso del pedido, y un costo que no se
           esperaba ahí es una razón para cerrar la pestaña. */}
-      <p className="mt-2 flex items-center gap-1.5 text-sm text-ink-soft">
-        <Truck className="w-4 h-4 shrink-0" aria-hidden="true" />
-        <span>
-          Delivery en Caracas desde ${MIN_DELIVERY.toFixed(2)} · Pickup gratis
-        </span>
-      </p>
+      {freeShipping ? (
+        <FreeShippingBadge />
+      ) : (
+        <p className="mt-2 flex items-center gap-1.5 text-sm text-ink-soft">
+          <Truck className="w-4 h-4 shrink-0" aria-hidden="true" />
+          <span>
+            Delivery en Caracas desde ${MIN_DELIVERY.toFixed(2)} · Pickup gratis
+          </span>
+        </p>
+      )}
 
       {saved > 0 && (
         <p className="mt-2 inline-flex items-center rounded-full bg-mani-bg/40 px-3 py-1 text-sm font-semibold text-ink">
@@ -242,6 +248,11 @@ export default function ProductPurchase({ product }: { product: Product }) {
           <span className="block text-ink-soft">
             Encomiendas: {NATIONAL_COURIERS.join(", ")}
           </span>
+          {freeShipping && (
+            <span className="block font-semibold">
+              Envío incluido: delivery y encomienda van por nuestra cuenta.
+            </span>
+          )}
         </Detail>
         <Detail icon={<Wallet className="w-4 h-4" aria-hidden="true" />} label="Pago">
           {PAYMENT_METHODS.join(" · ")}
@@ -253,6 +264,37 @@ export default function ProductPurchase({ product }: { product: Product }) {
           A mano, en tandas pequeñas
         </Detail>
       </dl>
+    </div>
+  );
+}
+
+/**
+ * The free-shipping badge that replaces the delivery line for products that
+ * ship free. It pops in once and then keeps a gentle loop — the van rocking and
+ * a sheen crossing the pill — so it catches the eye next to the price without
+ * pulling attention away from the buy button. Users who ask for reduced motion
+ * get it static, through the global rule in globals.css.
+ */
+function FreeShippingBadge() {
+  return (
+    <div className="mt-3 animate-badge-pop">
+      <p className="relative inline-flex items-center gap-2.5 overflow-hidden rounded-full bg-ink py-2 pl-3 pr-4 text-cream shadow-sm">
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-cream/25 to-transparent animate-badge-sheen"
+        />
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cream/15">
+          <Truck className="w-4 h-4 animate-truck-drive" aria-hidden="true" />
+        </span>
+        <span className="text-sm leading-tight">
+          <span className="block font-display font-700 text-base">
+            ¡Envío gratis!
+          </span>
+          <span className="block text-cream/80">
+            A toda Venezuela y delivery en Caracas
+          </span>
+        </span>
+      </p>
     </div>
   );
 }

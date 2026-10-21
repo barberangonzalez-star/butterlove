@@ -552,11 +552,11 @@ export default function CartDrawer() {
                     {zone
                       ? zone.price === 0
                         ? freeShipping
-                          ? "Tu delivery va por nuestra cuenta: tu combo trae el envío incluido."
+                          ? "Tu delivery va por nuestra cuenta: tu pedido trae el envío incluido."
                           : "Tu delivery va por nuestra cuenta, por la promo."
                         : `Se suman $${zone.price.toFixed(2)} de delivery a tu total.`
                       : freeShipping
-                        ? "Tu combo trae el envío incluido: el delivery es gratis en cualquier zona."
+                        ? "Tu pedido trae el envío incluido: el delivery es gratis en cualquier zona."
                         : freeDeliveryPromo
                         ? `Con la promo, el delivery es gratis en ${new Intl.ListFormat("es", { type: "conjunction" }).format(LANDING_FREE_DELIVERY.zones)}.`
                         : "El costo del delivery se suma al total de tu pedido."}
@@ -582,7 +582,7 @@ export default function CartDrawer() {
                   </select>
                   <span className="mt-1.5 block text-xs text-ink-soft">
                     {freeShipping
-                      ? "Tu combo trae el envío incluido: lo despachamos pagado y no pagas nada al retirar."
+                      ? "Tu pedido trae el envío incluido: lo despachamos pagado y no pagas nada al retirar."
                       : "El flete no va en este total: lo pagas en la agencia al retirar el paquete."}
                   </span>
                 </label>

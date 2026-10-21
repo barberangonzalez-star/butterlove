@@ -10,6 +10,7 @@ import {
   SOCIAL_LINKS,
   BUSINESS_LOCALITY,
   PAYMENT_METHODS,
+  hasFreeShipping,
 } from "./config";
 import { productTitle, sizeLabel, type Product } from "./products";
 import { formatRating, type ProductReviews } from "./reviews";
@@ -148,6 +149,24 @@ export function productSchema(product: Product, reviews?: ProductReviews | null)
             "@type": "PaymentMethod",
             name,
           })),
+          // Declaring the $0 shipping is what lets Google show "Free delivery"
+          // next to the price in search results.
+          ...(hasFreeShipping([product.key])
+            ? {
+                shippingDetails: {
+                  "@type": "OfferShippingDetails",
+                  shippingRate: {
+                    "@type": "MonetaryAmount",
+                    value: "0",
+                    currency: "USD",
+                  },
+                  shippingDestination: {
+                    "@type": "DefinedRegion",
+                    addressCountry: "VE",
+                  },
+                },
+              }
+            : {}),
         }
       : {
           "@type": "AggregateOffer",

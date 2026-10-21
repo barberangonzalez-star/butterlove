@@ -42,9 +42,13 @@ export const COMBO_JAR_GRAMS = 230;
 
 /**
  * Los tamaños que se ofrecen en la tienda. Hoy el sabor suelto se vende sólo
- * en el frasco de 230g: el de 350g sigue en la base de datos —tiene ventas y
- * costos guardados— pero no hay, y ofrecerlo en la ficha es venderle a alguien
- * algo que después hay que explicarle por WhatsApp que no existe.
+ * en el frasco de 230g: ofrecer el de 350g en la ficha era venderle a alguien
+ * algo que después había que explicarle por WhatsApp que no existe.
+ *
+ * Since 21 Oct 2026 the 350g sizes are gone from the database as well
+ * (`scripts/launch-merey-free-shipping.ts`). Past sales keep their grams on
+ * the sale itself, so their history is unaffected. This filter stays as a
+ * safety net in case a 350g size is ever added back from the admin panel.
  *
  * Un combo tiene una sola presentación y pasa entero. Un sabor que no tenga
  * 230g conserva lo que tenga, en vez de quedarse sin nada que vender.
