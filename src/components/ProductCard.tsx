@@ -53,23 +53,46 @@ export default function ProductCard({
           <span className="bg-white/90 text-ink text-xs px-3 py-1 rounded-full">
             {isCombo(product) ? "Combo" : "Sin azúcar"}
           </span>
-          {rating && (
-            <span
-              role="img"
-              aria-label={`${formatRating(rating.average)} de 5 estrellas, ${reviewCountLabel(rating.count)}`}
-              className="pointer-events-none inline-flex items-center gap-1 bg-white/90 text-ink text-xs font-semibold px-2.5 py-1 rounded-full"
-            >
-              <Star
-                size={12}
-                fill="currentColor"
-                strokeWidth={0}
-                className="text-star"
-                aria-hidden="true"
-              />
-              {formatRating(rating.average)}
-              <span className="font-normal text-ink-soft">({rating.count})</span>
-            </span>
-          )}
+          {/* Free-shipping promo and stars share the right-hand side: the
+              promo on top, the stars under it when the product has both. */}
+          <div className="pointer-events-none flex flex-col items-end gap-1.5">
+            {freeShipping && (
+              <span className="relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-ink py-1 pl-1.5 pr-3 text-cream shadow-md animate-badge-pop">
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-cream/25 to-transparent animate-badge-sheen"
+                />
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cream/15">
+                  <Truck className="h-3 w-3 animate-truck-drive" aria-hidden="true" />
+                </span>
+                <span className="leading-tight">
+                  <span className="block font-display font-700 text-xs">
+                    ¡Envío gratis!
+                  </span>
+                  <span className="block text-[10px] text-cream/80">
+                    Por tiempo limitado
+                  </span>
+                </span>
+              </span>
+            )}
+            {rating && (
+              <span
+                role="img"
+                aria-label={`${formatRating(rating.average)} de 5 estrellas, ${reviewCountLabel(rating.count)}`}
+                className="inline-flex items-center gap-1 bg-white/90 text-ink text-xs font-semibold px-2.5 py-1 rounded-full"
+              >
+                <Star
+                  size={12}
+                  fill="currentColor"
+                  strokeWidth={0}
+                  className="text-star"
+                  aria-hidden="true"
+                />
+                {formatRating(rating.average)}
+                <span className="font-normal text-ink-soft">({rating.count})</span>
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Los recortes sin fondo flotan sobre el color de la tarjeta, con las
@@ -102,30 +125,6 @@ export default function ProductCard({
           </>
         )}
 
-        {/* Free-shipping promo, over the photo so it is seen while scrolling
-            the shop. It takes no taps: touching it opens the product page
-            like the rest of the photo. */}
-        {freeShipping && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3 animate-badge-pop">
-            <span className="relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-ink py-1.5 pl-2 pr-3.5 text-cream shadow-lg">
-              <span
-                aria-hidden="true"
-                className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-cream/25 to-transparent animate-badge-sheen"
-              />
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cream/15">
-                <Truck className="h-3.5 w-3.5 animate-truck-drive" aria-hidden="true" />
-              </span>
-              <span className="leading-tight">
-                <span className="block font-display font-700 text-sm">
-                  ¡Envío gratis!
-                </span>
-                <span className="block text-[11px] text-cream/80">
-                  Por tiempo limitado
-                </span>
-              </span>
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Pie de la tarjeta: el nombre arriba y, debajo, el precio frente al
