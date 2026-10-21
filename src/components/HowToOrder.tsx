@@ -1,7 +1,7 @@
 const steps = [
   {
     title: "Elige tu mantequilla",
-    text: "Escoge sabor y tamaño (230g o 350g) y agrégalo al pedido.",
+    text: "Escoge tu sabor en frasco de 230g y agrégalo al pedido.",
   },
   {
     title: "Confirma por WhatsApp",

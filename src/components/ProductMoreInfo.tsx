@@ -6,6 +6,7 @@ import {
   DELIVERY_ZONES,
   NATIONAL_COURIERS,
   PAYMENT_METHODS,
+  hasFreeShipping,
 } from "@/lib/config";
 
 /**
@@ -32,6 +33,7 @@ export default function ProductMoreInfo({
   details: [string, string][];
 }) {
   const title = productTitle(product);
+  const freeShipping = hasFreeShipping([product.key]);
 
   return (
     <div className="lg:hidden space-y-10">
@@ -98,14 +100,29 @@ export default function ProductMoreInfo({
 
           <Fold icon={<Truck className="w-5 h-5" aria-hidden="true" />} title="Entrega">
             <p>{DELIVERY_METHODS.join(" · ")}.</p>
-            <p className="mt-2">
-              Delivery en Caracas desde ${MIN_DELIVERY.toFixed(2)} según tu
-              zona. El pickup no cuesta nada.
-            </p>
-            <p className="mt-2">
-              Al resto del país va por encomienda ({NATIONAL_COURIERS.join(", ")}),
-              y el flete se paga al retirar.
-            </p>
+            {freeShipping ? (
+              <>
+                <p className="mt-2 font-semibold text-ink">
+                  Envío incluido: el delivery en Caracas es gratis en cualquier
+                  zona.
+                </p>
+                <p className="mt-2">
+                  Al resto del país va por encomienda ({NATIONAL_COURIERS.join(", ")}),
+                  con el flete pagado por nosotros: no pagas nada al retirar.
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="mt-2">
+                  Delivery en Caracas desde ${MIN_DELIVERY.toFixed(2)} según tu
+                  zona. El pickup no cuesta nada.
+                </p>
+                <p className="mt-2">
+                  Al resto del país va por encomienda ({NATIONAL_COURIERS.join(", ")}),
+                  y el flete se paga al retirar.
+                </p>
+              </>
+            )}
           </Fold>
 
           <Fold icon={<Wallet className="w-5 h-5" aria-hidden="true" />} title="Pago">

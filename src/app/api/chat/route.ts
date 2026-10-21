@@ -113,7 +113,7 @@ Recetas con nuestras mantequillas:
 ${recipes}
 
 Cómo pedir:
-1. El cliente elige sabor y tamaño (230g o 350g).
+1. El cliente elige sabor. Todos los sabores vienen en frasco de 230g; ya no hay de 350g.
 2. Confirma el pedido por WhatsApp: ${WHATSAPP_LINK}.
 3. Paga como prefiera: ${PAYMENT_METHODS.join(", ")}.
 4. Coordinan la entrega o punto de encuentro por WhatsApp.

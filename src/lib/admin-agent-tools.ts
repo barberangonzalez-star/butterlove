@@ -503,7 +503,7 @@ const armarCotizacion = tool({
             .number()
             .int()
             .optional()
-            .describe("230 o 350. Sin esto se usa el tamaño más chico que exista."),
+            .describe("Hoy sólo existe el de 230. Sin esto se usa el tamaño más chico que exista."),
           cantidad: z.number().int().describe("Cuántos frascos."),
           precioUnitario: z
             .number()
