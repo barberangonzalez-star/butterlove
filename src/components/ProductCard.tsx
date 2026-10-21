@@ -2,9 +2,10 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { Star } from "lucide-react";
+import { Star, Truck } from "lucide-react";
 import { Product, isCombo, productTitle, sizeLabel } from "@/lib/products";
 import { useCart } from "@/lib/cart-context";
+import { hasFreeShipping } from "@/lib/config";
 import {
   formatRating,
   reviewCountLabel,
@@ -26,6 +27,7 @@ export default function ProductCard({
   // en su presentación única.
   const size = product.sizes.find((s) => s.grams === 230) ?? product.sizes[0];
   const title = productTitle(product);
+  const freeShipping = hasFreeShipping([product.key]);
 
   return (
     <div className="torn-card overflow-hidden flex flex-col">
@@ -100,6 +102,30 @@ export default function ProductCard({
           </>
         )}
 
+        {/* Free-shipping promo, over the photo so it is seen while scrolling
+            the shop. It takes no taps: touching it opens the product page
+            like the rest of the photo. */}
+        {freeShipping && (
+          <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex justify-center px-3 animate-badge-pop">
+            <span className="relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-ink py-1.5 pl-2 pr-3.5 text-cream shadow-lg">
+              <span
+                aria-hidden="true"
+                className="absolute inset-y-0 left-0 w-1/3 bg-gradient-to-r from-transparent via-cream/25 to-transparent animate-badge-sheen"
+              />
+              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-cream/15">
+                <Truck className="h-3.5 w-3.5 animate-truck-drive" aria-hidden="true" />
+              </span>
+              <span className="leading-tight">
+                <span className="block font-display font-700 text-sm">
+                  ¡Envío gratis!
+                </span>
+                <span className="block text-[11px] text-cream/80">
+                  Por tiempo limitado
+                </span>
+              </span>
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Pie de la tarjeta: el nombre arriba y, debajo, el precio frente al
