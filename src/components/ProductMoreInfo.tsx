@@ -103,8 +103,8 @@ export default function ProductMoreInfo({
             {freeShipping ? (
               <>
                 <p className="mt-2 font-semibold text-ink">
-                  Envío incluido: el delivery en Caracas es gratis en cualquier
-                  zona.
+                  Envío incluido si el pedido es sólo de este producto: el
+                  delivery en Caracas es gratis en cualquier zona.
                 </p>
                 <p className="mt-2">
                   Al resto del país va por encomienda ({NATIONAL_COURIERS.join(", ")}),

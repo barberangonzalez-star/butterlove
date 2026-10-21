@@ -20,6 +20,7 @@ import {
   deliveryZonesFor,
   hasFreeDeliveryPromo,
   hasFreeShipping,
+  missesFreeShipping,
 } from "@/lib/config";
 
 type Step = "cart" | "info" | "payment" | "summary";
@@ -489,6 +490,15 @@ export default function CartDrawer() {
                 {freeShipping && (
                   <li className="rounded-2xl bg-pistacho-bg px-4 py-3 text-sm font-semibold text-ink">
                     🎉 ¡Felicidades! Tu envío a toda Venezuela ya está incluido.
+                  </li>
+                )}
+                {/* Merey ships free only on its own: say so before the delivery
+                    cost shows up in the next step and feels like a mistake. */}
+                {missesFreeShipping(items.map((i) => i.key)) && (
+                  <li className="rounded-2xl bg-surface px-4 py-3 text-sm text-ink">
+                    El envío gratis aplica cuando el pedido es sólo de merey.
+                    Si agregas otros productos, el envío se cobra como
+                    siempre.
                   </li>
                 )}
               </ul>

@@ -250,7 +250,8 @@ export default function ProductPurchase({ product }: { product: Product }) {
           </span>
           {freeShipping && (
             <span className="block font-semibold">
-              Envío incluido: delivery y encomienda van por nuestra cuenta.
+              Envío incluido si el pedido es sólo de este producto: delivery y
+              encomienda van por nuestra cuenta.
             </span>
           )}
         </Detail>

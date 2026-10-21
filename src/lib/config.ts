@@ -179,16 +179,39 @@ export function hasFreeDeliveryPromo(
  * el envío incluido —por eso cuesta lo que cuesta—, así que el pedido que lo
  * trae lo lleva gratis venga de donde venga. Si el pedido trae además otros
  * frascos, viajan en el mismo paquete y también van incluidos.
+ */
+export const FREE_SHIPPING_KEYS = ["combo-nacional-mani"];
+
+/**
+ * Products that ship free only when the order holds nothing else.
  *
  * Merey promo (21 Oct 2026): the 230g jar sells at $15 with shipping included,
- * so it sits here alongside the combo. When the promo ends, take it out of this
- * list and put its price back in the admin panel.
+ * and that covers merey alone. Unlike the combo, it does not carry other jars
+ * for free: an order with merey plus anything else pays delivery as usual.
+ * When the promo ends, empty this list and put the price back in the admin
+ * panel.
  */
-export const FREE_SHIPPING_KEYS = ["combo-nacional-mani", "merey"];
+export const FREE_SHIPPING_ONLY_KEYS = ["merey"];
 
-/** Si el pedido trae un producto con el envío pagado. */
+/** Si el pedido lleva el envío pagado. */
 export function hasFreeShipping(itemKeys: string[]) {
-  return itemKeys.some((key) => FREE_SHIPPING_KEYS.includes(key));
+  if (itemKeys.some((key) => FREE_SHIPPING_KEYS.includes(key))) return true;
+  return (
+    itemKeys.length > 0 &&
+    itemKeys.every((key) => FREE_SHIPPING_ONLY_KEYS.includes(key))
+  );
+}
+
+/**
+ * Whether the order holds a free-shipping-only product but loses the free
+ * shipping because something else came along. The cart uses it to explain
+ * why delivery is being charged.
+ */
+export function missesFreeShipping(itemKeys: string[]) {
+  return (
+    !hasFreeShipping(itemKeys) &&
+    itemKeys.some((key) => FREE_SHIPPING_ONLY_KEYS.includes(key))
+  );
 }
 
 /**
