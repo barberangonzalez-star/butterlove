@@ -6,6 +6,7 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  setProductFlags,
   type ProductInput,
 } from "@/lib/products-data";
 
@@ -65,5 +66,19 @@ export async function saveProductAction(formData: FormData) {
 export async function deleteProductAction(id: number) {
   await verifySession();
   await deleteProduct(id);
+  revalidateCatalog();
+}
+
+// The quick switches on the product list. Each one writes only its own flag,
+// so the rest of the product is left as it was.
+export async function setInStoreAction(id: number, inStore: boolean) {
+  await verifySession();
+  await setProductFlags(id, { inStore });
+  revalidateCatalog();
+}
+
+export async function setSoldOutAction(id: number, soldOut: boolean) {
+  await verifySession();
+  await setProductFlags(id, { soldOut });
   revalidateCatalog();
 }

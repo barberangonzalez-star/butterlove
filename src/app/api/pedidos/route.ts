@@ -177,6 +177,9 @@ export async function POST(request: Request) {
     // Un producto o un tamaño que no existe se ignora en vez de tumbar el
     // pedido entero: el resto de lo que pidió sigue siendo un pedido válido.
     if (!product || !size) continue;
+    // Same for one marked sold out: a cart saved in the browser can still
+    // carry it from before it was switched off.
+    if (product.soldOut) continue;
     // Dos líneas del mismo frasco (el normal que ya pidió y el que se pasó de
     // la promo) se juntan en una.
     const same = items.find((i) => i.key === product.key && i.grams === size.grams);

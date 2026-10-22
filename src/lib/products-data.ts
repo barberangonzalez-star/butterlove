@@ -21,6 +21,7 @@ function toProduct(row: ProductRow, sizes: SizeRow[]): Product {
     bgClass: row.bgClass,
     accentHex: row.accentHex,
     badges: row.badges,
+    soldOut: row.soldOut,
     sizes: sizes
       .filter((s) => s.productId === row.id)
       .sort((a, b) => a.grams - b.grams)
@@ -127,6 +128,7 @@ function toAdminProduct(row: ProductRow, sizeRows: SizeRow[]): AdminProduct {
     bgClass: row.bgClass,
     accentHex: row.accentHex,
     badges: row.badges,
+    soldOut: row.soldOut,
     sizes: sizeRows
       .filter((s) => s.productId === row.id)
       .sort((a, b) => a.grams - b.grams)
@@ -285,6 +287,22 @@ export async function updateProduct(id: number, input: ProductInput) {
 export async function deleteProduct(id: number) {
   const db = getDb();
   await db.delete(products).where(eq(products.id, id));
+}
+
+/**
+ * The two quick switches on the admin product list: whether the product is in
+ * the shop and whether it is sold out. Written on their own so that flipping
+ * one does not need the whole product form.
+ */
+export async function setProductFlags(
+  id: number,
+  flags: { inStore?: boolean; soldOut?: boolean },
+) {
+  const db = getDb();
+  await db
+    .update(products)
+    .set({ ...flags, updatedAt: new Date() })
+    .where(eq(products.id, id));
 }
 
 export async function setProductSizeStock(sizeId: number, quantity: number) {

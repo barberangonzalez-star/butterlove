@@ -56,7 +56,12 @@ export default function ProductCard({
           {/* Free-shipping promo and stars share the right-hand side: the
               promo on top, the stars under it when the product has both. */}
           <div className="pointer-events-none flex flex-col items-end gap-1.5">
-            {freeShipping && (
+            {product.soldOut && (
+              <span className="bg-ink text-cream text-xs font-semibold px-3 py-1 rounded-full">
+                Agotado
+              </span>
+            )}
+            {freeShipping && !product.soldOut && (
               <span className="relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-ink py-1 pl-1.5 pr-3 text-cream shadow-md animate-badge-pop">
                 <span
                   aria-hidden="true"
@@ -149,12 +154,18 @@ export default function ProductCard({
             </span>
             {/* Con el renglón para él solo, el botón crece a un tamaño cómodo
                 para el pulgar. */}
-            <button
-              onClick={() => addItem(product.key, size.grams, size.price)}
-              className="shrink-0 rounded-full bg-ink text-cream px-4 py-2 text-sm font-semibold hover:opacity-85 transition-opacity"
-            >
-              Agregar
-            </button>
+            {product.soldOut ? (
+              <span className="shrink-0 rounded-full ring-1 ring-ink/25 text-ink-soft px-4 py-2 text-sm font-semibold">
+                Agotado
+              </span>
+            ) : (
+              <button
+                onClick={() => addItem(product.key, size.grams, size.price)}
+                className="shrink-0 rounded-full bg-ink text-cream px-4 py-2 text-sm font-semibold hover:opacity-85 transition-opacity"
+              >
+                Agregar
+              </button>
+            )}
           </div>
         </div>
       </div>

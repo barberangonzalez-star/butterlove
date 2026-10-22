@@ -44,6 +44,12 @@ export const products = pgTable("products", {
   // por encargo existen igual en el catálogo para poder registrarles ventas y
   // llevarles inventario, pero no aparecen en la tienda ni en el sitemap.
   inStore: boolean("in_store").notNull().default(true),
+  // Sold out, switched by hand from the admin panel. The product stays in the
+  // shop window, marked "Agotado" and without a buy button, so whoever comes
+  // looking for it knows it will be back. It is a manual switch rather than
+  // derived from `stockQuantity`: jars are made in batches and that count is
+  // not always up to date.
+  soldOut: boolean("sold_out").notNull().default(false),
   sortOrder: integer("sort_order").notNull().default(0),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),

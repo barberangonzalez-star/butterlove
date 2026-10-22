@@ -169,6 +169,14 @@ export default function ProductPurchase({ product }: { product: Product }) {
         </div>
       )}
 
+      {product.soldOut ? (
+        // Sold out: no quantity and no buy buttons, just the word. The rest of
+        // the page stays, so it still reads as a product that will be back.
+        <p className="mt-6 rounded-full bg-ink/5 px-6 py-4 text-center text-base font-semibold text-ink-soft">
+          Agotado por ahora
+        </p>
+      ) : (
+      <>
       <div className="mt-6 flex items-center gap-3">
         {/* Botones de 44px: es lo que mide un dedo, y el de "quitar" queda al
             lado del de "agregar" sin que se toque el equivocado. */}
@@ -231,6 +239,8 @@ export default function ProductPurchase({ product }: { product: Product }) {
       </button>
 
       <BuyBar visible={scrolledPast} onAdd={buyNow} subtotal={subtotal} qty={qty} />
+      </>
+      )}
 
       <p className="mt-3 text-sm leading-relaxed text-ink-soft">
         Se confirma por WhatsApp: allí se acuerda la entrega y se envían los

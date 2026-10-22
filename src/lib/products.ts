@@ -21,6 +21,8 @@ export interface Product {
   bgClass: string;
   accentHex: string;
   badges: string[];
+  /** Marked sold out in the admin panel: it is shown but cannot be ordered. */
+  soldOut: boolean;
   sizes: SizeOption[];
 }
 

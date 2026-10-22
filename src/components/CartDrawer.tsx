@@ -248,6 +248,18 @@ export default function CartDrawer() {
     promo,
   } = useCart();
   const products = useProducts();
+
+  // A cart saved in the browser can still hold a product that has since been
+  // marked sold out. It leaves the cart rather than reaching WhatsApp as an
+  // order we cannot fill.
+  useEffect(() => {
+    for (const item of items) {
+      if (products.find((p) => p.key === item.key)?.soldOut) {
+        removeItem(item.key, item.grams);
+      }
+    }
+  }, [items, products, removeItem]);
+
   const freeDeliveryPromo = hasFreeDeliveryPromo(
     promo,
     items.map((i) => i.key),
