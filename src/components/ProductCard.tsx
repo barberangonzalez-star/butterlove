@@ -28,6 +28,9 @@ export default function ProductCard({
   const size = product.sizes.find((s) => s.grams === 230) ?? product.sizes[0];
   const title = productTitle(product);
   const freeShipping = hasFreeShipping([product.key]);
+  // A sold-out jar is drained of colour so the shop window shows at a glance
+  // which flavours cannot be ordered, before anyone reads the stamp.
+  const faded = product.soldOut ? "grayscale opacity-60" : "";
 
   return (
     <div className="torn-card overflow-hidden flex flex-col">
@@ -56,11 +59,6 @@ export default function ProductCard({
           {/* Free-shipping promo and stars share the right-hand side: the
               promo on top, the stars under it when the product has both. */}
           <div className="pointer-events-none flex flex-col items-end gap-1.5">
-            {product.soldOut && (
-              <span className="bg-ink text-cream text-xs font-semibold px-3 py-1 rounded-full">
-                Agotado
-              </span>
-            )}
             {freeShipping && !product.soldOut && (
               <span className="relative inline-flex items-center gap-1.5 overflow-hidden rounded-full bg-ink py-1 pl-1.5 pr-3 text-cream shadow-md animate-badge-pop">
                 <span
@@ -109,7 +107,7 @@ export default function ProductCard({
             alt={`${title} Butter Love ${sizeLabel(product, size)}`}
             fill
             sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 25vw"
-            className="absolute inset-0 object-cover"
+            className={`absolute inset-0 object-cover ${faded}`}
           />
         ) : (
           <>
@@ -124,12 +122,19 @@ export default function ProductCard({
                 alt={`${title} Butter Love ${sizeLabel(product, size)}`}
                 fill
                 sizes="(max-width: 640px) 92vw, (max-width: 1024px) 46vw, 25vw"
-                className="object-contain object-bottom drop-shadow-xl"
+                className={`object-contain object-bottom drop-shadow-xl ${faded}`}
               />
             </div>
           </>
         )}
 
+        {product.soldOut && (
+          <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center">
+            <span className="-rotate-12 rounded-xl border-4 border-red-600 bg-white/90 px-5 py-2 font-display font-700 text-3xl uppercase tracking-wider text-red-600 shadow-lg">
+              Agotado
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Pie de la tarjeta: el nombre arriba y, debajo, el precio frente al
@@ -149,13 +154,17 @@ export default function ProductCard({
             {title}
           </Link>
           <div className="flex items-center justify-between gap-2">
-            <span className="font-display font-700 text-2xl leading-none text-ink">
+            <span
+              className={`font-display font-700 text-2xl leading-none ${
+                product.soldOut ? "text-ink-soft line-through" : "text-ink"
+              }`}
+            >
               ${size.price.toFixed(2)}
             </span>
             {/* Con el renglón para él solo, el botón crece a un tamaño cómodo
                 para el pulgar. */}
             {product.soldOut ? (
-              <span className="shrink-0 rounded-full ring-1 ring-ink/25 text-ink-soft px-4 py-2 text-sm font-semibold">
+              <span className="shrink-0 rounded-full bg-red-600 text-white px-4 py-2 text-sm font-semibold">
                 Agotado
               </span>
             ) : (

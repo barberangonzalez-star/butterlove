@@ -170,11 +170,17 @@ export default function ProductPurchase({ product }: { product: Product }) {
       )}
 
       {product.soldOut ? (
-        // Sold out: no quantity and no buy buttons, just the word. The rest of
-        // the page stays, so it still reads as a product that will be back.
-        <p className="mt-6 rounded-full bg-ink/5 px-6 py-4 text-center text-base font-semibold text-ink-soft">
-          Agotado por ahora
-        </p>
+        // Sold out: no quantity and no buy buttons, a red notice in their
+        // place. The rest of the page stays, so it still reads as a product
+        // that will be back.
+        <div className="mt-6 rounded-2xl border-2 border-red-600 bg-red-50 px-5 py-4 text-center">
+          <p className="font-display font-700 text-2xl uppercase tracking-wider text-red-600">
+            Agotado
+          </p>
+          <p className="mt-1 text-sm text-ink">
+            Se nos acabó por ahora. Pronto vuelve a estar disponible.
+          </p>
+        </div>
       ) : (
       <>
       <div className="mt-6 flex items-center gap-3">
