@@ -860,14 +860,43 @@ const registrarVenta = tool({
 
 const tasaBcv = tool({
   description:
-    "La tasa oficial del BCV del día: bolívares por dólar y por euro, con la fecha en que se publicó. Para cuánto está el dólar, cuánto está el euro, pasar un monto a bolívares.",
-  inputSchema: z.object({}),
-  execute: async () => {
+    "La tasa oficial del BCV del día: bolívares por dólar y por euro, con la fecha en que se publicó. Para cuánto está el dólar, cuánto está el euro, y para convertir un monto en cualquier sentido: dólares o euros a bolívares, o bolívares a dólares y euros. Pasa monto y moneda y usa el campo conversion tal cual; no hagas la cuenta tú.",
+  inputSchema: z.object({
+    monto: z
+      .number()
+      .positive()
+      .optional()
+      .describe("Monto a convertir, como número: 226293.75, no \"226.293,75\"."),
+    moneda: z
+      .enum(["USD", "EUR", "VES"])
+      .optional()
+      .describe("En qué moneda está el monto. VES son bolívares."),
+  }),
+  execute: async ({ monto, moneda }) => {
     const { usd: dolar, eur: euro } = await getBcvRates();
+    const round = (n: number) => Math.round(n * 100) / 100;
+
+    // Converts in the code, not in the model: it is the same sum the panel's
+    // converter does, and a figure the model works out itself can be off.
+    let conversion = null;
+    if (monto !== undefined && moneda) {
+      if (moneda === "VES") {
+        conversion = {
+          bolivares: monto,
+          dolares: dolar ? round(monto / dolar.rate) : null,
+          euros: euro ? round(monto / euro.rate) : null,
+        };
+      } else {
+        const rate = moneda === "USD" ? dolar?.rate : euro?.rate;
+        conversion = { [moneda === "USD" ? "dolares" : "euros"]: monto, bolivares: rate ? round(monto * rate) : null };
+      }
+    }
+
     // Cada moneda viene por su lado: si una falla, la otra se sigue dando.
     return {
       usd: dolar ? { bsPorUnidad: dolar.rate, actualizada: dolar.updatedAt } : null,
       eur: euro ? { bsPorUnidad: euro.rate, actualizada: euro.updatedAt } : null,
+      conversion,
     };
   },
 });
